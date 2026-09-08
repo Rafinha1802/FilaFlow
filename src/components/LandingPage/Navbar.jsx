@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, Building2, Smartphone, ArrowRight, LogOut } from 'lucide-react';
+import { Layers, Building2, ArrowRight, LogOut } from 'lucide-react';
 
 export default function Navbar({
   isAuthenticated,
@@ -62,17 +62,6 @@ export default function Navbar({
 
         {/* Header Actions */}
         <div className="ff-header-actions">
-          {/* Client Mobile App Access */}
-          <button
-            className="btn-outline-purple"
-            onClick={onOpenClient}
-            title="Acompanhe sua senha em tempo real no celular"
-            style={{ padding: '8px 14px', fontSize: 13 }}
-          >
-            <Smartphone size={15} />
-            <span>Minhas Filas (Cliente)</span>
-          </button>
-
           {/* Conditional Auth Actions */}
           {isAuthenticated ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

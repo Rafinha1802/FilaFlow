@@ -42,15 +42,17 @@ export function useAppRouter() {
     window.scrollTo(0, 0);
   }, []);
 
+  const isCheckoutRoute = currentPath === '/checkout' || currentPath === '/pagamento';
   const isAppRoute = currentPath === '/app' || currentPath.startsWith('/app/');
   const isCompanyRoute = currentPath === '/empresa' || currentPath === '/empresa/dashboard';
-  const isSiteRoute = !isAppRoute && !isCompanyRoute;
+  const isSiteRoute = !isAppRoute && !isCompanyRoute && !isCheckoutRoute;
 
   return {
     currentPath,
     navigate,
     isAppRoute,
     isCompanyRoute,
+    isCheckoutRoute,
     isSiteRoute
   };
 }

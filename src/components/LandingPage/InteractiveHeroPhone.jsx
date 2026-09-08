@@ -1,7 +1,7 @@
 import React from 'react';
 import { Wifi, Battery, Clock, Sparkles } from 'lucide-react';
 
-export default function InteractiveHeroPhone({ activeQueue, onOpenMobileApp }) {
+export default function InteractiveHeroPhone({ activeQueue }) {
   const queue = activeQueue || {
     companyName: 'Clínica Vida',
     unitName: 'Centro',
@@ -18,7 +18,7 @@ export default function InteractiveHeroPhone({ activeQueue, onOpenMobileApp }) {
   };
 
   return (
-    <div className="ff-phone-wrapper" onClick={onOpenMobileApp} style={{ cursor: 'pointer' }} title="Clique para abrir o App Mobile completo">
+    <div className="ff-phone-wrapper">
       <div className="ff-phone-glow"></div>
 
       <div className="ff-phone-device">
@@ -94,7 +94,7 @@ export default function InteractiveHeroPhone({ activeQueue, onOpenMobileApp }) {
             {/* Live Indicator Footer */}
             <div className="ff-phone-live-footer">
               <Sparkles size={13} />
-              <span>Acompanhando ao vivo • Toque para abrir</span>
+              <span>Previsão de fila em tempo real</span>
             </div>
           </div>
 

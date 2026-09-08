@@ -152,7 +152,7 @@ export default function PricingModal({ isOpen, onClose, onSelectPlan }) {
                   </div>
 
                   <button
-                    onClick={() => onSelectPlan(plan)}
+                    onClick={() => onSelectPlan(plan, billingCycle)}
                     style={{
                       padding: '10px 16px',
                       borderRadius: 10,

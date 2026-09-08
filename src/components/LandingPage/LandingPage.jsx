@@ -2,7 +2,6 @@ import React from 'react';
 import { 
   Sparkles, 
   ArrowRight, 
-  Smartphone, 
   Building2, 
   QrCode, 
   Clock, 
@@ -26,7 +25,6 @@ import { CATEGORIES_LIST } from '../../data/mockData';
 
 export default function LandingPage({
   activeQueue,
-  onOpenMobileApp,
   onOpenSignup,
   onOpenLogin,
   onOpenPricing
@@ -102,9 +100,8 @@ export default function LandingPage({
               <ArrowRight size={16} />
             </button>
 
-            <button className="btn-outline-purple" onClick={onOpenMobileApp}>
-              <Smartphone size={16} />
-              <span>Experimentar App no Celular</span>
+            <button className="btn-outline-purple" onClick={onOpenPricing}>
+              <span>Ver Planos & Preços</span>
             </button>
           </div>
 
@@ -125,7 +122,6 @@ export default function LandingPage({
         <div className="ff-hero-phone-col">
           <InteractiveHeroPhone 
             activeQueue={activeQueue} 
-            onOpenMobileApp={onOpenMobileApp} 
           />
         </div>
       </section>
@@ -419,11 +415,6 @@ export default function LandingPage({
             <button className="btn-cta-ghost" onClick={onOpenPricing}>
               <span>Ver Planos e Preços</span>
             </button>
-
-            <button className="btn-cta-ghost" onClick={onOpenMobileApp}>
-              <Smartphone size={16} />
-              <span>Testar no Celular</span>
-            </button>
           </div>
         </div>
       </section>
@@ -457,7 +448,6 @@ export default function LandingPage({
             <button onClick={onOpenPricing} style={{ color: '#94a3b8' }}>Planos</button>
             <button onClick={onOpenSignup} style={{ color: '#94a3b8' }}>Cadastrar Empresa</button>
             <button onClick={onOpenLogin} style={{ color: '#94a3b8' }}>Acessar Painel</button>
-            <button onClick={onOpenMobileApp} style={{ color: '#94a3b8' }}>App do Cliente</button>
           </div>
 
           <div style={{ fontSize: 12, color: '#64748b' }}>

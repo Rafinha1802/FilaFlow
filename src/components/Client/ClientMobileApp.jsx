@@ -63,42 +63,61 @@ export default function ClientMobileApp({
   return (
     <div className="ff-mobile-view-wrapper">
       {/* Top external navigation bar (Desktop only preview) */}
-      {!isFullScreen && (
+      {!isFullScreen ? (
         <header className="ff-mobile-external-nav">
           <button
             onClick={onGoToLanding}
             className="ff-ext-nav-btn"
-            title="Retornar ao Site Institucional (/)"
+            title="Voltar à Página Inicial"
           >
-            <ArrowLeft size={14} />
-            <span>Voltar ao Site (/)</span>
+            <ArrowLeft size={13} />
+            <span>Site</span>
           </button>
 
           <div className="ff-ext-nav-brand-badge">
-            <span className="live-dot"></span>
-            <span>FilaFlow Mobile • /app</span>
+            <span className="live-dot" />
+            <span>App Mobile</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button
               onClick={onGoToCompany}
               className="ff-ext-nav-btn purple"
-              title="Abrir o painel da empresa (/empresa)"
+              title="Acessar Painel da Empresa"
             >
-              <Building2 size={14} />
-              <span>Painel Empresa</span>
+              <Building2 size={13} />
+              <span>Painel</span>
             </button>
 
             <button
-              onClick={() => setIsFullScreen(!isFullScreen)}
+              onClick={() => setIsFullScreen(true)}
               className="ff-ext-nav-btn"
-              title="Alternar entre modo smartphone e tela cheia"
+              title="Expandir para tela cheia"
             >
               <Maximize2 size={13} />
               <span>Expandir</span>
             </button>
           </div>
         </header>
+      ) : (
+        <button
+          onClick={() => setIsFullScreen(false)}
+          className="ff-ext-nav-btn"
+          style={{
+            position: 'fixed',
+            top: 14,
+            right: 14,
+            zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.85)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: 999,
+            padding: '7px 14px'
+          }}
+          title="Voltar ao modo smartphone"
+        >
+          <Minimize2 size={13} />
+          <span>Modo Celular</span>
+        </button>
       )}
 
       {/* Device Frame */}

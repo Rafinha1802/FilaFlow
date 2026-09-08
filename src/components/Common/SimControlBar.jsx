@@ -10,7 +10,8 @@ import {
   ChevronDown,
   ChevronUp,
   Sliders,
-  LogIn
+  LogIn,
+  CreditCard
 } from 'lucide-react';
 
 export default function SimControlBar({
@@ -143,11 +144,11 @@ export default function SimControlBar({
             </button>
 
             <button
-              className={`ff-sim-nav-btn ${currentView === 'client-mobile' ? 'active' : ''}`}
-              onClick={() => setCurrentView('client-mobile')}
+              className={`ff-sim-nav-btn ${currentView === 'checkout' ? 'active' : ''}`}
+              onClick={() => setCurrentView('checkout')}
             >
-              <Smartphone size={12} />
-              <span>Celular</span>
+              <CreditCard size={12} />
+              <span>Pagamento</span>
             </button>
           </div>
         </div>

@@ -9,13 +9,18 @@ import QrScannerModal from './components/Client/QrScannerModal';
 import PreCheckinModal from './components/Client/PreCheckinModal';
 import QueueSearchModal from './components/Client/QueueSearchModal';
 import PricingModal from './components/Common/PricingModal';
+import CheckoutPage from './components/Checkout/CheckoutPage';
 import SimControlBar from './components/Common/SimControlBar';
 import { INITIAL_QUEUES } from './data/mockData';
 
 export default function App() {
-  // Client-Side History Router: '/' (Site) | '/app' (Mobile App) | '/empresa' (SaaS B2B)
-  const { currentPath, navigate, isAppRoute, isCompanyRoute, isSiteRoute } = useAppRouter();
+  // Client-Side History Router: '/' (Site) | '/app' (Mobile App) | '/empresa' (SaaS B2B) | '/checkout' (Pagamento)
+  const { currentPath, navigate, isAppRoute, isCompanyRoute, isCheckoutRoute, isSiteRoute } = useAppRouter();
   const [authInitialTab, setAuthInitialTab] = useState('login');
+
+  // Checkout Selected Plan State
+  const [checkoutPlan, setCheckoutPlan] = useState('Profissional');
+  const [checkoutCycle, setCheckoutCycle] = useState('monthly');
 
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -330,7 +335,6 @@ export default function App() {
           onOpenLogin={handleOpenLogin}
           onOpenSignup={handleOpenSignup}
           onOpenDashboard={handleOpenDashboard}
-          onOpenClient={handleOpenClient}
           onOpenPricing={() => setIsPricingOpen(true)}
           onLogout={handleLogout}
         />
@@ -379,7 +383,6 @@ export default function App() {
       {isSiteRoute && (
         <LandingPage
           activeQueue={clientActiveQueues[0]}
-          onOpenMobileApp={handleOpenClient}
           onOpenSignup={handleOpenSignup}
           onOpenLogin={handleOpenLogin}
           onOpenPricing={() => setIsPricingOpen(true)}
@@ -433,13 +436,44 @@ export default function App() {
         )
       )}
 
+      {/* ROUTE 4: /checkout (Página de Pagamento / Checkout por Pix, Cartão e Boleto) */}
+      {isCheckoutRoute && (
+        <CheckoutPage
+          initialPlanName={checkoutPlan}
+          initialBillingCycle={checkoutCycle}
+          onGoBack={() => navigate('/')}
+          onPaymentSuccess={(order) => {
+            if (order && order.companyName) {
+              setBusinessData((prev) => ({
+                ...prev,
+                companyName: order.companyName,
+                attendantName: order.customerName || prev.attendantName,
+                email: order.email || prev.email
+              }));
+              setIsAuthenticated(true);
+              setCurrentUser({
+                name: order.customerName || 'Responsável',
+                email: order.email || 'contato@empresa.com.br',
+                companyName: order.companyName,
+                unitName: 'Unidade Principal'
+              });
+            }
+            navigate('/empresa/dashboard');
+            playChime();
+            showToast(`Assinatura do ${order ? order.planName : 'Plano'} ativada com sucesso!`);
+          }}
+        />
+      )}
+
       {/* Modais Globais Compartilhados */}
       <PricingModal
         isOpen={isPricingOpen}
         onClose={() => setIsPricingOpen(false)}
-        onSelectPlan={(plan) => {
+        onSelectPlan={(plan, cycle = 'monthly') => {
           setIsPricingOpen(false);
-          handleOpenSignup();
+          setCheckoutPlan(plan.name);
+          setCheckoutCycle(cycle);
+          navigate('/checkout');
         }}
       />
 
@@ -464,11 +498,20 @@ export default function App() {
 
       {/* Floating Simulation Bar (Discreta no rodapé para testes rápidos) */}
       <SimControlBar
-        currentView={isAppRoute ? 'client-mobile' : isCompanyRoute ? (currentPath === '/empresa/dashboard' ? 'company-dashboard' : 'company-auth') : 'landing'}
+        currentView={
+          isAppRoute 
+            ? 'client-mobile' 
+            : isCompanyRoute 
+              ? (currentPath === '/empresa/dashboard' ? 'company-dashboard' : 'company-auth') 
+              : isCheckoutRoute 
+                ? 'checkout' 
+                : 'landing'
+        }
         setCurrentView={(view) => {
           if (view === 'client-mobile') navigate('/app');
           else if (view === 'company-dashboard') navigate('/empresa/dashboard');
           else if (view === 'company-auth') navigate('/empresa');
+          else if (view === 'checkout') navigate('/checkout');
           else navigate('/');
         }}
         onNextTicket={handleCallNextTicket}

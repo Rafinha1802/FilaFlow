@@ -30,7 +30,8 @@ import {
   X,
   Radio,
   Star,
-  MessageSquare
+  MessageSquare,
+  Copy
 } from 'lucide-react';
 
 export default function CompanyDashboard({
@@ -52,6 +53,11 @@ export default function CompanyDashboard({
   const [showManualModal, setShowManualModal] = useState(false);
   const [showTvModal, setShowTvModal] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Reception Notice / Broadcast state for TV and Dashboard
+  const [receptionNotice, setReceptionNotice] = useState('Dra. Beatriz Santos está atendendo no Consultório 04. Por favor, aguarde sua senha.');
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [noticeDraft, setNoticeDraft] = useState('');
 
   // Filter and Search for Operational Queue
   const [searchQuery, setSearchQuery] = useState('');
@@ -329,36 +335,78 @@ export default function CompanyDashboard({
 
         {/* Dashboard Topbar Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Nova Senha Balcão */}
+          <button
+            className="btn-primary"
+            onClick={() => setShowManualModal(true)}
+            title="Emitir senha presencial rápida de balcão"
+            style={{ padding: '7px 14px', fontSize: 12, background: '#7c3aed', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Plus size={14} />
+            <span className="hidden-mobile">Nova Senha Balcão</span>
+          </button>
+
+          {/* Modo Telão TV */}
           <button
             className="btn-outline-purple"
             onClick={() => setShowTvModal(true)}
             title="Abrir painel de chamadas em tela cheia para TV de recepção"
-            style={{ padding: '7px 12px', fontSize: 12 }}
+            style={{ padding: '7px 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <Tv size={14} />
             <span className="hidden-mobile">Modo Telão TV</span>
           </button>
 
-          <button
-            className="btn-outline-purple"
-            onClick={onOpenMobileTest}
-            title="Abrir a visão do cliente no smartphone"
-            style={{ padding: '7px 12px', fontSize: 12 }}
-          >
-            <Smartphone size={14} />
-            <span className="hidden-mobile">Ver no Celular</span>
-          </button>
-
+          {/* Comunicado da Recepção */}
           <button
             className="btn-ghost"
-            onClick={onGoToSite}
-            title="Ir para a página inicial do site"
-            style={{ padding: '7px 12px', fontSize: 12, border: '1px solid #e2e8f0' }}
+            onClick={() => {
+              setNoticeDraft(receptionNotice);
+              setShowNoticeModal(true);
+            }}
+            title="Enviar comunicado para a recepção e telão de espera"
+            style={{
+              padding: '7px 12px',
+              fontSize: 12,
+              border: '1px solid #e2e8f0',
+              color: receptionNotice ? '#7c3aed' : '#475569',
+              background: receptionNotice ? '#faf5ff' : '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
           >
-            <Globe size={14} />
-            <span className="hidden-mobile">Ir ao Site</span>
+            <MessageSquare size={14} />
+            <span className="hidden-mobile">Aviso Recepção</span>
+            {receptionNotice && (
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7c3aed' }} />
+            )}
           </button>
 
+          {/* Som Ativo / Mudo */}
+          <button
+            onClick={() => {
+              setSoundEnabled(!soundEnabled);
+              showNotification(!soundEnabled ? 'Alertas sonoros ativados!' : 'Alertas sonoros silenciados.');
+            }}
+            className="btn-ghost"
+            title={soundEnabled ? 'Desativar alertas sonoros' : 'Ativar alertas sonoros'}
+            style={{
+              padding: '7px 12px',
+              fontSize: 12,
+              border: '1px solid #e2e8f0',
+              color: soundEnabled ? '#15803d' : '#64748b',
+              background: soundEnabled ? '#f0fdf4' : '#f8fafc',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
+            {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+            <span className="hidden-mobile">{soundEnabled ? 'Som Ativo' : 'Mudo'}</span>
+          </button>
+
+          {/* Sair */}
           <button
             onClick={onLogout}
             title="Sair do painel da empresa"
@@ -381,6 +429,72 @@ export default function CompanyDashboard({
           </button>
         </div>
       </header>
+
+      {/* Active Reception Notice Banner */}
+      {receptionNotice && (
+        <div style={{
+          background: 'linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%)',
+          border: '1px solid #ddd6fe',
+          borderRadius: 12,
+          padding: '10px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          marginBottom: 16
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              background: '#7c3aed',
+              color: 'white',
+              borderRadius: 6,
+              padding: '3px 8px',
+              fontSize: 11,
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}>
+              <MessageSquare size={12} />
+              <span>Aviso da Recepção</span>
+            </div>
+            <span style={{ fontSize: 13, color: '#4c1d95', fontWeight: 600 }}>{receptionNotice}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => {
+                setNoticeDraft(receptionNotice);
+                setShowNoticeModal(true);
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#7c3aed',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Editar
+            </button>
+            <button
+              onClick={() => setReceptionNotice('')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#94a3b8',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+              title="Remover aviso"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ============================================================
           TAB 1: FILA OPERACIONAL (REESTRUTURADA E PODEROSA)
@@ -1328,11 +1442,16 @@ export default function CompanyDashboard({
 
             <button
               className="btn-outline-purple"
-              onClick={onOpenMobileTest}
-              style={{ padding: '12px 24px' }}
+              onClick={() => {
+                const checkinUrl = `${window.location.origin}/app`;
+                navigator.clipboard.writeText(checkinUrl);
+                showNotification('Link copiado: ' + checkinUrl);
+              }}
+              style={{ padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 8 }}
+              title="Copiar link para enviar a clientes ou totem"
             >
-              <Smartphone size={16} />
-              <span>Testar no Celular</span>
+              <Copy size={16} />
+              <span>Copiar Link da Fila (/app)</span>
             </button>
           </div>
         </div>
@@ -1402,6 +1521,27 @@ export default function CompanyDashboard({
               </button>
             </div>
           </div>
+
+          {/* Active Reception Announcement Bar in TV */}
+          {receptionNotice && (
+            <div style={{
+              background: 'rgba(124, 58, 237, 0.35)',
+              border: '1.5px solid rgba(167, 139, 250, 0.5)',
+              borderRadius: 14,
+              padding: '12px 24px',
+              margin: '18px 0 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              fontSize: 18,
+              color: '#ffffff',
+              fontWeight: 600,
+              boxShadow: '0 8px 24px rgba(124, 58, 237, 0.2)'
+            }}>
+              <MessageSquare size={22} color="#a78bfa" />
+              <span><strong>AVISO DA RECEPÇÃO:</strong> {receptionNotice}</span>
+            </div>
+          )}
 
           {/* Huge Center Ticket Card */}
           <div style={{
@@ -1572,6 +1712,107 @@ export default function CompanyDashboard({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Notice / Broadcast Modal */}
+      {showNoticeModal && (
+        <div className="ff-modal-overlay" onClick={() => setShowNoticeModal(false)}>
+          <div className="ff-modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540 }}>
+            <div className="ff-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#ede9fe', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <MessageSquare size={18} />
+                </div>
+                <div>
+                  <h3 className="ff-modal-title">Comunicado da Recepção</h3>
+                  <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>Exibido no topo do painel e no Telão TV da sala de espera</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowNoticeModal(false)} 
+                style={{ color: '#64748b', cursor: 'pointer', background: 'none', border: 'none', fontSize: 18 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: '20px 24px 24px' }}>
+              <label className="ff-form-label" style={{ marginBottom: 8, display: 'block' }}>
+                Texto do Aviso ou Comunicado
+              </label>
+              <textarea
+                className="ff-form-input"
+                rows={3}
+                style={{ width: '100%', padding: '10px 14px', resize: 'vertical', fontSize: 13, minHeight: 80 }}
+                placeholder="Ex: Dra. Beatriz está em atendimento no Consultório 04. Aguarde ser chamado."
+                value={noticeDraft}
+                onChange={(e) => setNoticeDraft(e.target.value)}
+              />
+
+              {/* Quick Template Chips */}
+              <div style={{ marginTop: 14 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Sugestões Rápidas:
+                </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                  {[
+                    'Atendimento normal nos consultórios e guichês',
+                    'Intervalo da equipe técnica (retorno em 10 minutos)',
+                    'Prioridades por lei sendo chamadas preferencialmente',
+                    'Favor retirar o comprovante de saída no balcão principal'
+                  ].map((chip, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setNoticeDraft(chip)}
+                      style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 999,
+                        padding: '5px 12px',
+                        fontSize: 12,
+                        color: '#475569',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReceptionNotice('');
+                    setShowNoticeModal(false);
+                    showNotification('Comunicado removido do telão e do painel.');
+                  }}
+                  className="btn-ghost"
+                  style={{ flex: 1, padding: 11, border: '1px solid #e2e8f0', justifyContent: 'center' }}
+                >
+                  Limpar Aviso
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReceptionNotice(noticeDraft);
+                    setShowNoticeModal(false);
+                    showNotification('Comunicado publicado com sucesso no Telão e Painel!');
+                  }}
+                  className="btn-primary"
+                  style={{ flex: 1.5, padding: 11, background: '#7c3aed', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Send size={15} />
+                  <span>Publicar no Telão</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
