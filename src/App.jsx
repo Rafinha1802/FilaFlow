@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import Navbar from './components/Navbar';
+import { useAppRouter } from './router/useAppRouter';
+import Navbar from './components/LandingPage/Navbar';
 import LandingPage from './components/LandingPage/LandingPage';
 import CompanyDashboard from './components/Company/CompanyDashboard';
 import CompanyAuth from './components/Company/CompanyAuth';
@@ -12,8 +13,8 @@ import SimControlBar from './components/Common/SimControlBar';
 import { INITIAL_QUEUES } from './data/mockData';
 
 export default function App() {
-  // Navigation View State: 'landing' | 'company-auth' | 'company-dashboard' | 'client-mobile'
-  const [currentView, setCurrentView] = useState('landing');
+  // Client-Side History Router: '/' (Site) | '/app' (Mobile App) | '/empresa' (SaaS B2B)
+  const { currentPath, navigate, isAppRoute, isCompanyRoute, isSiteRoute } = useAppRouter();
   const [authInitialTab, setAuthInitialTab] = useState('login');
 
   // Authentication State
@@ -97,7 +98,7 @@ export default function App() {
       companyName: data.companyName || 'Clínica Vida',
       unitName: data.unitName || 'Unidade Centro'
     });
-    setCurrentView('company-dashboard');
+    navigate('/empresa/dashboard');
     playChime();
     showToast(`Conectado com sucesso como ${data.companyName || 'Clínica Vida'}!`);
   };
@@ -111,7 +112,7 @@ export default function App() {
       companyName: data.companyName,
       unitName: data.unitName
     });
-    setCurrentView('company-dashboard');
+    navigate('/empresa/dashboard');
     playChime();
     showToast(`Parabéns! Fila de ${data.companyName} ativada com sucesso!`);
   };
@@ -119,31 +120,31 @@ export default function App() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
-    setCurrentView('landing');
+    navigate('/');
     showToast('Sessão encerrada com sucesso.');
   };
 
   const handleOpenLogin = () => {
     setAuthInitialTab('login');
-    setCurrentView('company-auth');
+    navigate('/empresa');
   };
 
   const handleOpenSignup = () => {
     setAuthInitialTab('register');
-    setCurrentView('company-auth');
+    navigate('/empresa');
   };
 
   const handleOpenDashboard = () => {
     if (isAuthenticated) {
-      setCurrentView('company-dashboard');
+      navigate('/empresa/dashboard');
     } else {
       setAuthInitialTab('login');
-      setCurrentView('company-auth');
+      navigate('/empresa');
     }
   };
 
   const handleOpenClient = () => {
-    setCurrentView('client-mobile');
+    navigate('/app');
   };
 
   // 1. Call Next Ticket in Company Dashboard
@@ -272,7 +273,7 @@ export default function App() {
     setClientActiveQueues([newQueueItem, ...clientActiveQueues]);
     setSelectedQueueId(newQueueItem.id);
     setIsPreCheckinOpen(false);
-    setCurrentView('client-mobile');
+    navigate('/app');
     playChime();
     showToast(`Check-in confirmado! Sua senha é #${randomTicket}.`);
   };
@@ -289,7 +290,7 @@ export default function App() {
 
   // 8. Client actions: "Estou a caminho" & "Pedir +5 min"
   const handleClientImOnMyWay = (queueId) => {
-    // Notify company
+    showToast('Atendente notificado: "Você está a caminho!"');
   };
 
   const handleClientAskMoreTime = (queueId) => {
@@ -320,12 +321,12 @@ export default function App() {
 
   return (
     <div className="ff-app-root">
-      {/* Top Navbar - Only rendered on the public landing page */}
-      {currentView === 'landing' && (
+      {/* Top Navbar - Only rendered on Site Institucional (/) */}
+      {isSiteRoute && (
         <Navbar
           isAuthenticated={isAuthenticated}
           currentUser={currentUser}
-          onGoToLanding={() => setCurrentView('landing')}
+          onGoToLanding={() => navigate('/')}
           onOpenLogin={handleOpenLogin}
           onOpenSignup={handleOpenSignup}
           onOpenDashboard={handleOpenDashboard}
@@ -335,25 +336,26 @@ export default function App() {
         />
       )}
 
-      {/* Global Call Alert Banner (pops up on call or important notification) */}
+      {/* Global Call Alert Banner */}
       {callAlertMessage && (
         <div style={{
           position: 'fixed',
-          top: 84,
+          top: isAppRoute ? 16 : 84,
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 4000,
           background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
           color: 'white',
-          padding: '14px 24px',
+          padding: '12px 22px',
           borderRadius: 14,
           boxShadow: '0 20px 40px rgba(16, 185, 129, 0.4)',
           fontWeight: 800,
-          fontSize: 15,
+          fontSize: 14,
           display: 'flex',
           alignItems: 'center',
           gap: 12,
-          animation: 'slide-in-down 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          animation: 'slide-in-down 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          maxWidth: '90vw'
         }}>
           <span>{callAlertMessage}</span>
           <button 
@@ -373,8 +375,8 @@ export default function App() {
         </div>
       )}
 
-      {/* VIEW 1: Site Institucional (Landing Page) */}
-      {currentView === 'landing' && (
+      {/* ROUTE 1: / (Site Institucional / Landing Page) */}
+      {isSiteRoute && (
         <LandingPage
           activeQueue={clientActiveQueues[0]}
           onOpenMobileApp={handleOpenClient}
@@ -384,36 +386,8 @@ export default function App() {
         />
       )}
 
-      {/* VIEW 2: Autenticação Unificada (Login & Cadastro) */}
-      {currentView === 'company-auth' && (
-        <CompanyAuth
-          initialTab={authInitialTab}
-          onLoginSuccess={handleLoginSuccess}
-          onRegisterSuccess={handleRegisterSuccess}
-          onBackToLanding={() => setCurrentView('landing')}
-          onGoToClient={handleOpenClient}
-        />
-      )}
-
-      {/* VIEW 3: Painel da Empresa (Dashboard Operacional SaaS) */}
-      {currentView === 'company-dashboard' && (
-        <CompanyDashboard
-          businessData={businessData}
-          activeAttendingTicket={activeAttendingTicket}
-          waitingQueue={companyWaitingQueue}
-          onCallNext={handleCallNextTicket}
-          onReportDelay={handleReportDelay}
-          onFinishCurrent={handleFinishCurrent}
-          onSkipTicket={handleSkipTicket}
-          onAddManualTicket={handleAddManualTicket}
-          onOpenMobileTest={handleOpenClient}
-          onGoToSite={() => setCurrentView('landing')}
-          onLogout={handleLogout}
-        />
-      )}
-
-      {/* VIEW 4: App do Cliente (Multi-Filas no Celular) */}
-      {currentView === 'client-mobile' && (
+      {/* ROUTE 2: /app (Mobile App Separado do Site) */}
+      {isAppRoute && (
         <ClientMobileApp
           activeQueues={clientActiveQueues}
           selectedQueueId={selectedQueueId}
@@ -425,12 +399,41 @@ export default function App() {
           onClientAskMoreTime={handleClientAskMoreTime}
           hasConflict={hasConflict}
           onDismissConflict={() => setHasConflict(false)}
-          onGoToLanding={() => setCurrentView('landing')}
+          onGoToLanding={() => navigate('/')}
           onGoToCompany={handleOpenDashboard}
+          onSelectBusiness={handleSearchSelectBusiness}
+          onPlayChime={playChime}
         />
       )}
 
-      {/* Modais Globais */}
+      {/* ROUTE 3: /empresa (Autenticação ou Painel Operacional B2B) */}
+      {isCompanyRoute && (
+        currentPath === '/empresa/dashboard' && isAuthenticated ? (
+          <CompanyDashboard
+            businessData={businessData}
+            activeAttendingTicket={activeAttendingTicket}
+            waitingQueue={companyWaitingQueue}
+            onCallNext={handleCallNextTicket}
+            onReportDelay={handleReportDelay}
+            onFinishCurrent={handleFinishCurrent}
+            onSkipTicket={handleSkipTicket}
+            onAddManualTicket={handleAddManualTicket}
+            onOpenMobileTest={handleOpenClient}
+            onGoToSite={() => navigate('/')}
+            onLogout={handleLogout}
+          />
+        ) : (
+          <CompanyAuth
+            initialTab={authInitialTab}
+            onLoginSuccess={handleLoginSuccess}
+            onRegisterSuccess={handleRegisterSuccess}
+            onBackToLanding={() => navigate('/')}
+            onGoToClient={handleOpenClient}
+          />
+        )
+      )}
+
+      {/* Modais Globais Compartilhados */}
       <PricingModal
         isOpen={isPricingOpen}
         onClose={() => setIsPricingOpen(false)}
@@ -459,17 +462,22 @@ export default function App() {
         onSelectBusiness={handleSearchSelectBusiness}
       />
 
-      {/* Floating Simulation Bar (Retrátil no Canto Inferior) */}
+      {/* Floating Simulation Bar (Discreta no rodapé para testes rápidos) */}
       <SimControlBar
-        currentView={currentView}
-        setCurrentView={setCurrentView}
+        currentView={isAppRoute ? 'client-mobile' : isCompanyRoute ? (currentPath === '/empresa/dashboard' ? 'company-dashboard' : 'company-auth') : 'landing'}
+        setCurrentView={(view) => {
+          if (view === 'client-mobile') navigate('/app');
+          else if (view === 'company-dashboard') navigate('/empresa/dashboard');
+          else if (view === 'company-auth') navigate('/empresa');
+          else navigate('/');
+        }}
         onNextTicket={handleCallNextTicket}
         onSimulateDelay={handleReportDelay}
         onToggleConflict={() => setHasConflict(!hasConflict)}
         onResetQueues={handleResetQueues}
         onOpenAuth={(tab) => {
           setAuthInitialTab(tab);
-          setCurrentView('company-auth');
+          navigate('/empresa');
         }}
       />
     </div>
