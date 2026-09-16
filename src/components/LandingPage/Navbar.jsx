@@ -1,5 +1,5 @@
-import React from 'react';
-import { Layers, Building2, ArrowRight, LogOut } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Layers, Building2, ArrowRight, LogOut, Stethoscope, ChevronDown } from 'lucide-react';
 
 export default function Navbar({
   isAuthenticated,
@@ -10,12 +10,40 @@ export default function Navbar({
   onOpenDashboard,
   onOpenClient,
   onOpenPricing,
+  onOpenProfessional,
   onLogout
 }) {
+  const [isLoginMenuOpen, setIsLoginMenuOpen] = useState(false);
+  const loginMenuRef = useRef(null);
+
   const scrollToSection = (id) => {
     const el = document.getElementById(id);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (loginMenuRef.current && !loginMenuRef.current.contains(event.target)) {
+        setIsLoginMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectLoginRole = (role) => {
+    setIsLoginMenuOpen(false);
+    if (role === 'professional') {
+      if (onOpenProfessional) {
+        onOpenProfessional();
+      } else {
+        onOpenLogin('professional');
+      }
+    } else {
+      onOpenLogin('company');
     }
   };
 
@@ -94,13 +122,66 @@ export default function Navbar({
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button
-                className="btn-ghost"
-                onClick={onOpenLogin}
-                style={{ padding: '8px 16px', fontSize: 14 }}
-              >
-                Entrar
-              </button>
+              {/* Unified "Entrar" button with dropdown for Professional and Company */}
+              <div className="ff-login-dropdown-wrapper" ref={loginMenuRef}>
+                <button
+                  type="button"
+                  className={`btn-ghost ff-btn-login-unified ${isLoginMenuOpen ? 'active' : ''}`}
+                  onClick={() => setIsLoginMenuOpen(!isLoginMenuOpen)}
+                  aria-expanded={isLoginMenuOpen}
+                  title="Entrar na sua conta (Profissional ou Gestor)"
+                >
+                  <span>Entrar</span>
+                  <ChevronDown size={14} className={`ff-chevron-icon ${isLoginMenuOpen ? 'rotated' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isLoginMenuOpen && (
+                  <div className="ff-login-dropdown-menu">
+                    <div className="ff-dropdown-header">
+                      <span>Selecione seu perfil de acesso</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="ff-dropdown-item professional"
+                      onClick={() => handleSelectLoginRole('professional')}
+                    >
+                      <div className="ff-dropdown-item-icon pro">
+                        <Stethoscope size={18} />
+                      </div>
+                      <div className="ff-dropdown-item-text">
+                        <div className="ff-item-title-row">
+                          <span className="ff-dropdown-item-title">Área do Profissional</span>
+                          <span className="ff-dropdown-pill-pro">Consultório</span>
+                        </div>
+                        <span className="ff-dropdown-item-sub">
+                          Médico, Dentista, Chef e Atendente (Chamada de senhas & cronômetro)
+                        </span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="ff-dropdown-item company"
+                      onClick={() => handleSelectLoginRole('company')}
+                    >
+                      <div className="ff-dropdown-item-icon biz">
+                        <Building2 size={18} />
+                      </div>
+                      <div className="ff-dropdown-item-text">
+                        <div className="ff-item-title-row">
+                          <span className="ff-dropdown-item-title">Gestor da Empresa</span>
+                          <span className="ff-dropdown-pill-biz">Admin</span>
+                        </div>
+                        <span className="ff-dropdown-item-sub">
+                          Painel B2B, gestão de filas gerais, relatórios e equipe
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <button
                 className="btn-primary"

@@ -4,6 +4,7 @@ import Navbar from './components/LandingPage/Navbar';
 import LandingPage from './components/LandingPage/LandingPage';
 import CompanyDashboard from './components/Company/CompanyDashboard';
 import CompanyAuth from './components/Company/CompanyAuth';
+import ProfessionalWorkspace from './components/Professional/ProfessionalWorkspace';
 import ClientMobileApp from './components/Client/ClientMobileApp';
 import QrScannerModal from './components/Client/QrScannerModal';
 import PreCheckinModal from './components/Client/PreCheckinModal';
@@ -11,12 +12,14 @@ import QueueSearchModal from './components/Client/QueueSearchModal';
 import PricingModal from './components/Common/PricingModal';
 import CheckoutPage from './components/Checkout/CheckoutPage';
 import SimControlBar from './components/Common/SimControlBar';
-import { INITIAL_QUEUES } from './data/mockData';
+import { INITIAL_QUEUES, REGISTERED_PROFESSIONALS } from './data/mockData';
 
 export default function App() {
-  // Client-Side History Router: '/' (Site) | '/app' (Mobile App) | '/empresa' (SaaS B2B) | '/checkout' (Pagamento)
-  const { currentPath, navigate, isAppRoute, isCompanyRoute, isCheckoutRoute, isSiteRoute } = useAppRouter();
+  // Client-Side History Router: '/' (Site) | '/app' (Mobile App) | '/empresa' (SaaS B2B) | '/profissional' (Consultório) | '/checkout' (Pagamento)
+  const { currentPath, navigate, isAppRoute, isCompanyRoute, isCheckoutRoute, isProfessionalRoute, isSiteRoute } = useAppRouter();
   const [authInitialTab, setAuthInitialTab] = useState('login');
+  const [authInitialRole, setAuthInitialRole] = useState('company'); // 'company' | 'professional'
+  const [activeProfessional, setActiveProfessional] = useState(REGISTERED_PROFESSIONALS[0]);
 
   // Checkout Selected Plan State
   const [checkoutPlan, setCheckoutPlan] = useState('Profissional');
@@ -129,9 +132,26 @@ export default function App() {
     showToast('Sessão encerrada com sucesso.');
   };
 
-  const handleOpenLogin = () => {
+  const handleOpenLogin = (role = 'company') => {
     setAuthInitialTab('login');
-    navigate('/empresa');
+    setAuthInitialRole(role || 'company');
+    if (role === 'professional') {
+      if (!activeProfessional) {
+        setActiveProfessional(REGISTERED_PROFESSIONALS[0]);
+      }
+      navigate('/profissional');
+    } else {
+      navigate('/empresa');
+    }
+  };
+
+  const handleOpenProfessional = (professionalObj = null) => {
+    if (professionalObj) {
+      setActiveProfessional(professionalObj);
+    } else if (!activeProfessional) {
+      setActiveProfessional(REGISTERED_PROFESSIONALS[0]);
+    }
+    navigate('/profissional');
   };
 
   const handleOpenSignup = () => {
@@ -336,6 +356,7 @@ export default function App() {
           onOpenSignup={handleOpenSignup}
           onOpenDashboard={handleOpenDashboard}
           onOpenPricing={() => setIsPricingOpen(true)}
+          onOpenProfessional={() => handleOpenProfessional()}
           onLogout={handleLogout}
         />
       )}
@@ -362,16 +383,16 @@ export default function App() {
           maxWidth: '90vw'
         }}>
           <span>{callAlertMessage}</span>
-          <button 
+          <button
             onClick={() => setCallAlertMessage(null)}
-            style={{ 
-              color: 'white', 
-              background: 'rgba(0,0,0,0.2)', 
-              border: 'none', 
-              padding: '4px 10px', 
-              borderRadius: 6, 
+            style={{
+              color: 'white',
+              background: 'rgba(0,0,0,0.2)',
+              border: 'none',
+              padding: '4px 10px',
+              borderRadius: 6,
               cursor: 'pointer',
-              fontWeight: 700 
+              fontWeight: 700
             }}
           >
             OK
@@ -428,7 +449,42 @@ export default function App() {
         ) : (
           <CompanyAuth
             initialTab={authInitialTab}
+            initialRole={authInitialRole}
             onLoginSuccess={handleLoginSuccess}
+            onProfessionalLoginSuccess={(pro) => {
+              setActiveProfessional(pro);
+              navigate('/profissional');
+            }}
+            onRegisterSuccess={handleRegisterSuccess}
+            onBackToLanding={() => navigate('/')}
+            onGoToClient={handleOpenClient}
+          />
+        )
+      )}
+
+      {/* ROUTE 5: /profissional (Área do Profissional / Consultório Digital) */}
+      {isProfessionalRoute && (
+        activeProfessional ? (
+          <ProfessionalWorkspace
+            professional={activeProfessional}
+            allProfessionals={REGISTERED_PROFESSIONALS}
+            onSwitchProfessional={(pro) => setActiveProfessional(pro)}
+            onLogout={() => {
+              navigate('/');
+              showToast('Sessão do consultório encerrada com sucesso.');
+            }}
+            onGoToSite={() => navigate('/')}
+            onOpenMobileView={() => navigate('/app')}
+          />
+        ) : (
+          <CompanyAuth
+            initialTab="login"
+            initialRole="professional"
+            onLoginSuccess={handleLoginSuccess}
+            onProfessionalLoginSuccess={(pro) => {
+              setActiveProfessional(pro);
+              navigate('/profissional');
+            }}
             onRegisterSuccess={handleRegisterSuccess}
             onBackToLanding={() => navigate('/')}
             onGoToClient={handleOpenClient}
@@ -499,16 +555,19 @@ export default function App() {
       {/* Floating Simulation Bar (Discreta no rodapé para testes rápidos) */}
       <SimControlBar
         currentView={
-          isAppRoute 
-            ? 'client-mobile' 
-            : isCompanyRoute 
-              ? (currentPath === '/empresa/dashboard' ? 'company-dashboard' : 'company-auth') 
-              : isCheckoutRoute 
-                ? 'checkout' 
-                : 'landing'
+          isProfessionalRoute
+            ? 'professional'
+            : isAppRoute
+              ? 'client-mobile'
+              : isCompanyRoute
+                ? (currentPath === '/empresa/dashboard' ? 'company-dashboard' : 'company-auth')
+                : isCheckoutRoute
+                  ? 'checkout'
+                  : 'landing'
         }
         setCurrentView={(view) => {
-          if (view === 'client-mobile') navigate('/app');
+          if (view === 'professional') navigate('/profissional');
+          else if (view === 'client-mobile') navigate('/app');
           else if (view === 'company-dashboard') navigate('/empresa/dashboard');
           else if (view === 'company-auth') navigate('/empresa');
           else if (view === 'checkout') navigate('/checkout');

@@ -15,20 +15,29 @@ import {
   ShieldCheck
 } from 'lucide-react';
 
+import { REGISTERED_PROFESSIONALS } from '../../data/mockData';
+
 export default function CompanyAuth({
   initialTab = 'login',
+  initialRole = 'company', // 'company' | 'professional'
   onLoginSuccess,
+  onProfessionalLoginSuccess,
   onRegisterSuccess,
   onBackToLanding,
   onGoToClient
 }) {
   const [activeTab, setActiveTab] = useState(initialTab); // 'login' | 'register'
+  const [loginRole, setLoginRole] = useState(initialRole || 'company'); // 'company' | 'professional'
   const [registerStep, setRegisterStep] = useState(1); // 1: Conta, 2: Empresa, 3: Fila
 
-  // Login Form State
+  // Login Form State (Company)
   const [loginEmail, setLoginEmail] = useState('atendimento@clinicavida.com.br');
   const [loginPassword, setLoginPassword] = useState('••••••••');
   const [rememberMe, setRememberMe] = useState(true);
+
+  // Professional Login State
+  const [proEmail, setProEmail] = useState('dr.carlos@clinicavida.com.br');
+  const [proPassword, setProPassword] = useState('••••••••');
 
   // Register Form State
   const [adminName, setAdminName] = useState('Dr. Carlos Mendes');
@@ -69,6 +78,53 @@ export default function CompanyAuth({
     });
   };
 
+  const handleProfessionalLoginSubmit = (e) => {
+    e.preventDefault();
+    const found = REGISTERED_PROFESSIONALS.find(
+      p => p.email.toLowerCase() === proEmail.trim().toLowerCase()
+    );
+
+    if (found) {
+      onProfessionalLoginSuccess(found);
+    } else {
+      // Create flexible dynamic professional with entered email
+      const dynamicPro = {
+        id: 'pro-dynamic-' + Date.now(),
+        email: proEmail.trim(),
+        name: proEmail.split('@')[0].replace('.', ' ').toUpperCase(),
+        role: 'Profissional / Atendente',
+        specialty: 'Atendimento Especializado',
+        category: 'Clínica',
+        companyName: 'Centro de Atendimento',
+        unitName: 'Unidade Principal',
+        room: 'Consultório 01',
+        avatar: '👨‍⚕️',
+        crm: 'Registro Ativo',
+        targetConsultationMinutes: 20,
+        currentTicket: {
+          ticket: '#30',
+          name: 'Paciente Demonstração',
+          service: 'Consulta / Atendimento',
+          age: '30 anos',
+          convenio: 'Particular',
+          timeJoined: '14:00',
+          room: 'Consultório 01',
+          status: 'attending',
+          clientOnWay: true,
+          notes: ''
+        },
+        waitingList: [
+          { ticket: '#31', name: 'Ana Beatriz Lima', service: 'Consulta Especializada', time: '~12 min', isPriority: true, status: 'saguao', phone: '(11) 98765-4321', priorityReason: 'Gestante' },
+          { ticket: '#32', name: 'Marcos Vinicius', service: 'Retorno de Consulta', time: '~25 min', isPriority: false, status: 'a_caminho', phone: '(11) 91234-5678', priorityReason: null }
+        ],
+        historyToday: [
+          { ticket: '#29', name: 'Carlos Eduardo', service: 'Atendimento Inicial', duration: '17m 30s', completedAt: '13:45' }
+        ]
+      };
+      onProfessionalLoginSuccess(dynamicPro);
+    }
+  };
+
   const handleFastDemoLogin = () => {
     onLoginSuccess({
       companyName: 'Clínica Vida',
@@ -78,6 +134,10 @@ export default function CompanyAuth({
       room: 'Consultório 04',
       email: 'atendimento@clinicavida.com.br'
     });
+  };
+
+  const handleFastDemoProfessional = (pro) => {
+    onProfessionalLoginSuccess(pro);
   };
 
   const handleFillDemoRegister = () => {
@@ -165,98 +225,218 @@ export default function CompanyAuth({
           {/* TAB 1: LOGIN */}
           {activeTab === 'login' && (
             <div className="ff-auth-content-pane">
-              <div className="ff-auth-header-text">
-                <h1 className="ff-auth-title">Painel Operacional da Empresa</h1>
-                <p className="ff-auth-subtitle">
-                  Faça login para controlar suas filas em tempo real, chamar senhas e monitorar métricas.
-                </p>
-              </div>
-
-              {/* Fast 1-Click Demo Login */}
-              <div className="ff-fast-demo-box">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <Sparkles size={16} color="#7c3aed" />
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Acesso Demonstrativo Instantâneo
-                  </span>
-                </div>
-                <p style={{ fontSize: 12, color: '#64748b', marginBottom: 12 }}>
-                  Quer apenas testar o sistema? Entre imediatamente como <strong>Clínica Vida</strong> com dados simulados ao vivo.
-                </p>
+              {/* Role Switcher: Profissional vs Gestor da Empresa */}
+              <div className="ff-login-role-switch">
                 <button
                   type="button"
-                  onClick={handleFastDemoLogin}
-                  className="ff-btn-fast-demo"
+                  className={`ff-role-btn ${loginRole === 'professional' ? 'active' : ''}`}
+                  onClick={() => setLoginRole('professional')}
                 >
-                  <Building2 size={16} />
-                  <span>Acessar Demo: Clínica Vida (Dr. Carlos)</span>
-                  <ArrowRight size={15} />
+                  <span className="role-icon">🩺</span>
+                  <div className="role-text-box">
+                    <span className="role-title">Sou Profissional</span>
+                    <span className="role-sub">Médico, Dentista, Chef, etc.</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className={`ff-role-btn ${loginRole === 'company' ? 'active' : ''}`}
+                  onClick={() => setLoginRole('company')}
+                >
+                  <span className="role-icon">💼</span>
+                  <div className="role-text-box">
+                    <span className="role-title">Gestor da Empresa</span>
+                    <span className="role-sub">Painel B2B / Admin</span>
+                  </div>
                 </button>
               </div>
 
-              <div className="ff-auth-divider">
-                <span>ou acesse com seu e-mail</span>
-              </div>
-
-              {/* Standard Login Form */}
-              <form onSubmit={handleLoginSubmit} className="ff-form" style={{ gap: 16 }}>
-                <div className="ff-form-group">
-                  <label className="ff-form-label">E-mail Corporativo</label>
-                  <div className="ff-input-wrapper">
-                    <Mail size={16} className="ff-input-icon" />
-                    <input
-                      type="email"
-                      className="ff-input"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="atendimento@suaempresa.com.br"
-                      required
-                    />
+              {loginRole === 'professional' ? (
+                <>
+                  <div className="ff-auth-header-text">
+                    <h1 className="ff-auth-title">Acesso do Profissional / Consultório</h1>
+                    <p className="ff-auth-subtitle">
+                      Digite o <strong>e-mail corporativo cadastrado pela empresa</strong> para gerenciar suas consultas, cronômetro e chamar seus pacientes.
+                    </p>
                   </div>
-                </div>
 
-                <div className="ff-form-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label className="ff-form-label">Senha</label>
-                    <a 
-                      href="#esqueceu" 
-                      onClick={(e) => { e.preventDefault(); alert('Em ambiente de demonstração, você pode clicar em "Acessar Demo" para entrar imediatamente.'); }}
-                      style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600 }}
+                  {/* Fast 1-Click Demo for Professionals */}
+                  <div className="ff-fast-demo-box">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <Sparkles size={16} color="#7c3aed" />
+                      <span style={{ fontSize: 12, fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Perfis de Demonstração (Acesso Imediato em 1 Clique)
+                      </span>
+                    </div>
+                    <div className="ff-pro-demo-pills">
+                      {REGISTERED_PROFESSIONALS.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className="ff-pro-demo-pill"
+                          onClick={() => handleFastDemoProfessional(p)}
+                        >
+                          <span className="pro-emoji">{p.avatar}</span>
+                          <div className="pro-info">
+                            <span className="pro-name">{p.name}</span>
+                            <span className="pro-unit">{p.companyName} • {p.room}</span>
+                          </div>
+                          <ArrowRight size={13} className="pro-arr" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="ff-auth-divider">
+                    <span>ou digite seu e-mail cadastrado</span>
+                  </div>
+
+                  {/* Professional Form */}
+                  <form onSubmit={handleProfessionalLoginSubmit} className="ff-form" style={{ gap: 16 }}>
+                    <div className="ff-form-group">
+                      <label className="ff-form-label">E-mail Cadastrado pela Empresa</label>
+                      <div className="ff-input-wrapper">
+                        <Mail size={16} className="ff-input-icon" />
+                        <input
+                          type="email"
+                          className="ff-input"
+                          value={proEmail}
+                          onChange={(e) => setProEmail(e.target.value)}
+                          placeholder="ex: dr.carlos@clinicavida.com.br"
+                          required
+                        />
+                      </div>
+                      <span style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                        Dica: use qualquer e-mail dos profissionais acima ou o seu e-mail cadastrado.
+                      </span>
+                    </div>
+
+                    <div className="ff-form-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="ff-form-label">Senha de Acesso</label>
+                        <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>
+                          ✓ Acesso rápido liberado
+                        </span>
+                      </div>
+                      <div className="ff-input-wrapper">
+                        <Lock size={16} className="ff-input-icon" />
+                        <input
+                          type="password"
+                          className="ff-input"
+                          value={proPassword}
+                          onChange={(e) => setProPassword(e.target.value)}
+                          placeholder="••••••••"
+                        />
+                      </div>
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      className="btn-primary" 
+                      style={{ width: '100%', justifyContent: 'center', padding: '13px', background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)', boxShadow: '0 4px 14px rgba(124, 58, 237, 0.35)' }}
                     >
-                      Esqueceu a senha?
-                    </a>
+                      <span>Entrar no Consultório Digital</span>
+                      <ArrowRight size={16} />
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <div className="ff-auth-header-text">
+                    <h1 className="ff-auth-title">Painel Operacional da Empresa</h1>
+                    <p className="ff-auth-subtitle">
+                      Faça login para controlar suas filas em tempo real, chamar senhas e monitorar métricas.
+                    </p>
                   </div>
-                  <div className="ff-input-wrapper">
-                    <Lock size={16} className="ff-input-icon" />
-                    <input
-                      type="password"
-                      className="ff-input"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="Sua senha secreta"
-                      required
-                    />
+
+                  {/* Fast 1-Click Demo Login */}
+                  <div className="ff-fast-demo-box">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <Sparkles size={16} color="#7c3aed" />
+                      <span style={{ fontSize: 12, fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Acesso Demonstrativo Instantâneo
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12, color: '#64748b', marginBottom: 12 }}>
+                      Quer apenas testar o sistema? Entre imediatamente como <strong>Clínica Vida</strong> com dados simulados ao vivo.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleFastDemoLogin}
+                      className="ff-btn-fast-demo"
+                    >
+                      <Building2 size={16} />
+                      <span>Acessar Demo: Clínica Vida (Gestão)</span>
+                      <ArrowRight size={15} />
+                    </button>
                   </div>
-                </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0' }}>
-                  <input
-                    type="checkbox"
-                    id="rememberMe"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    style={{ accentColor: '#7c3aed', width: 16, height: 16, cursor: 'pointer' }}
-                  />
-                  <label htmlFor="rememberMe" style={{ fontSize: 13, color: '#475569', cursor: 'pointer' }}>
-                    Manter conectado neste navegador
-                  </label>
-                </div>
+                  <div className="ff-auth-divider">
+                    <span>ou acesse com seu e-mail corporativo</span>
+                  </div>
 
-                <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '13px', background: '#7c3aed' }}>
-                  <span>Entrar no Painel Operacional</span>
-                  <ArrowRight size={16} />
-                </button>
-              </form>
+                  {/* Standard Login Form */}
+                  <form onSubmit={handleLoginSubmit} className="ff-form" style={{ gap: 16 }}>
+                    <div className="ff-form-group">
+                      <label className="ff-form-label">E-mail Corporativo do Administrador</label>
+                      <div className="ff-input-wrapper">
+                        <Mail size={16} className="ff-input-icon" />
+                        <input
+                          type="email"
+                          className="ff-input"
+                          value={loginEmail}
+                          onChange={(e) => setLoginEmail(e.target.value)}
+                          placeholder="atendimento@suaempresa.com.br"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="ff-form-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="ff-form-label">Senha</label>
+                        <a 
+                          href="#esqueceu" 
+                          onClick={(e) => { e.preventDefault(); alert('Em ambiente de demonstração, você pode clicar em "Acessar Demo" para entrar imediatamente.'); }}
+                          style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600 }}
+                        >
+                          Esqueceu a senha?
+                        </a>
+                      </div>
+                      <div className="ff-input-wrapper">
+                        <Lock size={16} className="ff-input-icon" />
+                        <input
+                          type="password"
+                          className="ff-input"
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          placeholder="Sua senha secreta"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0' }}>
+                      <input
+                        type="checkbox"
+                        id="rememberMe"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        style={{ accentColor: '#7c3aed', width: 16, height: 16, cursor: 'pointer' }}
+                      />
+                      <label htmlFor="rememberMe" style={{ fontSize: 13, color: '#475569', cursor: 'pointer' }}>
+                        Manter conectado neste navegador
+                      </label>
+                    </div>
+
+                    <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '13px', background: '#7c3aed' }}>
+                      <span>Entrar no Painel Operacional</span>
+                      <ArrowRight size={16} />
+                    </button>
+                  </form>
+                </>
+              )}
 
               <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: '#64748b' }}>
                 Sua empresa ainda não utiliza o FilaFlow?{' '}

@@ -45,7 +45,8 @@ export function useAppRouter() {
   const isCheckoutRoute = currentPath === '/checkout' || currentPath === '/pagamento';
   const isAppRoute = currentPath === '/app' || currentPath.startsWith('/app/');
   const isCompanyRoute = currentPath === '/empresa' || currentPath === '/empresa/dashboard';
-  const isSiteRoute = !isAppRoute && !isCompanyRoute && !isCheckoutRoute;
+  const isProfessionalRoute = currentPath === '/profissional' || currentPath.startsWith('/profissional');
+  const isSiteRoute = !isAppRoute && !isCompanyRoute && !isCheckoutRoute && !isProfessionalRoute;
 
   return {
     currentPath,
@@ -53,6 +54,7 @@ export function useAppRouter() {
     isAppRoute,
     isCompanyRoute,
     isCheckoutRoute,
+    isProfessionalRoute,
     isSiteRoute
   };
 }

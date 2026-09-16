@@ -85,9 +85,12 @@ export default function MobileDashboard({
               <span>Olá, Rafael</span>
               <span className="ff-mob-wave">👋</span>
             </div>
-            <div className="ff-mob-substatus">
+            <div className="ff-mob-status-pill">
               <span className="ff-live-pulse-dot"></span>
-              <span>GPS Ativo • Conectado à IA</span>
+              <span className="pill-txt">GPS Ativo</span>
+              <span className="pill-bullet">•</span>
+              <Sparkles size={10} color="#7c3aed" />
+              <span className="pill-txt purple">IA Live</span>
             </div>
           </div>
         </div>
@@ -104,7 +107,7 @@ export default function MobileDashboard({
           <button 
             className="ff-mob-btn-icon purple" 
             onClick={onOpenQrScanner}
-            title="Escanear Totem"
+            title="Escanear Totem de Senha"
           >
             <QrCode size={17} />
           </button>
@@ -113,39 +116,45 @@ export default function MobileDashboard({
 
       {/* 2. Resumo de Métricas Pessoais Inteligentes */}
       <div className="ff-mob-metrics-grid">
+        {/* Card 1: Tempo Economizado */}
         <div className="ff-mob-metric-card highlight">
-          <div className="metric-header">
+          <div className="metric-top-row">
             <span className="metric-icon-box purple">
-              <Clock size={14} />
+              <Clock size={13} />
             </span>
-            <span className="metric-label">Economizado</span>
+            <span className="metric-trend-badge purple">+35m</span>
           </div>
           <div className="metric-value">1h 45m</div>
-          <div className="metric-footnote">Fora de salas de espera</div>
+          <div className="metric-label">Economizado</div>
+          <div className="metric-footnote">Tempo salvo hoje</div>
         </div>
 
+        {/* Card 2: Filas Ativas */}
         <div className="ff-mob-metric-card">
-          <div className="metric-header">
+          <div className="metric-top-row">
             <span className="metric-icon-box emerald">
-              <Zap size={14} />
+              <Zap size={13} />
             </span>
-            <span className="metric-label">Filas Ativas</span>
+            <span className="metric-trend-badge emerald">Ativas</span>
           </div>
           <div className="metric-value">{activeQueues.length}</div>
+          <div className="metric-label">Filas Ativas</div>
           <div className="metric-footnote">
             {activeQueues.length === 1 ? '1 atendimento' : `${activeQueues.length} simultâneos`}
           </div>
         </div>
 
+        {/* Card 3: Precisão IA */}
         <div className="ff-mob-metric-card">
-          <div className="metric-header">
+          <div className="metric-top-row">
             <span className="metric-icon-box blue">
-              <Sparkles size={14} />
+              <Sparkles size={13} />
             </span>
-            <span className="metric-label">Precisão IA</span>
+            <span className="metric-trend-badge blue">98%</span>
           </div>
           <div className="metric-value">98.4%</div>
-          <div className="metric-footnote">Previsão em tempo real</div>
+          <div className="metric-label">Precisão IA</div>
+          <div className="metric-footnote">Tempo real</div>
         </div>
       </div>
 

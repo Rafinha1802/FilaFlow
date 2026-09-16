@@ -136,11 +136,27 @@ export default function SimControlBar({
             </button>
 
             <button
+              className={`ff-sim-nav-btn ${currentView === 'client-mobile' ? 'active' : ''}`}
+              onClick={() => setCurrentView('client-mobile')}
+            >
+              <Smartphone size={12} />
+              <span>Celular</span>
+            </button>
+
+            <button
+              className={`ff-sim-nav-btn ${currentView === 'professional' ? 'active' : ''}`}
+              onClick={() => setCurrentView('professional')}
+              style={{ color: '#c084fc', borderColor: 'rgba(192, 132, 252, 0.4)' }}
+            >
+              <span>🩺 Consultório</span>
+            </button>
+
+            <button
               className={`ff-sim-nav-btn ${currentView === 'company-dashboard' ? 'active' : ''}`}
               onClick={() => setCurrentView('company-dashboard')}
             >
               <Building2 size={12} />
-              <span>Painel</span>
+              <span>Painel B2B</span>
             </button>
 
             <button

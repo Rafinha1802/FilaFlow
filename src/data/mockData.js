@@ -274,3 +274,112 @@ export const PRICING_PLANS = [
     cta: 'Falar com Consultor'
   }
 ];
+
+export const REGISTERED_PROFESSIONALS = [
+  {
+    id: 'pro-dr-carlos',
+    email: 'dr.carlos@clinicavida.com.br',
+    name: 'Dr. Carlos Mendes',
+    role: 'Médico Oftalmologista',
+    specialty: 'Oftalmologia Clínica & Cirúrgica',
+    category: 'Clínica',
+    companyName: 'Clínica Vida',
+    unitName: 'Unidade Centro',
+    room: 'Consultório 04',
+    avatar: '👨‍⚕️',
+    crm: 'CRM/SP 148.920',
+    targetConsultationMinutes: 20,
+    currentTicket: {
+      ticket: '#47',
+      name: 'Rafael Silva',
+      service: 'Consulta Oftalmologia Geral',
+      age: '29 anos',
+      convenio: 'Unimed Pleno',
+      timeJoined: '13:45',
+      room: 'Consultório 04',
+      status: 'attending', // 'attending' | 'called'
+      clientOnWay: true,
+      notes: 'Paciente relatou leve cansaço visual ao trabalhar no computador. Realizado exame de refração preliminar.'
+    },
+    waitingList: [
+      { ticket: '#48', name: 'Mariana Alencar', service: 'Avaliação Cirúrgica Catarata', time: '~10 min', isPriority: true, status: 'saguao', phone: '(11) 98877-6655', priorityReason: 'Prioridade Lei 10.048 (Idoso 68a)' },
+      { ticket: '#49', name: 'Roberto Camargo', service: 'Exame de Refração & Grau', time: '~25 min', isPriority: false, status: 'cafeteria', phone: '(11) 97766-5544', priorityReason: null },
+      { ticket: '#50', name: 'Beatriz Vasconcelos', service: 'Retorno de Consulta', time: '~40 min', isPriority: false, status: 'a_caminho', phone: '(11) 96655-4433', priorityReason: null },
+      { ticket: '#51', name: 'Lucas Penteado', service: 'Consulta Oftalmologia Geral', time: '~55 min', isPriority: false, status: 'saguao', phone: '(11) 95544-3322', priorityReason: null }
+    ],
+    historyToday: [
+      { ticket: '#43', name: 'Maria Silva', service: 'Consulta Geral', duration: '18m 20s', completedAt: '13:18' },
+      { ticket: '#44', name: 'João Santos', service: 'Fundo de Olho', duration: '15m 10s', completedAt: '13:35' },
+      { ticket: '#45', name: 'Ana Costa', service: 'Retorno de Consulta', duration: '12m 45s', completedAt: '13:50' },
+      { ticket: '#46', name: 'Pedro Lima', service: 'Avaliação Inicial', duration: '21m 05s', completedAt: '14:12' }
+    ]
+  },
+  {
+    id: 'pro-dra-beatriz',
+    email: 'dra.beatriz@novocentro.com.br',
+    name: 'Dra. Beatriz Santos',
+    role: 'Clínica Geral & Triagem',
+    specialty: 'Medicina da Família & Check-up',
+    category: 'Clínica',
+    companyName: 'Centro Médico Aurora',
+    unitName: 'Unidade Jardins',
+    room: 'Consultório 01',
+    avatar: '👩‍⚕️',
+    crm: 'CRM/SP 192.340',
+    targetConsultationMinutes: 15,
+    currentTicket: {
+      ticket: '#21',
+      name: 'Camila Ferreira',
+      service: 'Triagem & Atestado Médico',
+      age: '34 anos',
+      convenio: 'Bradesco Saúde',
+      timeJoined: '14:10',
+      room: 'Consultório 01',
+      status: 'attending',
+      clientOnWay: false,
+      notes: ''
+    },
+    waitingList: [
+      { ticket: '#22', name: 'Jorge Benício', service: 'Consulta Clínica Geral', time: '~8 min', isPriority: true, status: 'saguao', phone: '(11) 94433-2211', priorityReason: 'Gestante' },
+      { ticket: '#23', name: 'Flávia Mendonça', service: 'Renovação de Receita', time: '~18 min', isPriority: false, status: 'saguao', phone: '(11) 93322-1100', priorityReason: null }
+    ],
+    historyToday: [
+      { ticket: '#19', name: 'Rodrigo Faro', service: 'Triagem Geral', duration: '11m 40s', completedAt: '13:40' },
+      { ticket: '#20', name: 'Juliana Paes', service: 'Avaliação de Exames', duration: '14m 15s', completedAt: '14:02' }
+    ]
+  },
+  {
+    id: 'pro-chef-marcelo',
+    email: 'chef@dombistro.com.br',
+    name: 'Chef Marcelo Silva',
+    role: 'Chef Executivo & Maitre',
+    specialty: 'Gestão de Salão & Reservas',
+    category: 'Restaurante',
+    companyName: 'Dom Bistrô & Grill',
+    unitName: 'Praça Gastronômica',
+    room: 'Salão Principal • Praça',
+    avatar: '👨‍🍳',
+    crm: 'Mesa / Salão',
+    targetConsultationMinutes: 35,
+    currentTicket: {
+      ticket: '#09',
+      name: 'Mesa Família Toledo (4 pax)',
+      service: 'Mesa Salão Principal',
+      age: 'Reserva VIP',
+      convenio: 'Cliente Fidelidade',
+      timeJoined: '13:50',
+      room: 'Mesa 12',
+      status: 'attending',
+      clientOnWay: true,
+      notes: 'Solicitaram mesa no canto com espaço para carrinho de bebê.'
+    },
+    waitingList: [
+      { ticket: '#10', name: 'Carla & Amigos (6 pax)', service: 'Mesa Área Externa', time: '~15 min', isPriority: false, status: 'cafeteria', phone: '(11) 92211-0099', priorityReason: null },
+      { ticket: '#11', name: 'Gustavo Lima (2 pax)', service: 'Mesa Bistrô Alta', time: '~25 min', isPriority: false, status: 'saguao', phone: '(11) 91100-9988', priorityReason: null }
+    ],
+    historyToday: [
+      { ticket: '#06', name: 'Mesa Casal (2 pax)', service: 'Almoço Executivo', duration: '32m 00s', completedAt: '13:10' },
+      { ticket: '#07', name: 'Mesa Executiva (3 pax)', service: 'Menu Degustação', duration: '40m 15s', completedAt: '13:45' }
+    ]
+  }
+];

@@ -128,12 +128,20 @@ export default function ClientMobileApp({
             <span className="ff-status-clock">{currentTime}</span>
 
             {/* Dynamic Island with Live Queue Indicator */}
-            <div className="ff-phone-dynamic-island">
-              <div className="ff-island-camera"></div>
+            <div 
+              className={`ff-phone-dynamic-island ${urgentQueue ? 'has-activity' : ''}`}
+              title={urgentQueue ? `Fila Ativa: #${urgentQueue.ticketNumber} - ${urgentQueue.companyName}` : 'FilaFlow Live Activity'}
+            >
+              <div className="ff-island-sensor-group">
+                <div className="ff-island-camera"></div>
+                <div className="ff-island-mic"></div>
+              </div>
               {urgentQueue ? (
                 <div className="ff-island-content">
                   <span className="island-dot"></span>
-                  <span className="island-text">#{urgentQueue.ticketNumber} • {urgentQueue.companyName}</span>
+                  <span className="island-text">
+                    #{urgentQueue.ticketNumber} • {urgentQueue.companyName.split(' ')[0]}
+                  </span>
                 </div>
               ) : (
                 <div className="ff-island-indicator"></div>
