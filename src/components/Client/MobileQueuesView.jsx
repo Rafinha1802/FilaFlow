@@ -21,6 +21,7 @@ export default function MobileQueuesView({
   onRemoveQueue,
   onClientImOnMyWay,
   onClientAskMoreTime,
+  onApproveReceptionCheckin,
   onOpenSearch,
   onOpenQrScanner
 }) {
@@ -81,35 +82,44 @@ export default function MobileQueuesView({
         <div className="ff-mob-queues-list">
           {activeQueues.length > 0 ? (
             activeQueues.map((q) => {
+              const isReception = q.status === 'reception_waiting';
               const isUrgent = q.position <= 2;
               return (
-                <div key={q.id} className={`ff-mob-full-ticket-card ${isUrgent ? 'urgent' : ''}`}>
+                <div 
+                  key={q.id} 
+                  className={`ff-mob-full-ticket-card ${isUrgent ? 'urgent' : ''}`}
+                  style={isReception ? { borderColor: '#f59e0b', background: '#fffdfa' } : {}}
+                >
                   <div className="full-ticket-top">
                     <div>
-                      <div className="full-ticket-cat">{q.category || 'Atendimento Geral'}</div>
+                      <div className="full-ticket-cat" style={isReception ? { background: '#fef3c7', color: '#b45309' } : {}}>
+                        {isReception ? 'Etapa 1 • Fila da Recepção' : q.category || 'Atendimento Geral'}
+                      </div>
                       <h4 className="full-ticket-company">{q.companyName}</h4>
                       <div className="full-ticket-service">{q.serviceName}</div>
                       <div className="full-ticket-room">
                         <MapPin size={12} />
-                        <span>{q.room || 'Recepção'} • {q.attendantName || 'Equipe'}</span>
+                        <span>{isReception ? 'Balcão da Recepção (Check-in)' : `${q.room || 'Consultório 04'} • ${q.attendantName || 'Equipe'}`}</span>
                       </div>
                     </div>
 
                     <div className="full-ticket-meta">
-                      <div className="full-ticket-num">#{q.ticketNumber}</div>
-                      <span className={`full-ticket-pos ${isUrgent ? 'urgent' : ''}`}>
-                        {q.position === 1 ? 'Sua Vez!' : `${q.position}º na fila`}
+                      <div className="full-ticket-num" style={isReception ? { color: '#d97706', fontSize: 18 } : {}}>
+                        {isReception ? 'TRIAGEM' : `#${q.ticketNumber}`}
+                      </div>
+                      <span className={`full-ticket-pos ${isUrgent ? 'urgent' : ''}`} style={isReception ? { background: '#fef3c7', color: '#b45309', borderColor: '#fde68a' } : {}}>
+                        {isReception ? `${q.position}º na Recepção` : q.position === 1 ? 'Sua Vez!' : `${q.position}º na fila`}
                       </span>
                     </div>
                   </div>
 
                   <div className="full-ticket-middle">
                     <div className="middle-time-block">
-                      <span className="time-block-label">Previsão por IA:</span>
+                      <span className="time-block-label">Previsão:</span>
                       <span className="time-block-val">{q.estimatedWaitText}</span>
                     </div>
                     <div className="middle-status-chip">
-                      <Sparkles size={12} color="#7c3aed" />
+                      <Sparkles size={12} color={isReception ? '#d97706' : '#7c3aed'} />
                       <span>{q.statusDetail || 'Fluxo dinâmico'}</span>
                     </div>
                   </div>
@@ -119,17 +129,32 @@ export default function MobileQueuesView({
                     <button 
                       className="ticket-btn-action primary"
                       onClick={() => onClientImOnMyWay(q.id)}
+                      style={isReception ? { background: '#d97706' } : {}}
                     >
                       <Navigation size={13} />
-                      <span>Estou a Caminho</span>
+                      <span>{isReception ? 'Estou no Balcão' : 'Estou a Caminho'}</span>
                     </button>
-                    <button 
-                      className="ticket-btn-action secondary"
-                      onClick={() => onClientAskMoreTime(q.id)}
-                    >
-                      <Clock size={13} />
-                      <span>+5 min</span>
-                    </button>
+
+                    {isReception && onApproveReceptionCheckin ? (
+                      <button 
+                        className="ticket-btn-action secondary"
+                        onClick={onApproveReceptionCheckin}
+                        title="Simular recepcionista aprovando este check-in"
+                        style={{ borderColor: '#d97706', color: '#b45309' }}
+                      >
+                        <CheckCircle2 size={13} color="#16a34a" />
+                        <span>Aprovar Check-in</span>
+                      </button>
+                    ) : (
+                      <button 
+                        className="ticket-btn-action secondary"
+                        onClick={() => onClientAskMoreTime(q.id)}
+                      >
+                        <Clock size={13} />
+                        <span>+5 min</span>
+                      </button>
+                    )}
+
                     <button 
                       className="ticket-btn-action icon-only"
                       title="Exibir QR Code para o totem/balcão"

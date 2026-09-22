@@ -32,6 +32,7 @@ export default function ClientMobileApp({
   onRemoveQueue,
   onClientImOnMyWay,
   onClientAskMoreTime,
+  onApproveReceptionCheckin,
   hasConflict,
   onDismissConflict,
   onGoToLanding,
@@ -166,6 +167,7 @@ export default function ClientMobileApp({
                 onRemoveQueue={onRemoveQueue}
                 onClientImOnMyWay={onClientImOnMyWay}
                 onClientAskMoreTime={onClientAskMoreTime}
+                onApproveReceptionCheckin={onApproveReceptionCheckin}
                 hasConflict={hasConflict}
                 onDismissConflict={onDismissConflict}
                 onNavigateTab={(tab) => setActiveTab(tab)}
@@ -180,6 +182,7 @@ export default function ClientMobileApp({
                 onRemoveQueue={onRemoveQueue}
                 onClientImOnMyWay={onClientImOnMyWay}
                 onClientAskMoreTime={onClientAskMoreTime}
+                onApproveReceptionCheckin={onApproveReceptionCheckin}
                 onOpenSearch={onOpenSearch}
                 onOpenQrScanner={onOpenQrScanner}
               />

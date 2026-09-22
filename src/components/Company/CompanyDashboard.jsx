@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import ReceptionDeskView from './ReceptionDeskView';
+import { ShieldCheck } from 'lucide-react';
 import { 
   Building2, 
   Layers, 
@@ -38,6 +40,11 @@ export default function CompanyDashboard({
   businessData,
   activeAttendingTicket,
   waitingQueue,
+  receptionPatients,
+  onAuthorizeReceptionPatient,
+  onUpdateReceptionStatus,
+  onRemoveReceptionPatient,
+  onAddReceptionPatient,
   onCallNext,
   onReportDelay,
   onFinishCurrent,
@@ -309,6 +316,28 @@ export default function CompanyDashboard({
         {/* Tab switcher */}
         <nav className="ff-portal-tabs">
           <button
+            className={`ff-portal-tab-btn ${activeTab === 'reception' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reception')}
+          >
+            <ShieldCheck size={14} />
+            <span>Recepção & Convênios</span>
+            {receptionPatients && (
+              <span style={{
+                background: receptionPatients.filter(p => p.status === 'awaiting_auth').length > 0 ? '#ef4444' : '#64748b',
+                color: 'white',
+                fontSize: 10,
+                fontWeight: 800,
+                padding: '2px 7px',
+                borderRadius: 999,
+                marginLeft: 4,
+                boxShadow: receptionPatients.filter(p => p.status === 'awaiting_auth').length > 0 ? '0 0 10px rgba(239, 68, 68, 0.4)' : 'none'
+              }}>
+                {receptionPatients.filter(p => p.status === 'awaiting_auth').length}
+              </span>
+            )}
+          </button>
+
+          <button
             className={`ff-portal-tab-btn ${activeTab === 'operational' ? 'active' : ''}`}
             onClick={() => setActiveTab('operational')}
           >
@@ -494,6 +523,22 @@ export default function CompanyDashboard({
             </button>
           </div>
         </div>
+      )}
+
+      {/* ============================================================
+          TAB 0: RECEPÇÃO & CONVÊNIOS (CHECK-IN DE CHEGADA E GUIAS)
+          ============================================================ */}
+      {activeTab === 'reception' && (
+        <ReceptionDeskView
+          businessData={businessData}
+          patients={receptionPatients}
+          onAuthorizePatient={onAuthorizeReceptionPatient}
+          onStatusChange={onUpdateReceptionStatus}
+          onRemovePatient={onRemoveReceptionPatient}
+          onAddPatient={onAddReceptionPatient}
+          onSwitchToOperational={() => setActiveTab('operational')}
+          showToast={showNotification}
+        />
       )}
 
       {/* ============================================================

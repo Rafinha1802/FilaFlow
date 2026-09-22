@@ -19,6 +19,7 @@ export default function SimControlBar({
   setCurrentView,
   onNextTicket,
   onSimulateDelay,
+  onApproveReceptionCheckin,
   onToggleConflict,
   onResetQueues,
   onOpenAuth
@@ -26,7 +27,7 @@ export default function SimControlBar({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="ff-sim-widget-root">
+    <div className={`ff-sim-widget-root ${currentView === "client-mobile" ? "is-in-mobile-app" : ""}`}>
       {/* Minimized Floating Trigger Button */}
       {!isExpanded ? (
         <button
@@ -109,6 +110,23 @@ export default function SimControlBar({
               <RotateCcw size={12} />
               <span>Resetar Demo</span>
             </button>
+
+            {onApproveReceptionCheckin && (
+              <button
+                className="ff-sim-action-btn"
+                onClick={onApproveReceptionCheckin}
+                title="Aprova o check-in do paciente na recepção e o encaminha para o médico"
+                style={{ 
+                  gridColumn: 'span 2', 
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: 'white',
+                  fontWeight: 800,
+                  border: 'none'
+                }}
+              >
+                <span>✅ Aprovar Check-in da Recepção</span>
+              </button>
+            )}
           </div>
 
           <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', margin: '8px 0 10px' }} />

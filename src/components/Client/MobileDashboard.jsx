@@ -33,6 +33,7 @@ export default function MobileDashboard({
   onRemoveQueue,
   onClientImOnMyWay,
   onClientAskMoreTime,
+  onApproveReceptionCheckin,
   hasConflict,
   onDismissConflict,
   onNavigateTab
@@ -160,46 +161,123 @@ export default function MobileDashboard({
 
       {/* 3. Próximo Atendimento em Destaque (Spotlight) */}
       {urgentQueue && (
-        <div className="ff-mob-spotlight-card">
-          <div className="spotlight-top-badge">
-            <Flame size={12} />
-            <span>PRÓXIMO ATENDIMENTO DA SUA JORNADA</span>
-          </div>
+        urgentQueue.status === 'reception_waiting' ? (
+          <div className="ff-mob-spotlight-card" style={{ border: '1.5px solid #f59e0b', background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)' }}>
+            <div className="spotlight-top-badge" style={{ background: '#d97706', color: 'white' }}>
+              <Clock size={12} />
+              <span>ETAPA 1: FILA DE ESPERA DA RECEPÇÃO</span>
+            </div>
 
-          <div className="spotlight-body">
-            <div className="spotlight-info">
-              <h3 className="spotlight-business">{urgentQueue.companyName}</h3>
-              <p className="spotlight-service">{urgentQueue.serviceName}</p>
-              <div className="spotlight-location">
-                <MapPin size={12} />
-                <span>{urgentQueue.room || 'Recepção Principal'} • ~350m a pé (5 min)</span>
+            <div className="spotlight-body">
+              <div className="spotlight-info">
+                <h3 className="spotlight-business" style={{ color: '#78350f' }}>{urgentQueue.companyName}</h3>
+                <p className="spotlight-service" style={{ color: '#92400e', fontWeight: 700 }}>
+                  {urgentQueue.serviceName} • {urgentQueue.insuranceName || 'Convênio'}
+                </p>
+                <div className="spotlight-location" style={{ color: '#b45309' }}>
+                  <MapPin size={12} />
+                  <span>Balcão de Recepção • Apresente documento ou aguarde conferência</span>
+                </div>
+              </div>
+
+              <div className="spotlight-timer-box" style={{ background: '#ffffff', borderColor: '#fcd34d' }}>
+                <span className="timer-label" style={{ color: '#d97706' }}>TRIAGEM</span>
+                <div className="timer-val" style={{ color: '#b45309', fontSize: 15 }}>Aguardando Check-in</div>
+                <span className="timer-pos" style={{ color: '#92400e' }}>{urgentQueue.position}º na recepção</span>
               </div>
             </div>
 
-            <div className="spotlight-timer-box">
-              <span className="timer-label">SENHA #{urgentQueue.ticketNumber}</span>
-              <div className="timer-val">{urgentQueue.estimatedWaitText}</div>
-              <span className="timer-pos">{urgentQueue.position}º da fila</span>
+            {/* Stepper Progress Bar */}
+            <div style={{
+              background: 'white',
+              borderRadius: 12,
+              padding: '10px 14px',
+              margin: '4px 14px 12px',
+              border: '1px solid #fde68a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: 11
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#15803d', fontWeight: 800 }}>
+                <CheckCircle2 size={15} color="#16a34a" />
+                <span>1. QR Code</span>
+              </div>
+              <span style={{ color: '#cbd5e1' }}>➔</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#b45309', fontWeight: 800 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
+                <span>2. Check-in Recepção</span>
+              </div>
+              <span style={{ color: '#cbd5e1' }}>➔</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#94a3b8', fontWeight: 600 }}>
+                <span>3. Fila do Médico</span>
+              </div>
+            </div>
+
+            <div className="spotlight-action-row">
+              <button 
+                className="ff-spotlight-btn primary"
+                onClick={() => handleImOnMyWay(urgentQueue.id)}
+                style={{ background: '#d97706' }}
+              >
+                <Navigation size={14} />
+                <span>Estou no Balcão</span>
+              </button>
+              {onApproveReceptionCheckin && (
+                <button 
+                  className="ff-spotlight-btn secondary"
+                  onClick={onApproveReceptionCheckin}
+                  title="Simular recepcionista aprovando e enviando para o médico"
+                  style={{ borderColor: '#d97706', color: '#92400e' }}
+                >
+                  <CheckCircle2 size={14} color="#16a34a" />
+                  <span>Simular Aprovação</span>
+                </button>
+              )}
             </div>
           </div>
+        ) : (
+          <div className="ff-mob-spotlight-card">
+            <div className="spotlight-top-badge">
+              <Flame size={12} />
+              <span>PRÓXIMO ATENDIMENTO DA SUA JORNADA</span>
+            </div>
 
-          <div className="spotlight-action-row">
-            <button 
-              className="ff-spotlight-btn primary"
-              onClick={() => handleImOnMyWay(urgentQueue.id)}
-            >
-              <Navigation size={14} />
-              <span>Estou a Caminho</span>
-            </button>
-            <button 
-              className="ff-spotlight-btn secondary"
-              onClick={() => handleAskMoreTime(urgentQueue.id)}
-            >
-              <Clock size={14} />
-              <span>Pedir +5 min</span>
-            </button>
+            <div className="spotlight-body">
+              <div className="spotlight-info">
+                <h3 className="spotlight-business">{urgentQueue.companyName}</h3>
+                <p className="spotlight-service">{urgentQueue.serviceName}</p>
+                <div className="spotlight-location">
+                  <MapPin size={12} />
+                  <span>{urgentQueue.room || 'Consultório 04'} • ~350m a pé (5 min)</span>
+                </div>
+              </div>
+
+              <div className="spotlight-timer-box">
+                <span className="timer-label">SENHA #{urgentQueue.ticketNumber}</span>
+                <div className="timer-val">{urgentQueue.estimatedWaitText}</div>
+                <span className="timer-pos">{urgentQueue.position}º da fila</span>
+              </div>
+            </div>
+
+            <div className="spotlight-action-row">
+              <button 
+                className="ff-spotlight-btn primary"
+                onClick={() => handleImOnMyWay(urgentQueue.id)}
+              >
+                <Navigation size={14} />
+                <span>Estou a Caminho</span>
+              </button>
+              <button 
+                className="ff-spotlight-btn secondary"
+                onClick={() => handleAskMoreTime(urgentQueue.id)}
+              >
+                <Clock size={14} />
+                <span>Pedir +5 min</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* 4. Alerta de Conflito de Horário Inteligente (AI Schedule Conflict) */}
@@ -268,99 +346,198 @@ export default function MobileDashboard({
 
       {/* 6. Boarding Pass Digital da Fila Selecionada */}
       {currentQueue ? (
-        <div className="ff-mob-pass-card">
-          <div className="pass-card-head">
-            <div>
-              <div className="pass-category-tag">{currentQueue.category || 'Atendimento'}</div>
-              <h4 className="pass-company-name">{currentQueue.companyName}</h4>
-              <div className="pass-unit-info">{currentQueue.serviceName} • {currentQueue.room || 'Recepção'}</div>
+        currentQueue.status === 'reception_waiting' ? (
+          <div className="ff-mob-pass-card" style={{ border: '2px solid #f59e0b', boxShadow: '0 10px 25px rgba(245, 158, 11, 0.15)' }}>
+            <div className="pass-card-head" style={{ background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)' }}>
+              <div>
+                <div className="pass-category-tag" style={{ background: '#fef3c7', color: '#b45309', borderColor: '#fde68a' }}>
+                  Etapa 1 de 2 • Fila da Recepção
+                </div>
+                <h4 className="pass-company-name">{currentQueue.companyName}</h4>
+                <div className="pass-unit-info">
+                  {currentQueue.serviceName} • {currentQueue.insuranceName || 'Convênio'}
+                </div>
+              </div>
+              <div className="pass-head-right">
+                <span className="pass-pos-chip" style={{ background: '#d97706', color: 'white' }}>
+                  {currentQueue.position}º na Recepção
+                </span>
+                <button 
+                  className="pass-cancel-btn"
+                  title="Desistir desta fila"
+                  onClick={() => onRemoveQueue(currentQueue.id)}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
             </div>
-            <div className="pass-head-right">
-              <span className="pass-pos-chip">
-                {currentQueue.position === 1 ? '🟢 SUA VEZ!' : `${currentQueue.position}º na fila`}
-              </span>
+
+            <div className="pass-card-core">
+              <div className="pass-core-col left">
+                <span className="core-label">CHEGADA / TRIAGEM</span>
+                <div className="core-ticket-num" style={{ fontSize: 24, color: '#d97706' }}>TRIAGEM</div>
+                <span className="core-user-name">{currentQueue.userName || 'Rafael Silva'} (Você)</span>
+              </div>
+
+              <div className="pass-core-divider">
+                <div className="divider-notch top"></div>
+                <div className="divider-dash"></div>
+                <div className="divider-notch bottom"></div>
+              </div>
+
+              <div className="pass-core-col right">
+                <span className="core-label">ETAPA ATUAL</span>
+                <div className="core-wait-time" style={{ fontSize: 16, color: '#b45309' }}>Check-in & Guia</div>
+                <div className="core-ai-status">
+                  <span className="ai-dot" style={{ background: '#f59e0b' }}></span>
+                  <span>Balcão da Recepção</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stepper info box */}
+            <div style={{
+              margin: '12px 16px 0',
+              padding: '12px 14px',
+              borderRadius: 12,
+              background: '#faf5ff',
+              border: '1px solid #e9d5ff',
+              fontSize: 12,
+              color: '#6b21a8'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, marginBottom: 4 }}>
+                <ShieldCheck size={16} color="#7c3aed" />
+                <span>Aguardando Validação da Recepção</span>
+              </div>
+              <p style={{ margin: 0, color: '#7e22ce', lineHeight: 1.45, fontSize: 11 }}>
+                Seus dados foram enviados para o balcão. A equipe está conferindo sua carteirinha e documentos. Assim que aprovado, você receberá a senha oficial para a <strong>Fila do Médico</strong>.
+              </p>
+            </div>
+
+            <div className="pass-card-footer" style={{ marginTop: 12 }}>
               <button 
-                className="pass-cancel-btn"
-                title="Desistir desta fila"
-                onClick={() => onRemoveQueue(currentQueue.id)}
+                className="pass-btn primary"
+                onClick={() => {
+                  handleImOnMyWay(currentQueue.id);
+                  showToast('Aviso enviado ao balcão: "Paciente no local!"');
+                }}
+                style={{ background: '#7c3aed' }}
               >
-                <Trash2 size={13} />
+                <Navigation size={14} />
+                <span>Estou no Balcão</span>
+              </button>
+
+              {onApproveReceptionCheckin && (
+                <button 
+                  className="pass-btn secondary"
+                  onClick={() => {
+                    onApproveReceptionCheckin();
+                    showToast('Simulando aprovação de check-in pela recepção...');
+                  }}
+                  style={{ borderColor: '#7c3aed', color: '#7c3aed' }}
+                  title="Aprovar check-in agora para testar o envio para a fila do médico"
+                >
+                  <CheckCircle2 size={14} color="#7c3aed" />
+                  <span>Aprovar Check-in</span>
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="ff-mob-pass-card">
+            <div className="pass-card-head">
+              <div>
+                <div className="pass-category-tag">{currentQueue.category || 'Atendimento'}</div>
+                <h4 className="pass-company-name">{currentQueue.companyName}</h4>
+                <div className="pass-unit-info">{currentQueue.serviceName} • {currentQueue.room || 'Consultório 04'}</div>
+              </div>
+              <div className="pass-head-right">
+                <span className="pass-pos-chip">
+                  {currentQueue.position === 1 ? '🟢 SUA VEZ!' : `${currentQueue.position}º na fila`}
+                </span>
+                <button 
+                  className="pass-cancel-btn"
+                  title="Desistir desta fila"
+                  onClick={() => onRemoveQueue(currentQueue.id)}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+
+            <div className="pass-card-core">
+              <div className="pass-core-col left">
+                <span className="core-label">SUA SENHA</span>
+                <div className="core-ticket-num">#{currentQueue.ticketNumber}</div>
+                <span className="core-user-name">Rafael Silva (Você)</span>
+              </div>
+
+              <div className="pass-core-divider">
+                <div className="divider-notch top"></div>
+                <div className="divider-dash"></div>
+                <div className="divider-notch bottom"></div>
+              </div>
+
+              <div className="pass-core-col right">
+                <span className="core-label">TEMPO ESTIMADO</span>
+                <div className="core-wait-time">{currentQueue.estimatedWaitText}</div>
+                <div className="core-ai-status">
+                  <span className="ai-dot"></span>
+                  <span>Ritmo monitorado por IA</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pass-card-footer">
+              <button 
+                className="pass-btn primary"
+                onClick={() => handleImOnMyWay(currentQueue.id)}
+              >
+                <Navigation size={14} />
+                <span>Estou a Caminho</span>
+              </button>
+
+              <button 
+                className="pass-btn secondary"
+                onClick={() => handleAskMoreTime(currentQueue.id)}
+              >
+                <Clock size={14} />
+                <span>Pedir +5 min</span>
               </button>
             </div>
-          </div>
 
-          <div className="pass-card-core">
-            <div className="pass-core-col left">
-              <span className="core-label">SUA SENHA</span>
-              <div className="core-ticket-num">#{currentQueue.ticketNumber}</div>
-              <span className="core-user-name">Rafael Silva (Você)</span>
-            </div>
+            {/* Gaveta retrátil: Fluxo ao Vivo */}
+            <div className="pass-flow-drawer">
+              <button 
+                className="flow-drawer-toggle"
+                onClick={() => setShowQueueList(!showQueueList)}
+              >
+                <div className="flow-toggle-label">
+                  <Sparkles size={13} color="#7c3aed" />
+                  <span>Fluxo em tempo real ({currentQueue.aheadList?.length || 3} pessoas)</span>
+                </div>
+                {showQueueList ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+              </button>
 
-            <div className="pass-core-divider">
-              <div className="divider-notch top"></div>
-              <div className="divider-dash"></div>
-              <div className="divider-notch bottom"></div>
-            </div>
-
-            <div className="pass-core-col right">
-              <span className="core-label">TEMPO ESTIMADO</span>
-              <div className="core-wait-time">{currentQueue.estimatedWaitText}</div>
-              <div className="core-ai-status">
-                <span className="ai-dot"></span>
-                <span>Ritmo monitorado por IA</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="pass-card-footer">
-            <button 
-              className="pass-btn primary"
-              onClick={() => handleImOnMyWay(currentQueue.id)}
-            >
-              <Navigation size={14} />
-              <span>Estou a Caminho</span>
-            </button>
-
-            <button 
-              className="pass-btn secondary"
-              onClick={() => handleAskMoreTime(currentQueue.id)}
-            >
-              <Clock size={14} />
-              <span>Pedir +5 min</span>
-            </button>
-          </div>
-
-          {/* Gaveta retrátil: Fluxo ao Vivo */}
-          <div className="pass-flow-drawer">
-            <button 
-              className="flow-drawer-toggle"
-              onClick={() => setShowQueueList(!showQueueList)}
-            >
-              <div className="flow-toggle-label">
-                <Sparkles size={13} color="#7c3aed" />
-                <span>Fluxo em tempo real ({currentQueue.aheadList?.length || 3} pessoas)</span>
-              </div>
-              {showQueueList ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-            </button>
-
-            {showQueueList && currentQueue.aheadList && (
-              <div className="flow-items-list">
-                {currentQueue.aheadList.map((item, idx) => (
-                  <div 
-                    key={idx} 
-                    className={`flow-item ${item.isUser ? 'is-user' : item.status === 'Em atendimento' ? 'is-attending' : ''}`}
-                  >
-                    <div className="flow-item-left">
-                      <span className="flow-item-ticket">{item.ticket}</span>
-                      <span className="flow-item-name">{item.name}</span>
+              {showQueueList && currentQueue.aheadList && (
+                <div className="flow-items-list">
+                  {currentQueue.aheadList.map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`flow-item ${item.isUser ? 'is-user' : item.status === 'Em atendimento' ? 'is-attending' : ''}`}
+                    >
+                      <div className="flow-item-left">
+                        <span className="flow-item-ticket">{item.ticket}</span>
+                        <span className="flow-item-name">{item.name}</span>
+                      </div>
+                      <span className="flow-item-status">{item.status}</span>
                     </div>
-                    <span className="flow-item-status">{item.status}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )
       ) : (
         <div className="ff-mob-empty-queues">
           <QrCode size={36} color="#94a3b8" />
