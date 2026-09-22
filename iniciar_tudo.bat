@@ -7,13 +7,35 @@ echo ======================================================================
 echo          FILAFLOW - INICIALIZADOR UNIFICADO (BACK + FRONT)
 echo ======================================================================
 echo.
-echo  [1/4] Verificando ambiente Python...
+echo  [1/4] Verificando ambiente Python e Node.js...
 
-set BACK_DIR=%~dp0
-set FRONT_DIR=%~dp0..\FilaFlow
+set SCRIPT_DIR=%~dp0
+
+:: Detecta diretório do Backend
+if exist "%SCRIPT_DIR%app\main.py" (
+    set "BACK_DIR=%SCRIPT_DIR%"
+) else if exist "%SCRIPT_DIR%..\FilaFlow_back\app\main.py" (
+    set "BACK_DIR=%SCRIPT_DIR%..\FilaFlow_back\"
+) else (
+    set "BACK_DIR=%SCRIPT_DIR%"
+)
+
+:: Detecta diretório do Frontend
+if exist "%SCRIPT_DIR%package.json" (
+    set "FRONT_DIR=%SCRIPT_DIR%"
+) else if exist "%SCRIPT_DIR%..\FilaFlow\package.json" (
+    set "FRONT_DIR=%SCRIPT_DIR%..\FilaFlow\"
+) else (
+    set "FRONT_DIR=%SCRIPT_DIR%"
+)
+
+:: Libera a porta 5174 caso tenha ficado presa anteriormente
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5174" ^| findstr "LISTENING"') do (
+    taskkill /F /PID %%a >nul 2>&1
+)
 
 if not exist "%BACK_DIR%.venv\Scripts\python.exe" (
-    echo  Ambiente virtual não encontrado. Criando .venv...
+    echo  Ambiente virtual não encontrado em %BACK_DIR%. Criando .venv...
     python -m venv "%BACK_DIR%.venv"
     echo  Instalando dependências do backend...
     "%BACK_DIR%.venv\Scripts\pip.exe" install -r "%BACK_DIR%requirements.txt"

@@ -30,6 +30,7 @@ export default function ClientMobileApp({
   onOpenQrScanner,
   onOpenSearch,
   onRemoveQueue,
+  onSecretaryCheckin,
   onClientImOnMyWay,
   onClientAskMoreTime,
   onApproveReceptionCheckin,
@@ -165,6 +166,7 @@ export default function ClientMobileApp({
                 onOpenQrScanner={onOpenQrScanner}
                 onOpenSearch={onOpenSearch}
                 onRemoveQueue={onRemoveQueue}
+                onSecretaryCheckin={onSecretaryCheckin}
                 onClientImOnMyWay={onClientImOnMyWay}
                 onClientAskMoreTime={onClientAskMoreTime}
                 onApproveReceptionCheckin={onApproveReceptionCheckin}
@@ -180,6 +182,7 @@ export default function ClientMobileApp({
                 selectedQueueId={selectedQueueId}
                 onSelectQueue={onSelectQueue}
                 onRemoveQueue={onRemoveQueue}
+                onSecretaryCheckin={onSecretaryCheckin}
                 onClientImOnMyWay={onClientImOnMyWay}
                 onClientAskMoreTime={onClientAskMoreTime}
                 onApproveReceptionCheckin={onApproveReceptionCheckin}

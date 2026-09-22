@@ -186,7 +186,6 @@ export default function Navbar({
               <button
                 className="btn-primary"
                 onClick={onOpenSignup}
-                style={{ padding: '8px 18px', fontSize: 14 }}
               >
                 <span>Cadastrar Empresa</span>
                 <ArrowRight size={15} />

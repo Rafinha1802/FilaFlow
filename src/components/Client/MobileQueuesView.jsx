@@ -3,7 +3,6 @@ import {
   Clock, 
   Navigation, 
   Trash2, 
-  Share2, 
   CheckCircle2, 
   Star, 
   QrCode, 
@@ -19,6 +18,7 @@ export default function MobileQueuesView({
   selectedQueueId,
   onSelectQueue,
   onRemoveQueue,
+  onSecretaryCheckin,
   onClientImOnMyWay,
   onClientAskMoreTime,
   onApproveReceptionCheckin,
@@ -36,7 +36,8 @@ export default function MobileQueuesView({
       date: 'Ontem às 16:30',
       waitTime: '14 min',
       rating: 5,
-      ticket: '#22'
+      ticket: '#22',
+      category: 'Barbearia'
     },
     {
       id: 'past-2',
@@ -45,7 +46,8 @@ export default function MobileQueuesView({
       date: '02/09 às 11:15',
       waitTime: '18 min',
       rating: 5,
-      ticket: '#51'
+      ticket: '#51',
+      category: 'Cartório'
     },
     {
       id: 'past-3',
@@ -54,32 +56,48 @@ export default function MobileQueuesView({
       date: '28/08 às 15:00',
       waitTime: '22 min',
       rating: 4,
-      ticket: '#29'
+      ticket: '#29',
+      category: 'Beleza'
     }
   ];
 
   return (
-    <div className="ff-mob-queues-view">
-      {/* Top Segmented Sub-tab */}
-      <div className="ff-mob-subtabs-wrap">
+    <div className="ff-mob-clean-view">
+      {/* Header com tipografia amigável */}
+      <div className="clean-view-header">
+        <div className="view-title-group">
+          <span className="view-pretitle">Gerenciamento</span>
+          <h2 className="view-maintitle">Suas Senhas</h2>
+        </div>
         <button 
-          className={`ff-mob-subtab-btn ${subTab === 'active' ? 'active' : ''}`}
+          className="btn-icon-soft" 
+          onClick={onOpenQrScanner} 
+          title="Escanear QR Totem"
+        >
+          <QrCode size={18} />
+        </button>
+      </div>
+
+      {/* Segmented Pill Tabs estilo Screen 2 */}
+      <div className="clean-segmented-pills">
+        <button 
+          className={`segmented-pill-btn ${subTab === 'active' ? 'active' : ''}`}
           onClick={() => setSubTab('active')}
         >
           <span>Filas Ativas</span>
-          <span className="subtab-counter">{activeQueues.length}</span>
+          <span className="clean-count-badge">{activeQueues.length}</span>
         </button>
         <button 
-          className={`ff-mob-subtab-btn ${subTab === 'history' ? 'active' : ''}`}
+          className={`segmented-pill-btn ${subTab === 'history' ? 'active' : ''}`}
           onClick={() => setSubTab('history')}
         >
-          <span>Histórico de Atendimentos</span>
-          <span className="subtab-counter">{pastAttendances.length}</span>
+          <span>Histórico</span>
+          <span className="clean-count-badge">{pastAttendances.length}</span>
         </button>
       </div>
 
       {subTab === 'active' ? (
-        <div className="ff-mob-queues-list">
+        <div className="clean-queues-list">
           {activeQueues.length > 0 ? (
             activeQueues.map((q) => {
               const isReception = q.status === 'reception_waiting';
@@ -87,101 +105,88 @@ export default function MobileQueuesView({
               return (
                 <div 
                   key={q.id} 
-                  className={`ff-mob-full-ticket-card ${isUrgent ? 'urgent' : ''}`}
-                  style={isReception ? { borderColor: '#f59e0b', background: '#fffdfa' } : {}}
+                  className={`clean-ticket-card ${isReception ? 'reception-theme' : isUrgent ? 'urgent' : ''}`}
                 >
-                  <div className="full-ticket-top">
-                    <div>
-                      <div className="full-ticket-cat" style={isReception ? { background: '#fef3c7', color: '#b45309' } : {}}>
-                        {isReception ? 'Etapa 1 • Fila da Recepção' : q.category || 'Atendimento Geral'}
-                      </div>
-                      <h4 className="full-ticket-company">{q.companyName}</h4>
-                      <div className="full-ticket-service">{q.serviceName}</div>
-                      <div className="full-ticket-room">
+                  <div className="ticket-card-top">
+                    <div className="ticket-top-info">
+                      <span className={`clean-chip-badge ${isReception ? 'amber' : 'purple'}`}>
+                        {isReception ? 'Etapa 1 • Recepção' : q.category || 'Atendimento'}
+                      </span>
+                      <h3 className="ticket-company-title">{q.companyName}</h3>
+                      <p className="ticket-service-sub">{q.serviceName}</p>
+                      <div className="ticket-location-line">
                         <MapPin size={12} />
                         <span>{isReception ? 'Balcão da Recepção (Check-in)' : `${q.room || 'Consultório 04'} • ${q.attendantName || 'Equipe'}`}</span>
                       </div>
                     </div>
 
-                    <div className="full-ticket-meta">
-                      <div className="full-ticket-num" style={isReception ? { color: '#d97706', fontSize: 18 } : {}}>
+                    <div className="ticket-top-number-block">
+                      <span className="ticket-number-big">
                         {isReception ? 'TRIAGEM' : `#${q.ticketNumber}`}
-                      </div>
-                      <span className={`full-ticket-pos ${isUrgent ? 'urgent' : ''}`} style={isReception ? { background: '#fef3c7', color: '#b45309', borderColor: '#fde68a' } : {}}>
+                      </span>
+                      <span className={`ticket-pos-pill ${isUrgent ? 'urgent' : ''}`}>
                         {isReception ? `${q.position}º na Recepção` : q.position === 1 ? 'Sua Vez!' : `${q.position}º na fila`}
                       </span>
                     </div>
                   </div>
 
-                  <div className="full-ticket-middle">
-                    <div className="middle-time-block">
-                      <span className="time-block-label">Previsão:</span>
-                      <span className="time-block-val">{q.estimatedWaitText}</span>
+                  {/* Previsão com fundo pastel */}
+                  <div className="ticket-wait-pill-box">
+                    <div className="wait-pill-left">
+                      <Clock size={15} color="#6366f1" />
+                      <div>
+                        <span className="wait-label">Tempo Estimado:</span>
+                        <strong className="wait-text">{q.estimatedWaitText}</strong>
+                      </div>
                     </div>
-                    <div className="middle-status-chip">
-                      <Sparkles size={12} color={isReception ? '#d97706' : '#7c3aed'} />
+                    <div className="wait-status-chip">
+                      <Sparkles size={13} color="#10b981" />
                       <span>{q.statusDetail || 'Fluxo dinâmico'}</span>
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="full-ticket-actions">
-                    <button 
-                      className="ticket-btn-action primary"
-                      onClick={() => onClientImOnMyWay(q.id)}
-                      style={isReception ? { background: '#d97706' } : {}}
-                    >
-                      <Navigation size={13} />
-                      <span>{isReception ? 'Estou no Balcão' : 'Estou a Caminho'}</span>
-                    </button>
-
-                    {isReception && onApproveReceptionCheckin ? (
+                  {/* Ações em Botões Pílula (Só pode pedir +5 min quando já estiver na fila do médico) */}
+                  <div className="ticket-card-actions">
+                    {q.isCheckedInWithSecretary && (
                       <button 
-                        className="ticket-btn-action secondary"
-                        onClick={onApproveReceptionCheckin}
-                        title="Simular recepcionista aprovando este check-in"
-                        style={{ borderColor: '#d97706', color: '#b45309' }}
-                      >
-                        <CheckCircle2 size={13} color="#16a34a" />
-                        <span>Aprovar Check-in</span>
-                      </button>
-                    ) : (
-                      <button 
-                        className="ticket-btn-action secondary"
+                        className="clean-pill-btn soft"
                         onClick={() => onClientAskMoreTime(q.id)}
+                        title="Pedir tolerância de +5 min"
+                        style={{ flex: 1 }}
                       >
-                        <Clock size={13} />
-                        <span>+5 min</span>
+                        <Clock size={14} />
+                        <span>Pedir +5 min</span>
                       </button>
                     )}
 
                     <button 
-                      className="ticket-btn-action icon-only"
-                      title="Exibir QR Code para o totem/balcão"
+                      className="btn-icon-soft"
+                      title="Exibir QR Code para o balcão"
                       onClick={() => setShowPersonalQr(showPersonalQr === q.id ? null : q.id)}
                     >
-                      <QrCode size={15} />
+                      <QrCode size={16} />
                     </button>
+
                     <button 
-                      className="ticket-btn-action icon-only danger"
+                      className="btn-icon-soft danger"
                       title="Desistir da fila"
                       onClick={() => onRemoveQueue(q.id)}
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
 
-                  {/* Expanded Personal QR modal/drawer */}
+                  {/* QR Code expandido */}
                   {showPersonalQr === q.id && (
-                    <div className="personal-qr-drawer">
-                      <div className="qr-box">
+                    <div className="clean-qr-drawer">
+                      <div className="qr-box-clean">
                         <div className="mock-qr-code">
                           <QrCode size={64} color="#1e1b4b" />
                         </div>
-                        <div className="qr-info">
-                          <strong>Apresente ao Atendente</strong>
+                        <div className="qr-info-clean">
+                          <strong>Apresente ao Balcão</strong>
                           <span>Senha #{q.ticketNumber} • Rafael Silva</span>
-                          <small>Token criptografado: FF-{q.ticketNumber}-{Date.now().toString().slice(-4)}</small>
+                          <small>Token: FF-{q.ticketNumber}-{Date.now().toString().slice(-4)}</small>
                         </div>
                       </div>
                     </div>
@@ -190,16 +195,20 @@ export default function MobileQueuesView({
               );
             })
           ) : (
-            <div className="ff-mob-empty-queues">
-              <Clock size={36} color="#94a3b8" />
-              <h4>Você não está em nenhuma fila no momento</h4>
-              <p>Explore estabelecimentos da sua região ou aponte a câmera para um totem presencial.</p>
-              <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                <button className="ff-mob-empty-btn" onClick={onOpenQrScanner}>
+            <div className="clean-empty-state-card">
+              <div className="empty-state-squircle sky">
+                <Clock size={32} />
+              </div>
+              <h4 className="empty-state-title">Nenhuma fila ativa</h4>
+              <p className="empty-state-sub">
+                Explore estabelecimentos da sua região ou aponte a câmera para um totem presencial.
+              </p>
+              <div className="empty-state-actions">
+                <button className="clean-pill-btn primary" onClick={onOpenQrScanner}>
                   <QrCode size={15} />
-                  <span>Escanear QR</span>
+                  <span>Escanear Totem</span>
                 </button>
-                <button className="ff-mob-empty-btn secondary" onClick={onOpenSearch}>
+                <button className="clean-pill-btn soft" onClick={onOpenSearch}>
                   <Plus size={15} />
                   <span>Buscar Locais</span>
                 </button>
@@ -208,35 +217,38 @@ export default function MobileQueuesView({
           )}
         </div>
       ) : (
-        /* History sub-tab */
-        <div className="ff-mob-history-list">
+        /* Histórico de Atendimentos */
+        <div className="clean-history-list">
           {pastAttendances.map((item) => (
-            <div key={item.id} className="history-card">
+            <div key={item.id} className="clean-history-card">
               <div className="history-card-top">
                 <div>
-                  <h4 className="history-company">{item.companyName}</h4>
-                  <p className="history-service">{item.service}</p>
+                  <span className="clean-chip-badge lavender">{item.category}</span>
+                  <h4 className="history-company-name">{item.companyName}</h4>
+                  <p className="history-service-name">{item.service}</p>
                 </div>
-                <div className="history-ticket-badge">{item.ticket}</div>
+                <div className="history-ticket-squircle">
+                  <span>{item.ticket}</span>
+                </div>
               </div>
 
               <div className="history-card-bottom">
-                <div className="history-meta">
-                  <div className="history-date">
+                <div className="history-meta-group">
+                  <div className="meta-item">
                     <Calendar size={12} />
                     <span>{item.date}</span>
                   </div>
-                  <div className="history-waited">
+                  <div className="meta-item success">
                     <CheckCircle2 size={12} color="#10b981" />
-                    <span>Tempo de espera: {item.waitTime}</span>
+                    <span>Espera: {item.waitTime}</span>
                   </div>
                 </div>
 
-                <div className="history-stars">
+                <div className="history-stars-row">
                   {[...Array(5)].map((_, i) => (
                     <Star 
                       key={i} 
-                      size={12} 
+                      size={13} 
                       fill={i < item.rating ? '#f59e0b' : 'none'} 
                       color={i < item.rating ? '#f59e0b' : '#cbd5e1'} 
                     />
@@ -246,15 +258,19 @@ export default function MobileQueuesView({
             </div>
           ))}
 
-          <div className="history-summary-box">
-            <Sparkles size={16} color="#7c3aed" />
-            <div>
-              <strong>Tempo Médio de Espera Real: 18 min</strong>
-              <p>A IA do FilaFlow reduziu sua permanência em filas em 64% este mês.</p>
+          {/* Banner de Impacto */}
+          <div className="clean-impact-banner mint">
+            <div className="impact-icon-squircle mint">
+              <Sparkles size={18} />
+            </div>
+            <div className="impact-banner-text">
+              <strong>Economia com o FilaFlow: 64% de tempo poupado</strong>
+              <p>A IA evitou mais de 45 minutos de permanência em salas de espera este mês.</p>
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 }

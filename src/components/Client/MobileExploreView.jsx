@@ -6,14 +6,13 @@ import {
   Users, 
   ArrowRight, 
   Sparkles, 
-  Filter,
   Stethoscope,
   Utensils,
   Scissors,
   FlaskConical,
   Landmark,
-  Wrench,
-  ChevronRight
+  ChevronRight,
+  QrCode
 } from 'lucide-react';
 import { AVAILABLE_DEMO_BUSINESSES } from '../../data/mockData';
 
@@ -22,12 +21,12 @@ export default function MobileExploreView({ onSelectBusiness, onOpenQrScanner })
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const categories = [
-    { id: 'all', label: 'Todos' },
-    { id: 'Clínica', label: 'Clínicas', icon: <Stethoscope size={13} /> },
-    { id: 'Laboratório', label: 'Laboratórios', icon: <FlaskConical size={13} /> },
-    { id: 'Restaurante', label: 'Restaurantes', icon: <Utensils size={13} /> },
-    { id: 'Barbearia', label: 'Barbearias', icon: <Scissors size={13} /> },
-    { id: 'Órgãos Públicos', label: 'Cartórios & Órgãos', icon: <Landmark size={13} /> }
+    { id: 'all', label: 'Todos', icon: null },
+    { id: 'Clínica', label: 'Clínicas', icon: <Stethoscope size={14} />, color: 'peach' },
+    { id: 'Laboratório', label: 'Exames', icon: <FlaskConical size={14} />, color: 'mint' },
+    { id: 'Restaurante', label: 'Restaurantes', icon: <Utensils size={14} />, color: 'lavender' },
+    { id: 'Barbearia', label: 'Barbearias', icon: <Scissors size={14} />, color: 'sky' },
+    { id: 'Órgãos Públicos', label: 'Cartórios', icon: <Landmark size={14} />, color: 'amber' }
   ];
 
   const filteredBusinesses = AVAILABLE_DEMO_BUSINESSES.filter((b) => {
@@ -41,98 +40,126 @@ export default function MobileExploreView({ onSelectBusiness, onOpenQrScanner })
     return matchesSearch && matchesCategory;
   });
 
-  const getWaitBadgeClass = (avgWait) => {
+  const getWaitBadgeInfo = (avgWait) => {
     const min = parseInt(avgWait) || 20;
-    if (min <= 15) return 'quick';
-    if (min <= 30) return 'moderate';
-    return 'busy';
+    if (min <= 15) return { label: `Rápido: ~${avgWait}`, color: 'mint' };
+    if (min <= 30) return { label: `Médio: ~${avgWait}`, color: 'amber' };
+    return { label: `Intenso: ~${avgWait}`, color: 'peach' };
   };
 
   return (
-    <div className="ff-mob-explore-view">
-      {/* Search Bar */}
-      <div className="ff-mob-search-container">
-        <div className="ff-mob-search-input-wrap">
-          <Search size={16} className="search-icon" />
+    <div className="ff-mob-clean-view">
+      {/* Header com tipografia amigável */}
+      <div className="clean-view-header">
+        <div className="view-title-group">
+          <span className="view-pretitle">Descubra</span>
+          <h2 className="view-maintitle">Explorar Locais</h2>
+        </div>
+        <button 
+          className="btn-icon-soft" 
+          onClick={onOpenQrScanner} 
+          title="Ler QR de Totem"
+        >
+          <QrCode size={18} />
+        </button>
+      </div>
+
+      {/* Search Input em Pílula Macia */}
+      <div className="clean-search-wrap">
+        <div className="clean-search-inner">
+          <Search size={18} className="search-icon-soft" />
           <input
             type="text"
-            placeholder="Buscar clínicas, cartórios, restaurantes..."
+            placeholder="Buscar clínicas, exames, cartórios..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="ff-mob-search-input"
+            className="clean-search-input"
           />
           {searchTerm && (
-            <button className="search-clear-btn" onClick={() => setSearchTerm('')}>
+            <button className="search-clear-clean" onClick={() => setSearchTerm('')}>
               ×
             </button>
           )}
         </div>
       </div>
 
-      {/* Category Pills Slider */}
-      <div className="ff-mob-category-slider">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            className={`category-pill ${selectedCategory === cat.id ? 'active' : ''}`}
-            onClick={() => setSelectedCategory(cat.id)}
-          >
-            {cat.icon && <span className="cat-icon">{cat.icon}</span>}
-            <span>{cat.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Results Header */}
-      <div className="explore-results-header">
-        <span>{filteredBusinesses.length} estabelecimentos com fila inteligente</span>
-        <span className="live-badge">
-          <span className="live-dot"></span> Ao vivo
-        </span>
-      </div>
-
-      {/* Business Cards List */}
-      <div className="explore-business-list">
-        {filteredBusinesses.map((b) => {
-          const waitClass = getWaitBadgeClass(b.avgWait);
+      {/* Category Pills Slider estilo Screen 2 */}
+      <div className="clean-categories-slider">
+        {categories.map((cat) => {
+          const isActive = selectedCategory === cat.id;
           return (
-            <div key={b.id} className="explore-business-card">
-              <div className="biz-card-top">
+            <button
+              key={cat.id}
+              className={`category-pill-item ${isActive ? 'active' : ''} ${cat.color || 'neutral'}`}
+              onClick={() => setSelectedCategory(cat.id)}
+            >
+              {cat.icon && <span className="cat-pill-icon">{cat.icon}</span>}
+              <span className="cat-pill-label">{cat.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Live Badge Contador */}
+      <div className="clean-explore-meta-row">
+        <span className="explore-count-text">
+          <strong>{filteredBusinesses.length}</strong> locais com fila inteligente
+        </span>
+        <div className="live-pill-tag">
+          <span className="live-dot-pulse"></span>
+          <span>Tempo Real</span>
+        </div>
+      </div>
+
+      {/* Lista de Estabelecimentos em Cards Pastéis */}
+      <div className="clean-explore-list">
+        {filteredBusinesses.map((b) => {
+          const wait = getWaitBadgeInfo(b.avgWait);
+          return (
+            <div key={b.id} className="clean-explore-card">
+              <div className="explore-card-header">
                 <div>
-                  <span className="biz-category-badge">{b.category}</span>
-                  <h4 className="biz-name">{b.companyName}</h4>
-                  <div className="biz-address">
-                    <MapPin size={11} />
+                  <span className="clean-chip-badge lavender">{b.category}</span>
+                  <h3 className="biz-clean-title">{b.companyName}</h3>
+                  <div className="biz-clean-location">
+                    <MapPin size={12} />
                     <span>{b.address} • {b.unitName}</span>
                   </div>
                 </div>
 
-                <div className={`biz-wait-pill ${waitClass}`}>
+                <div className={`biz-clean-wait-pill ${wait.color}`}>
                   <Clock size={12} />
-                  <span>~{b.avgWait}</span>
+                  <span>{wait.label}</span>
                 </div>
               </div>
 
-              <div className="biz-services-preview">
-                <div className="services-title">Procedimentos / Atendimentos:</div>
-                <div className="services-tags">
+              {/* Tags de Serviços */}
+              <div className="biz-clean-services-box">
+                <span className="services-box-title">Especialidades & Exames:</span>
+                <div className="services-chips-wrap">
                   {b.services.slice(0, 2).map((s, idx) => (
-                    <span key={idx} className="service-tag-chip">{s}</span>
+                    <span key={idx} className="clean-service-tag">{s}</span>
                   ))}
                   {b.services.length > 2 && (
-                    <span className="service-tag-chip more">+{b.services.length - 2} mais</span>
+                    <span className="clean-service-tag more">+{b.services.length - 2}</span>
                   )}
                 </div>
               </div>
 
-              <div className="biz-card-bottom">
-                <div className="biz-queue-stats">
-                  <Users size={13} color="#64748b" />
-                  <span>{b.currentWaiting} aguardando • Próxima: #{b.nextTicket}</span>
+              {/* Rodapé do Card */}
+              <div className="explore-card-footer">
+                <div className="biz-queue-count">
+                  <div className="icon-squircle mini mint">
+                    <Users size={13} />
+                  </div>
+                  <div>
+                    <strong>{b.currentWaiting} na fila</strong>
+                    <span>Próxima: #{b.nextTicket}</span>
+                  </div>
                 </div>
 
                 <button 
-                  className="biz-enter-btn"
+                  className="clean-pill-btn primary"
                   onClick={() => onSelectBusiness(b)}
                 >
                   <span>Pegar Senha</span>
@@ -144,10 +171,20 @@ export default function MobileExploreView({ onSelectBusiness, onOpenQrScanner })
         })}
 
         {filteredBusinesses.length === 0 && (
-          <div className="ff-mob-empty-queues">
-            <Search size={32} color="#94a3b8" />
-            <h4>Nenhum local encontrado</h4>
-            <p>Tente buscar por outro termo ou selecione a categoria "Todos".</p>
+          <div className="clean-empty-state-card">
+            <div className="empty-state-squircle peach">
+              <Search size={32} />
+            </div>
+            <h4 className="empty-state-title">Nenhum local encontrado</h4>
+            <p className="empty-state-sub">
+              Tente buscar por outro termo ou clique na categoria "Todos".
+            </p>
+            <button 
+              className="clean-pill-btn soft" 
+              onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
+            >
+              Limpar Filtros
+            </button>
           </div>
         )}
       </div>

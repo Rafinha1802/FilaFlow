@@ -265,10 +265,11 @@ export default function App() {
     showToast(`Senha ${newTicketObj.ticket} impressa e adicionada à fila!`);
   };
 
-  // 6. Client: Pre-Checkin Complete
+  // 6. Client: Pre-Checkin Complete (Escaneamento do QR Code no totem da clínica)
   const handleConfirmPreCheckin = ({ business, serviceName, userName, userPhone, isPriority }) => {
     const randomTicket = business.nextTicket || `${Math.floor(10 + Math.random() * 80)}`;
     const randomWait = parseInt(business.avgWait) || 20;
+    const doctorName = business.attendantName || 'Dr. Carlos Mendes';
 
     const newQueueItem = {
       id: business.id + '-' + Date.now(),
@@ -277,14 +278,15 @@ export default function App() {
       category: business.category,
       badgeColor: 'purple',
       serviceName: serviceName || 'Atendimento Geral',
-      attendantName: business.attendantName || 'Equipe FilaFlow',
-      room: business.room || 'Recepção',
+      attendantName: doctorName,
+      room: business.room || 'Consultório 04',
       ticketNumber: randomTicket,
       position: (business.currentWaiting || 3) + 1,
       initialWaitMin: randomWait,
       estimatedWaitText: `${randomWait - 3}-${randomWait + 4} min`,
       status: 'waiting',
-      statusDetail: 'Pré-check-in confirmado via QR Code',
+      isCheckedInWithSecretary: false,
+      statusDetail: `Aguardando aprovação para a fila de ${doctorName}`,
       isAiRecalculating: false,
       delayWarning: null,
       joinedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
@@ -300,7 +302,7 @@ export default function App() {
     setIsPreCheckinOpen(false);
     navigate('/app');
     playChime();
-    showToast(`Check-in confirmado! Sua senha é #${randomTicket}.`);
+    showToast(`Você está na fila de espera, aguarde você ser aprovado para poder ir para a fila do médico ${doctorName}...`);
   };
 
   // 7. Remove queue from client mobile app
@@ -313,9 +315,29 @@ export default function App() {
     showToast('Você desistiu da fila selecionada.');
   };
 
-  // 8. Client actions: "Estou a caminho" & "Pedir +5 min"
+  // 8. Client actions: Check-in com a Secretária & "Pedir +5 min"
+  const handleSecretaryCheckin = (queueId) => {
+    let doctorTarget = 'Dr. Carlos Mendes';
+    setClientActiveQueues((prev) =>
+      prev.map((q) => {
+        if (q.id === queueId || (!queueId && q.id === selectedQueueId)) {
+          if (q.attendantName) doctorTarget = q.attendantName;
+          return {
+            ...q,
+            isCheckedInWithSecretary: true,
+            status: 'waiting',
+            statusDetail: `✓ Aprovado para a fila de ${doctorTarget}`
+          };
+        }
+        return q;
+      })
+    );
+    playChime();
+    showToast(`✓ Check-in aprovado! Você já está na fila direta do médico ${doctorTarget}.`);
+  };
+
   const handleClientImOnMyWay = (queueId) => {
-    showToast('Atendente notificado: "Você está a caminho!"');
+    handleSecretaryCheckin(queueId);
   };
 
   const handleClientAskMoreTime = (queueId) => {
@@ -419,6 +441,7 @@ export default function App() {
           onOpenQrScanner={() => setIsQrScannerOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
           onRemoveQueue={handleRemoveClientQueue}
+          onSecretaryCheckin={handleSecretaryCheckin}
           onClientImOnMyWay={handleClientImOnMyWay}
           onClientAskMoreTime={handleClientAskMoreTime}
           hasConflict={hasConflict}
