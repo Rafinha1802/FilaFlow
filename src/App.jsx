@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppRouter } from './router/useAppRouter';
 import Navbar from './components/LandingPage/Navbar';
 import LandingPage from './components/LandingPage/LandingPage';
 import CompanyDashboard from './components/Company/CompanyDashboard';
-import CompanyAuth from './components/Company/CompanyAuth';
 import ProfessionalWorkspace from './components/Professional/ProfessionalWorkspace';
 import ClientMobileApp from './components/Client/ClientMobileApp';
 import QrScannerModal from './components/Client/QrScannerModal';
@@ -13,21 +12,32 @@ import PricingModal from './components/Common/PricingModal';
 import CheckoutPage from './components/Checkout/CheckoutPage';
 import SimControlBar from './components/Common/SimControlBar';
 import { INITIAL_QUEUES, REGISTERED_PROFESSIONALS } from './data/mockData';
+import { 
+  fetchQueues, 
+  callNextTicketApi, 
+  reportDelayApi, 
+  addManualTicketApi, 
+  setupQueueWebSocket, 
+  ensureAuthToken 
+} from './services/api';
 
 export default function App() {
   // Client-Side History Router: '/' (Site) | '/app' (Mobile App) | '/empresa' (SaaS B2B) | '/profissional' (Consultório) | '/checkout' (Pagamento)
   const { currentPath, navigate, isAppRoute, isCompanyRoute, isCheckoutRoute, isProfessionalRoute, isSiteRoute } = useAppRouter();
-  const [authInitialTab, setAuthInitialTab] = useState('login');
-  const [authInitialRole, setAuthInitialRole] = useState('company'); // 'company' | 'professional'
   const [activeProfessional, setActiveProfessional] = useState(REGISTERED_PROFESSIONALS[0]);
 
   // Checkout Selected Plan State
   const [checkoutPlan, setCheckoutPlan] = useState('Profissional');
   const [checkoutCycle, setCheckoutCycle] = useState('monthly');
 
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  // Authentication State - Conectado diretamente à empresa padrão para operação imediata com backend
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [currentUser, setCurrentUser] = useState({
+    name: 'Dr. Carlos Mendes',
+    email: 'atendimento@clinicavida.com.br',
+    companyName: 'Clínica Vida',
+    unitName: 'Unidade Centro'
+  });
 
   // Company State
   const [businessData, setBusinessData] = useState({
@@ -96,53 +106,82 @@ export default function App() {
     setTimeout(() => setCallAlertMessage(null), 6000);
   };
 
-  // Auth Handlers
-  const handleLoginSuccess = (data) => {
-    setBusinessData((prev) => ({ ...prev, ...data }));
-    setIsAuthenticated(true);
-    setCurrentUser({
-      name: data.attendantName || 'Dr. Carlos Mendes',
-      email: data.email || 'atendimento@clinicavida.com.br',
-      companyName: data.companyName || 'Clínica Vida',
-      unitName: data.unitName || 'Unidade Centro'
+  // -------------------------------------------------------------
+  // Sincronização Automática com o Backend FastAPI & WebSockets
+  // -------------------------------------------------------------
+  useEffect(() => {
+    // 1. Garante autenticação em segundo plano com o backend (JWT)
+    ensureAuthToken().catch((err) => {
+      console.log('[FilaFlow] Backend não detectado ou inicializando:', err);
     });
-    navigate('/empresa/dashboard');
-    playChime();
-    showToast(`Conectado com sucesso como ${data.companyName || 'Clínica Vida'}!`);
-  };
 
-  const handleRegisterSuccess = (data) => {
-    setBusinessData((prev) => ({ ...prev, ...data }));
-    setIsAuthenticated(true);
-    setCurrentUser({
-      name: data.attendantName || 'Responsável',
-      email: data.email || 'contato@empresa.com.br',
-      companyName: data.companyName,
-      unitName: data.unitName
-    });
-    navigate('/empresa/dashboard');
-    playChime();
-    showToast(`Parabéns! Fila de ${data.companyName} ativada com sucesso!`);
-  };
+    // 2. Busca filas reais do backend FastAPI
+    async function syncBackendData() {
+      try {
+        const queues = await fetchQueues();
+        if (Array.isArray(queues) && queues.length > 0) {
+          console.log('[FilaFlow] Filas sincronizadas com o backend:', queues);
+          const vidaQueue = queues.find((q) => q.id === 'clinica-vida') || queues[0];
+          if (vidaQueue) {
+            setBusinessData((prev) => ({
+              ...prev,
+              companyName: vidaQueue.companyName || prev.companyName,
+              attendantName: vidaQueue.attendantName || prev.attendantName,
+              room: vidaQueue.room || prev.room
+            }));
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setCurrentUser(null);
-    navigate('/');
-    showToast('Sessão encerrada com sucesso.');
-  };
-
-  const handleOpenLogin = (role = 'company') => {
-    setAuthInitialTab('login');
-    setAuthInitialRole(role || 'company');
-    if (role === 'professional') {
-      if (!activeProfessional) {
-        setActiveProfessional(REGISTERED_PROFESSIONALS[0]);
+            // Atualiza fila de espera no dashboard caso venha do backend
+            if (vidaQueue.aheadList && vidaQueue.aheadList.length > 0) {
+              setCompanyWaitingQueue(
+                vidaQueue.aheadList.map((t, idx) => ({
+                  ticket: t.ticket || `#${idx + 44}`,
+                  name: t.name || 'Paciente',
+                  service: vidaQueue.serviceName || 'Consulta Geral',
+                  time: t.time || '~15 min',
+                  isPriority: false,
+                  isUser: !!t.isUser
+                }))
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[FilaFlow] Rodando com dados locais:', err);
       }
-      navigate('/profissional');
-    } else {
-      navigate('/empresa');
     }
+
+    syncBackendData();
+
+    // 3. Conexão WebSocket para receber chamadas de senha e recálculos da IA em tempo real
+    const ws = setupQueueWebSocket((event) => {
+      console.log('[FilaFlow WS Recebido]', event);
+      if (event.type === 'TICKET_CALLED') {
+        playChime();
+        const ticketNum = event.ticketNumber || event.ticket?.ticket_number || '#--';
+        const clientName = event.customerName || event.ticket?.customer_name || 'Paciente';
+        const roomName = event.room || 'Consultório 04';
+
+        setActiveAttendingTicket({
+          ticket: ticketNum,
+          name: clientName,
+          service: event.serviceName || 'Atendimento'
+        });
+
+        setCompanyWaitingQueue((prev) => prev.filter((t) => t.ticket !== ticketNum));
+        showToast(`🔔 SENHA CHAMADA: ${ticketNum} (${clientName}) no ${roomName}`);
+      } else if (event.type === 'QUEUE_UPDATED' || event.type === 'AI_PREDICTIONS_UPDATED') {
+        syncBackendData();
+      }
+    });
+
+    return () => {
+      if (ws) ws.close();
+    };
+  }, []);
+
+  // Navegação direta para o Painel da Empresa sem telas de login/cadastro
+  const handleOpenDashboard = () => {
+    navigate('/empresa/dashboard');
   };
 
   const handleOpenProfessional = (professionalObj = null) => {
@@ -154,26 +193,51 @@ export default function App() {
     navigate('/profissional');
   };
 
-  const handleOpenSignup = () => {
-    setAuthInitialTab('register');
-    navigate('/empresa');
-  };
-
-  const handleOpenDashboard = () => {
-    if (isAuthenticated) {
-      navigate('/empresa/dashboard');
-    } else {
-      setAuthInitialTab('login');
-      navigate('/empresa');
-    }
-  };
-
   const handleOpenClient = () => {
     navigate('/app');
   };
 
-  // 1. Call Next Ticket in Company Dashboard
-  const handleCallNextTicket = () => {
+  const handleLogout = () => {
+    navigate('/');
+    showToast('Retornou à página inicial.');
+  };
+
+  // 1. Chamar Próxima Senha (integrado à API real e com fallback local imediato)
+  const handleCallNextTicket = async () => {
+    // Tenta chamar a API do backend
+    const apiRes = await callNextTicketApi('clinica-vida');
+
+    if (apiRes && apiRes.called_ticket) {
+      const ct = apiRes.called_ticket;
+      const nextOne = {
+        ticket: ct.ticket_number,
+        name: ct.customer_name,
+        service: ct.service_name,
+        isUser: ct.is_user
+      };
+
+      setActiveAttendingTicket(nextOne);
+      if (apiRes.remaining_queue) {
+        setCompanyWaitingQueue(
+          apiRes.remaining_queue.map((t) => ({
+            ticket: t.ticket_number,
+            name: t.customer_name,
+            service: t.service_name,
+            time: t.estimated_wait_text || '~12 min',
+            isPriority: t.is_priority,
+            isUser: t.is_user
+          }))
+        );
+      } else {
+        setCompanyWaitingQueue((prev) => prev.slice(1));
+      }
+
+      playChime();
+      showToast(`🔔 Senha ${ct.ticket_number} chamada no ${businessData.room || 'Consultório 04'}!`);
+      return;
+    }
+
+    // Fallback local se o backend estiver iniciando ou offline
     if (companyWaitingQueue.length === 0) {
       alert('Não há mais clientes na fila de espera no momento.');
       return;
@@ -186,12 +250,13 @@ export default function App() {
     setCompanyWaitingQueue(remainingQueue);
     playChime();
 
-    // Check if the called ticket is the user's (#47 or matching isUser)
     if (nextOne.isUser || nextOne.ticket === '#47') {
       showToast(`🔔 SUA VEZ CHEGOU! Senha ${nextOne.ticket} chamada no ${businessData.room || 'Consultório 04'}.`);
+    } else {
+      showToast(`🔔 Senha ${nextOne.ticket} (${nextOne.name}) chamada no ${businessData.room || 'Consultório 04'}.`);
     }
 
-    // Synchronize Client Mobile App queue state
+    // Sincroniza aplicativo cliente
     setClientActiveQueues((prevQueues) =>
       prevQueues.map((queue) => {
         if (queue.id === 'clinica-vida') {
@@ -216,8 +281,10 @@ export default function App() {
     );
   };
 
-  // 2. Simulate Delay (+5 min by AI)
-  const handleReportDelay = () => {
+  // 2. Reportar Atraso (recalculado com IA)
+  const handleReportDelay = async () => {
+    reportDelayApi('clinica-vida', 5).catch(() => {});
+
     setClientActiveQueues((prevQueues) =>
       prevQueues.map((queue) => {
         if (queue.id === 'clinica-vida') {
@@ -236,18 +303,25 @@ export default function App() {
     showToast('Atraso notificado. A IA recalculou o tempo das senhas seguintes.');
   };
 
-  // 3. Skip current ticket / mark absent
+  // 3. Pular senha / Não compareceu
   const handleSkipTicket = () => {
     handleCallNextTicket();
   };
 
-  // 4. Finish current attendance
+  // 4. Finalizar atendimento atual
   const handleFinishCurrent = () => {
     handleCallNextTicket();
   };
 
-  // 5. Add Manual Ticket from Counter (Balcão presencial)
-  const handleAddManualTicket = ({ name, serviceName, isPriority }) => {
+  // 5. Emitir Senha Manual no Balcão
+  const handleAddManualTicket = async ({ name, serviceName, isPriority }) => {
+    addManualTicketApi({
+      queue_id: 'clinica-vida',
+      customer_name: name,
+      service_name: serviceName,
+      is_priority: isPriority
+    }).catch(() => {});
+
     const nextNum = Math.floor(50 + Math.random() * 40);
     const newTicketObj = {
       ticket: `#${nextNum}`,
@@ -262,10 +336,10 @@ export default function App() {
     } else {
       setCompanyWaitingQueue([...companyWaitingQueue, newTicketObj]);
     }
-    showToast(`Senha ${newTicketObj.ticket} impressa e adicionada à fila!`);
+    showToast(`Senha ${newTicketObj.ticket} emitida e adicionada à fila!`);
   };
 
-  // 6. Client: Pre-Checkin Complete (Escaneamento do QR Code no totem da clínica)
+  // 6. Confirmação do Pré-Checkin do Cliente
   const handleConfirmPreCheckin = ({ business, serviceName, userName, userPhone, isPriority }) => {
     const randomTicket = business.nextTicket || `${Math.floor(10 + Math.random() * 80)}`;
     const randomWait = parseInt(business.avgWait) || 20;
@@ -302,63 +376,87 @@ export default function App() {
     setIsPreCheckinOpen(false);
     navigate('/app');
     playChime();
-    showToast(`Você está na fila de espera, aguarde você ser aprovado para poder ir para a fila do médico ${doctorName}...`);
+    showToast(`Você está na fila de espera da recepção. Aguarde a confirmação de ${doctorName}...`);
   };
 
-  // 7. Remove queue from client mobile app
+  // 7. Desistir de fila no app do cliente
   const handleRemoveClientQueue = (queueId) => {
     const updated = clientActiveQueues.filter((q) => q.id !== queueId);
     setClientActiveQueues(updated);
     if (selectedQueueId === queueId && updated.length > 0) {
       setSelectedQueueId(updated[0].id);
     }
-    showToast('Você desistiu da fila selecionada.');
+    showToast('Você saiu da fila selecionada.');
   };
 
-  // 8. Client actions: Check-in com a Secretária & "Pedir +5 min"
+  // 8. Ações do cliente mobile
   const handleSecretaryCheckin = (queueId) => {
-    let doctorTarget = 'Dr. Carlos Mendes';
-    setClientActiveQueues((prev) =>
-      prev.map((q) => {
-        if (q.id === queueId || (!queueId && q.id === selectedQueueId)) {
-          if (q.attendantName) doctorTarget = q.attendantName;
+    const doctorTarget = 'Dr. Carlos Mendes';
+    showToast(`Notificação enviada para a secretária. Sua autorização está sendo processada.`);
+
+    setTimeout(() => {
+      setClientActiveQueues((prevQueues) =>
+        prevQueues.map((q) => {
+          if (q.id === queueId) {
+            return {
+              ...q,
+              isCheckedInWithSecretary: true,
+              statusDetail: `Autorizado pela recepção! Na fila oficial de ${doctorTarget}`
+            };
+          }
+          return q;
+        })
+      );
+      playChime();
+      showToast(`Convênio aprovado pela recepção! Você foi inserido na fila de ${doctorTarget}.`);
+    }, 3500);
+  };
+
+  const handleClientImOnMyWay = (queueId) => {
+    setClientActiveQueues((prevQueues) =>
+      prevQueues.map((q) => {
+        if (q.id === queueId) {
           return {
             ...q,
-            isCheckedInWithSecretary: true,
-            status: 'waiting',
-            statusDetail: `✓ Aprovado para a fila de ${doctorTarget}`
+            statusDetail: '🚗 Notificação enviada: "Estou a caminho! Chegando em 5-10 min"'
           };
         }
         return q;
       })
     );
-    playChime();
-    showToast(`✓ Check-in aprovado! Você já está na fila direta do médico ${doctorTarget}.`);
-  };
-
-  const handleClientImOnMyWay = (queueId) => {
-    handleSecretaryCheckin(queueId);
+    showToast('Aviso enviado ao consultório: Você está a caminho!');
   };
 
   const handleClientAskMoreTime = (queueId) => {
-    handleReportDelay();
+    setClientActiveQueues((prevQueues) =>
+      prevQueues.map((q) => {
+        if (q.id === queueId) {
+          return {
+            ...q,
+            position: q.position + 1,
+            initialWaitMin: q.initialWaitMin + 12,
+            estimatedWaitText: `${q.initialWaitMin + 8}-${q.initialWaitMin + 15} min`,
+            statusDetail: '⏱️ Pedido de mais tempo aceito: Você cedeu 1 lugar na fila'
+          };
+        }
+        return q;
+      })
+    );
+    showToast('Você cedeu sua vez para o próximo. Seu tempo foi estendido.');
   };
 
-  // 9. QR Scan trigger
-  const handleScanBusiness = (business) => {
+  const handleScanBusiness = (scannedBusiness) => {
     setIsQrScannerOpen(false);
-    setPreCheckinBusiness(business);
+    setPreCheckinBusiness(scannedBusiness);
     setIsPreCheckinOpen(true);
   };
 
-  // 10. Search Select trigger
   const handleSearchSelectBusiness = (business) => {
     setIsSearchOpen(false);
     setPreCheckinBusiness(business);
     setIsPreCheckinOpen(true);
   };
 
-  // Reset to initial demo state
   const handleResetQueues = () => {
     setClientActiveQueues(INITIAL_QUEUES);
     setSelectedQueueId('clinica-vida');
@@ -368,14 +466,14 @@ export default function App() {
 
   return (
     <div className="ff-app-root">
-      {/* Top Navbar - Only rendered on Site Institucional (/) */}
+      {/* Top Navbar - Renderizada na Landing Page do Site (/) */}
       {isSiteRoute && (
         <Navbar
           isAuthenticated={isAuthenticated}
           currentUser={currentUser}
           onGoToLanding={() => navigate('/')}
-          onOpenLogin={handleOpenLogin}
-          onOpenSignup={handleOpenSignup}
+          onOpenLogin={() => navigate('/empresa/dashboard')}
+          onOpenSignup={() => navigate('/empresa/dashboard')}
           onOpenDashboard={handleOpenDashboard}
           onOpenPricing={() => setIsPricingOpen(true)}
           onOpenProfessional={() => handleOpenProfessional()}
@@ -385,25 +483,27 @@ export default function App() {
 
       {/* Global Call Alert Banner */}
       {callAlertMessage && (
-        <div style={{
-          position: 'fixed',
-          top: isAppRoute ? 16 : 84,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 4000,
-          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-          color: 'white',
-          padding: '12px 22px',
-          borderRadius: 14,
-          boxShadow: '0 20px 40px rgba(16, 185, 129, 0.4)',
-          fontWeight: 800,
-          fontSize: 14,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          animation: 'slide-in-down 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-          maxWidth: '90vw'
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: isAppRoute ? 16 : 84,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 4000,
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: 'white',
+            padding: '12px 22px',
+            borderRadius: 14,
+            boxShadow: '0 20px 40px rgba(16, 185, 129, 0.4)',
+            fontWeight: 800,
+            fontSize: 14,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            animation: 'slide-in-down 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            maxWidth: '90vw'
+          }}
+        >
           <span>{callAlertMessage}</span>
           <button
             onClick={() => setCallAlertMessage(null)}
@@ -422,17 +522,17 @@ export default function App() {
         </div>
       )}
 
-      {/* ROUTE 1: / (Site Institucional / Landing Page) */}
+      {/* ROTA 1: / (Site Institucional / Landing Page) */}
       {isSiteRoute && (
         <LandingPage
           activeQueue={clientActiveQueues[0]}
-          onOpenSignup={handleOpenSignup}
-          onOpenLogin={handleOpenLogin}
+          onOpenSignup={() => navigate('/empresa/dashboard')}
+          onOpenLogin={() => navigate('/empresa/dashboard')}
           onOpenPricing={() => setIsPricingOpen(true)}
         />
       )}
 
-      {/* ROUTE 2: /app (Mobile App Separado do Site) */}
+      {/* ROTA 2: /app (Mobile App Separado do Site) */}
       {isAppRoute && (
         <ClientMobileApp
           activeQueues={clientActiveQueues}
@@ -453,69 +553,39 @@ export default function App() {
         />
       )}
 
-      {/* ROUTE 3: /empresa (Autenticação ou Painel Operacional B2B) */}
+      {/* ROTA 3: /empresa (Painel Operacional da Empresa DIRETO - Sem bloqueio de login/cadastro) */}
       {isCompanyRoute && (
-        currentPath === '/empresa/dashboard' && isAuthenticated ? (
-          <CompanyDashboard
-            businessData={businessData}
-            activeAttendingTicket={activeAttendingTicket}
-            waitingQueue={companyWaitingQueue}
-            onCallNext={handleCallNextTicket}
-            onReportDelay={handleReportDelay}
-            onFinishCurrent={handleFinishCurrent}
-            onSkipTicket={handleSkipTicket}
-            onAddManualTicket={handleAddManualTicket}
-            onOpenMobileTest={handleOpenClient}
-            onGoToSite={() => navigate('/')}
-            onLogout={handleLogout}
-          />
-        ) : (
-          <CompanyAuth
-            initialTab={authInitialTab}
-            initialRole={authInitialRole}
-            onLoginSuccess={handleLoginSuccess}
-            onProfessionalLoginSuccess={(pro) => {
-              setActiveProfessional(pro);
-              navigate('/profissional');
-            }}
-            onRegisterSuccess={handleRegisterSuccess}
-            onBackToLanding={() => navigate('/')}
-            onGoToClient={handleOpenClient}
-          />
-        )
+        <CompanyDashboard
+          businessData={businessData}
+          activeAttendingTicket={activeAttendingTicket}
+          waitingQueue={companyWaitingQueue}
+          onCallNext={handleCallNextTicket}
+          onReportDelay={handleReportDelay}
+          onFinishCurrent={handleFinishCurrent}
+          onSkipTicket={handleSkipTicket}
+          onAddManualTicket={handleAddManualTicket}
+          onOpenMobileTest={handleOpenClient}
+          onGoToSite={() => navigate('/')}
+          onLogout={handleLogout}
+        />
       )}
 
-      {/* ROUTE 5: /profissional (Área do Profissional / Consultório Digital) */}
+      {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital DIRETO) */}
       {isProfessionalRoute && (
-        activeProfessional ? (
-          <ProfessionalWorkspace
-            professional={activeProfessional}
-            allProfessionals={REGISTERED_PROFESSIONALS}
-            onSwitchProfessional={(pro) => setActiveProfessional(pro)}
-            onLogout={() => {
-              navigate('/');
-              showToast('Sessão do consultório encerrada com sucesso.');
-            }}
-            onGoToSite={() => navigate('/')}
-            onOpenMobileView={() => navigate('/app')}
-          />
-        ) : (
-          <CompanyAuth
-            initialTab="login"
-            initialRole="professional"
-            onLoginSuccess={handleLoginSuccess}
-            onProfessionalLoginSuccess={(pro) => {
-              setActiveProfessional(pro);
-              navigate('/profissional');
-            }}
-            onRegisterSuccess={handleRegisterSuccess}
-            onBackToLanding={() => navigate('/')}
-            onGoToClient={handleOpenClient}
-          />
-        )
+        <ProfessionalWorkspace
+          professional={activeProfessional || REGISTERED_PROFESSIONALS[0]}
+          allProfessionals={REGISTERED_PROFESSIONALS}
+          onSwitchProfessional={(pro) => setActiveProfessional(pro)}
+          onLogout={() => {
+            navigate('/');
+            showToast('Sessão do consultório encerrada com sucesso.');
+          }}
+          onGoToSite={() => navigate('/')}
+          onOpenMobileView={() => navigate('/app')}
+        />
       )}
 
-      {/* ROUTE 4: /checkout (Página de Pagamento / Checkout por Pix, Cartão e Boleto) */}
+      {/* ROTA 4: /checkout (Página de Pagamento / Checkout por Pix, Cartão e Boleto) */}
       {isCheckoutRoute && (
         <CheckoutPage
           initialPlanName={checkoutPlan}
@@ -529,7 +599,6 @@ export default function App() {
                 attendantName: order.customerName || prev.attendantName,
                 email: order.email || prev.email
               }));
-              setIsAuthenticated(true);
               setCurrentUser({
                 name: order.customerName || 'Responsável',
                 email: order.email || 'contato@empresa.com.br',
@@ -575,36 +644,34 @@ export default function App() {
         onSelectBusiness={handleSearchSelectBusiness}
       />
 
-      {/* Floating Simulation Bar (Discreta no rodapé para testes rápidos) */}
-      <SimControlBar
-        currentView={
-          isProfessionalRoute
-            ? 'professional'
-            : isAppRoute
-              ? 'client-mobile'
-              : isCompanyRoute
-                ? (currentPath === '/empresa/dashboard' ? 'company-dashboard' : 'company-auth')
-                : isCheckoutRoute
-                  ? 'checkout'
-                  : 'landing'
-        }
-        setCurrentView={(view) => {
-          if (view === 'professional') navigate('/profissional');
-          else if (view === 'client-mobile') navigate('/app');
-          else if (view === 'company-dashboard') navigate('/empresa/dashboard');
-          else if (view === 'company-auth') navigate('/empresa');
-          else if (view === 'checkout') navigate('/checkout');
-          else navigate('/');
-        }}
-        onNextTicket={handleCallNextTicket}
-        onSimulateDelay={handleReportDelay}
-        onToggleConflict={() => setHasConflict(!hasConflict)}
-        onResetQueues={handleResetQueues}
-        onOpenAuth={(tab) => {
-          setAuthInitialTab(tab);
-          navigate('/empresa');
-        }}
-      />
+      {/* Floating Simulation Bar (apenas em ambiente de desenvolvimento Vite) */}
+      {import.meta.env.DEV && (
+        <SimControlBar
+          currentView={
+            isProfessionalRoute
+              ? 'professional'
+              : isAppRoute
+                ? 'client-mobile'
+                : isCompanyRoute
+                  ? 'company-dashboard'
+                  : isCheckoutRoute
+                    ? 'checkout'
+                    : 'landing'
+          }
+          setCurrentView={(view) => {
+            if (view === 'professional') navigate('/profissional');
+            else if (view === 'client-mobile') navigate('/app');
+            else if (view === 'company-dashboard' || view === 'company-auth') navigate('/empresa/dashboard');
+            else if (view === 'checkout') navigate('/checkout');
+            else navigate('/');
+          }}
+          onNextTicket={handleCallNextTicket}
+          onSimulateDelay={handleReportDelay}
+          onToggleConflict={() => setHasConflict(!hasConflict)}
+          onResetQueues={handleResetQueues}
+          onOpenAuth={() => navigate('/empresa/dashboard')}
+        />
+      )}
     </div>
   );
 }

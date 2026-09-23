@@ -14,6 +14,8 @@ set SCRIPT_DIR=%~dp0
 :: Detecta diretório do Backend
 if exist "%SCRIPT_DIR%app\main.py" (
     set "BACK_DIR=%SCRIPT_DIR%"
+) else if exist "%SCRIPT_DIR%..\FilaFlow_back\FilaFlow_back\app\main.py" (
+    set "BACK_DIR=%SCRIPT_DIR%..\FilaFlow_back\FilaFlow_back\"
 ) else if exist "%SCRIPT_DIR%..\FilaFlow_back\app\main.py" (
     set "BACK_DIR=%SCRIPT_DIR%..\FilaFlow_back\"
 ) else (
