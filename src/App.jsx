@@ -30,7 +30,7 @@ export default function App() {
   const [checkoutPlan, setCheckoutPlan] = useState('Profissional');
   const [checkoutCycle, setCheckoutCycle] = useState('monthly');
 
-  // Authentication State - Conectado diretamente à empresa padrão para operação imediata com backend
+  // Authentication State - Empresa / Profissional (B2B)
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [currentUser, setCurrentUser] = useState({
     name: 'Dr. Carlos Mendes',
@@ -38,6 +38,30 @@ export default function App() {
     companyName: 'Clínica Vida',
     unitName: 'Unidade Centro'
   });
+
+  // Client / Patient User for Mobile App (Público em geral, NÃO médico!)
+  const [mobileClientUser, setMobileClientUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('filaflow_client_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!parsed.name?.includes('Dr.') && !parsed.name?.includes('Médic')) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return {
+      name: 'Rafael Silva',
+      email: 'rafael.silva@email.com',
+      phone: '(11) 98765-4321',
+      cpf: '345.678.901-22',
+      insurance: 'Unimed Nacional',
+      cardNumber: '0012.3456.7890.1234',
+      avatarInitial: 'R',
+      role: 'patient'
+    };
+  });
+  const [isClientAuthenticated, setIsClientAuthenticated] = useState(true);
 
   // Company State
   const [businessData, setBusinessData] = useState({
@@ -550,6 +574,13 @@ export default function App() {
           onGoToCompany={handleOpenDashboard}
           onSelectBusiness={handleSearchSelectBusiness}
           onPlayChime={playChime}
+          currentUser={mobileClientUser}
+          isAuthenticated={isClientAuthenticated}
+          onLogout={() => setIsClientAuthenticated(false)}
+          onAuthSuccess={(user) => {
+            setMobileClientUser(user);
+            setIsClientAuthenticated(true);
+          }}
         />
       )}
 

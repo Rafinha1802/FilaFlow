@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   Bell, 
-  Volume2, 
   CheckCheck, 
   Clock, 
   AlertTriangle, 
@@ -123,25 +122,6 @@ export default function MobileNotificationsView({ onPlayChime }) {
             <Trash2 size={16} />
           </button>
         </div>
-      </div>
-
-      {/* Botão de Testar Som estilo Banner Pastel */}
-      <div className="notif-chime-test-banner">
-        <div className="chime-banner-left">
-          <div className="icon-squircle mini lavender">
-            <Volume2 size={15} />
-          </div>
-          <div>
-            <strong>Aviso Sonoro de Chamada</strong>
-            <span>Ouça como você será chamado no guichê</span>
-          </div>
-        </div>
-        <button 
-          className="clean-pill-btn soft"
-          onClick={onPlayChime}
-        >
-          <span>Testar Som</span>
-        </button>
       </div>
 
       {/* Segmented Filter Pills */}

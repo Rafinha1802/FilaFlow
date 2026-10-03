@@ -4,16 +4,28 @@ import { X, Sparkles, Building2, Clock, CheckCircle2, ShieldCheck, ArrowRight, U
 export default function PreCheckinModal({
   isOpen,
   business,
+  currentUser,
   onClose,
   onConfirmCheckin
 }) {
-  const [userName, setUserName] = useState('Rafael Silva');
-  const [userPhone, setUserPhone] = useState('(11) 98765-4321');
-  const [document, setDocument] = useState('123.456.789-00');
-  const [insuranceName, setInsuranceName] = useState('Unimed');
-  const [cardNumber, setCardNumber] = useState('0048.2910.4431');
+  const [userName, setUserName] = useState(currentUser?.name || 'Rafael Silva');
+  const [userPhone, setUserPhone] = useState(currentUser?.phone || '(11) 98765-4321');
+  const [document, setDocument] = useState(currentUser?.cpf || '123.456.789-00');
+  const [insuranceName, setInsuranceName] = useState(currentUser?.insurance || 'Unimed');
+  const [cardNumber, setCardNumber] = useState(currentUser?.cardNumber || '0048.2910.4431');
   const [selectedService, setSelectedService] = useState('');
   const [isPriority, setIsPriority] = useState(false);
+
+  // Sincroniza com currentUser quando o modal abre
+  React.useEffect(() => {
+    if (currentUser) {
+      if (currentUser.name) setUserName(currentUser.name);
+      if (currentUser.phone) setUserPhone(currentUser.phone);
+      if (currentUser.cpf) setDocument(currentUser.cpf);
+      if (currentUser.insurance) setInsuranceName(currentUser.insurance);
+      if (currentUser.cardNumber) setCardNumber(currentUser.cardNumber);
+    }
+  }, [currentUser, isOpen]);
 
   if (!isOpen || !business) return null;
 
