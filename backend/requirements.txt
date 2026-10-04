@@ -5,6 +5,10 @@ uvicorn==0.54.0
 # Define e valida os formatos das respostas; também é dependência do FastAPI.
 pydantic==2.13.5
 
+# Autenticação: tokens assinados e verificação de senhas com Argon2.
+PyJWT==2.15.1
+pwdlib[argon2]==0.3.1
+
 # Testes: HTTPX é utilizado pelo TestClient do FastAPI.
 pytest==9.1.1
 httpx==0.28.1

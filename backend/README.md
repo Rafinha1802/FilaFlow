@@ -1,9 +1,10 @@
-# Backend FilaFlow — etapas 1 a 3
+# Backend FilaFlow — etapas 1 a 4
 
 API mínima em Python com FastAPI, independente do frontend React.
 Disponibiliza `GET /api/health`, que responde com HTTP 200 e `{"status": "ok"}`,
 e `GET /api/queues`, que lista uma fila demonstrativa em memória.
-Nenhum desses endpoints acessa banco de dados.
+Também oferece `POST /api/auth/login` e `GET /api/auth/me` para autenticação
+de desenvolvimento. Nenhum desses endpoints acessa banco de dados.
 
 ## Arquivos e responsabilidades
 
@@ -12,11 +13,15 @@ Nenhum desses endpoints acessa banco de dados.
 - `app/api/queues.py`: recebe a requisição HTTP de listagem e chama o serviço.
 - `app/schemas/queues.py`: define os campos e tipos da resposta, sem criar tabelas.
 - `app/services/queues.py`: fornece o resumo demonstrativo da Clínica Vida.
-- `app/core/config.py`: lê a configuração opcional da futura conexão PostgreSQL.
+- `app/api/auth.py`: recebe o login JSON e protege a consulta do usuário atual.
+- `app/schemas/auth.py`: define os dados de entrada e as respostas de autenticação.
+- `app/services/auth.py`: verifica a senha, assina tokens e valida seu uso.
+- `app/core/config.py`: lê as configurações opcionais de banco e autenticação.
 - `.env.example`: documenta as variáveis previstas, sem credenciais.
 - `tests/test_health.py`: verifica o código HTTP e o JSON da resposta.
 - `tests/test_config.py`: verifica a leitura das configurações do ambiente.
 - `tests/test_queues.py`: verifica a listagem pública com e sem configuração de banco.
+- `tests/test_auth.py`: verifica login, acesso protegido e rejeição de tokens inválidos.
 - `requirements.txt`: lista as dependências da aplicação e do teste.
 - `.gitignore`: impede o versionamento do ambiente virtual, caches e arquivos `.env`.
 
@@ -28,6 +33,10 @@ Nenhum desses endpoints acessa banco de dados.
   Já era instalado pelo FastAPI; agora está declarado como dependência direta.
 - **pytest**: executa os testes da pasta `tests/`.
 - **HTTPX**: utilizado pelo `TestClient` do FastAPI para testar requisições sem iniciar um servidor externo.
+- **PyJWT**: assina e valida tokens JWT em `app/services/auth.py`.
+- **pwdlib[argon2]**: calcula e verifica hashes Argon2 de senhas; usado no serviço
+  de autenticação e no comando de configuração abaixo. O extra `argon2` instala
+  a implementação do algoritmo, evitando implementar criptografia manualmente.
 
 ## Preparar o ambiente no Windows (PowerShell)
 
@@ -112,7 +121,9 @@ A chamada existente do React já aceita esses campos. A resposta não inclui
 `aheadList`: a lista local de pacientes permanece intacta. As filas do aplicativo
 cliente também continuam locais. Isso limita a integração desta etapa aos
 dados de identificação da fila; operações de senhas ficam para etapas futuras.
-Chamadas a login e WebSocket ainda podem falhar porque não foram implementadas.
+O login automático existente no React ainda usa credenciais fixas de demonstração;
+elas não são cadastradas por este backend. A integração do login empresarial
+ficará para a etapa 5. WebSocket ainda não foi implementado.
 
 ## Configuração por variáveis de ambiente
 
@@ -146,6 +157,76 @@ Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
 Esse comando remove somente a variável da sessão atual, não arquivos ou dados.
 Não coloque credenciais reais no código nem em `.env.example`.
 
+## Autenticação de desenvolvimento
+
+Esta etapa permite um único usuário empresarial, configurado por ambiente.
+Não cria usuários no banco nem oferece cadastro. O login recebe JSON
+com `email` e `password`, compatível com o serviço HTTP existente do React.
+
+| Variável | Uso |
+| --- | --- |
+| `DEMO_USER_EMAIL` | E-mail escolhido para o usuário de desenvolvimento. |
+| `DEMO_PASSWORD_HASH` | Hash Argon2 da senha escolhida; não é a senha em texto. |
+| `JWT_SECRET_KEY` | Chave aleatória para assinatura, com pelo menos 32 bytes. |
+
+Nenhum valor é preenchido automaticamente. Configuração ausente ou incompleta
+faz o login responder `503`, enquanto saúde e filas continuam disponíveis.
+O hash não reconhecido também gera `503`. E-mail é comparado sem distinguir
+maiúsculas e minúsculas e sem espaços nas extremidades; a senha é preservada.
+
+Atualize as dependências, dentro de `backend/`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+No mesmo terminal em que iniciará o servidor, configure seu usuário. O comando
+da senha solicita a digitação sem mostrá-la e guarda somente o hash no ambiente:
+
+```powershell
+$env:DEMO_USER_EMAIL = Read-Host 'E-mail de desenvolvimento'
+$env:DEMO_PASSWORD_HASH = .\.venv\Scripts\python.exe -c "from getpass import getpass; from pwdlib import PasswordHash; print(PasswordHash.recommended().hash(getpass('Senha de desenvolvimento: ')))"
+$env:JWT_SECRET_KEY = .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))"
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+As variáveis valem somente para essa sessão e os processos iniciados nela.
+Não há carregamento automático de `.env`. Reinicie o servidor após alterar
+as variáveis; gerar outra chave invalida os tokens assinados com a anterior.
+
+Para testar em outro terminal PowerShell, informe o mesmo e-mail e senha:
+
+```powershell
+$authCredential = Get-Credential -Message 'Credenciais configuradas no backend'
+$loginBody = @{
+    email = $authCredential.UserName
+    password = $authCredential.GetNetworkCredential().Password
+} | ConvertTo-Json
+$loginResult = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/auth/login -ContentType 'application/json' -Body $loginBody
+Invoke-RestMethod -Uri http://127.0.0.1:8000/api/auth/me -Headers @{ Authorization = "Bearer $($loginResult.access_token)" }
+```
+
+O login retorna `access_token`, `token_type: "bearer"` e `user`, contendo
+`id: "demo-company"`, seu e-mail e `role: "company"`. A consulta `/me` retorna
+esse mesmo usuário. As respostas não contêm senha, hash ou chave secreta.
+
+O JWT dura 30 minutos. O servidor exige assinatura HS256 válida, emissor
+`filaflow-dev`, identificação do usuário configurado e os campos de emissão
+e expiração. JWT é assinado, não criptografado: seu conteúdo pode ser lido.
+Não contém dados secretos. Sem token, com credenciais incorretas ou com token
+inválido/expirado, a resposta é `401`. Corpo de login inválido retorna `422`.
+Um token enviado quando falta configuração de autenticação recebe `503`.
+
+Em `/docs`, execute o login, copie o `access_token` para **Authorize**
+e teste `/api/auth/me`. O botão usa Bearer; não faz login automaticamente.
+
+A função `get_current_user` é uma dependência FastAPI: ela verifica o token
+antes de executar `/me`. Outras rotas poderão usá-la em etapas futuras.
+`/api/queues` continua público. Não há refresh token, logout no servidor ou
+revogação individual; um token emitido permanece válido até expirar, salvo
+troca da chave ou do e-mail configurado. A autenticação é destinada ao
+desenvolvimento local; a interface React ainda mantém seus acessos simulados.
+
 ## Testar
 
 Dentro de `backend/`, sem precisar iniciar o servidor:
@@ -154,8 +235,8 @@ Dentro de `backend/`, sem precisar iniciar o servidor:
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-Resultado esperado: `7 passed` (saúde, configuração e listagem de filas).
-Os testes de configuração e listagem isolam as variáveis
+Resultado esperado: `28 passed` (saúde, configuração, filas e autenticação).
+Os testes isolam as variáveis
 com `monkeypatch`, sem alterar permanentemente o ambiente e sem acessar banco.
 
 Na combinação de versões validada, o Starlette (dependência do FastAPI)
@@ -164,11 +245,12 @@ O teste continua funcionando; o aviso não foi ocultado.
 
 ## Limites desta etapa
 
-Não há persistência, autenticação, operações de senhas ou WebSocket implementados.
+Não há persistência, operações de senhas ou WebSocket implementados.
+Autenticação está disponível apenas para o usuário de desenvolvimento configurado.
 A listagem de filas é apenas demonstrativa e não exige autenticação.
 A leitura de `DATABASE_URL` está preparada. A conexão PostgreSQL, seu driver
 e os modelos de persistência ficam para uma etapa posterior;
-nenhuma credencial ou conexão é necessária agora.
+nenhuma credencial ou conexão de banco é necessária agora.
 
 O frontend permanece com seu comportamento atual de demonstração. Suas chamadas
 aos endpoints ainda não implementados não são atendidas por esta API.
@@ -182,3 +264,4 @@ a pasta `backend/`.
 - [Execução com Uvicorn](https://fastapi.tiangolo.com/deployment/manually/)
 - [Modelos de resposta](https://fastapi.tiangolo.com/tutorial/response-model/)
 - [Organização de rotas com APIRouter](https://fastapi.tiangolo.com/tutorial/bigger-applications/)
+- [Hashes de senha e JWT com pwdlib e PyJWT](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/)
