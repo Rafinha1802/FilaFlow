@@ -386,28 +386,28 @@ export default function App() {
 
   // 5. Emitir Senha Manual no Balcão
   const handleAddManualTicket = async ({ name, serviceName, isPriority }) => {
-    addManualTicketApi({
+    const ticket = await addManualTicketApi({
       queue_id: 'clinica-vida',
       customer_name: name,
       service_name: serviceName,
       is_priority: isPriority
-    }).catch(() => {});
+    });
 
-    const nextNum = Math.floor(50 + Math.random() * 40);
     const newTicketObj = {
-      ticket: `#${nextNum}`,
-      name,
-      service: serviceName,
-      time: `~${(companyWaitingQueue.length + 1) * 12} min`,
-      isPriority
+      ticket: ticket.ticket_number,
+      name: ticket.customer_name,
+      service: ticket.service_name,
+      time: ticket.estimated_wait_text,
+      isPriority: ticket.is_priority
     };
 
-    if (isPriority) {
-      setCompanyWaitingQueue([companyWaitingQueue[0], newTicketObj, ...companyWaitingQueue.slice(1)]);
-    } else {
-      setCompanyWaitingQueue([...companyWaitingQueue, newTicketObj]);
-    }
+    setCompanyWaitingQueue((prev) =>
+      ticket.is_priority && prev.length > 0
+        ? [prev[0], newTicketObj, ...prev.slice(1)]
+        : [...prev, newTicketObj]
+    );
     showToast(`Senha ${newTicketObj.ticket} emitida e adicionada à fila!`);
+    return ticket;
   };
 
   // 6. Confirmação do Pré-Checkin do Cliente

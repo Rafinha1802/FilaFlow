@@ -78,6 +78,8 @@ export default function CompanyDashboard({
   const [manualName, setManualName] = useState('');
   const [manualService, setManualService] = useState('Consulta Oftalmologia Geral');
   const [isPriority, setIsPriority] = useState(false);
+  const [isIssuingTicket, setIsIssuingTicket] = useState(false);
+  const [manualError, setManualError] = useState('');
 
   // Live clock for TV Panel
   const [currentTimeStr, setCurrentTimeStr] = useState(new Date().toLocaleTimeString('pt-BR'));
@@ -163,19 +165,29 @@ export default function CompanyDashboard({
     showNotification(`📲 Lembrete WhatsApp enviado para ${item.name}! Avisado para retornar ao saguão.`);
   };
 
-  const handleCreateManualTicket = (e) => {
+  const handleCreateManualTicket = async (e) => {
     e.preventDefault();
-    if (!manualName.trim()) return;
-
-    onAddManualTicket({
-      name: manualName,
-      serviceName: manualService,
-      isPriority
-    });
-
-    setManualName('');
-    setShowManualModal(false);
-    showNotification(`Senha presencial emitida com sucesso para ${manualName}!`);
+    if (isIssuingTicket) return;
+    if (!manualName.trim()) {
+      setManualError('Informe o nome do cliente ou paciente.');
+      return;
+    }
+    setIsIssuingTicket(true);
+    setManualError('');
+    try {
+      const ticket = await onAddManualTicket({
+        name: manualName,
+        serviceName: manualService,
+        isPriority
+      });
+      setManualName('');
+      setShowManualModal(false);
+      showNotification(`Senha ${ticket.ticket_number} emitida com sucesso para ${ticket.customer_name}!`);
+    } catch (err) {
+      setManualError(err.message);
+    } finally {
+      setIsIssuingTicket(false);
+    }
   };
 
   // Filtered Queue
@@ -1696,14 +1708,15 @@ export default function CompanyDashboard({
 
       {/* Manual Ticket Issuer Modal */}
       {showManualModal && (
-        <div className="ff-modal-overlay" onClick={() => setShowManualModal(false)}>
+        <div className="ff-modal-overlay" onClick={() => { if (!isIssuingTicket) setShowManualModal(false); }}>
           <div className="ff-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="ff-modal-header">
               <h3 className="ff-modal-title">Emitir Senha Presencial de Balcão</h3>
-              <button onClick={() => setShowManualModal(false)} style={{ color: '#64748b', cursor: 'pointer' }}>✕</button>
+              <button disabled={isIssuingTicket} onClick={() => setShowManualModal(false)} style={{ color: '#64748b', cursor: 'pointer' }}>✕</button>
             </div>
 
             <form onSubmit={handleCreateManualTicket} style={{ padding: 24 }}>
+              {manualError && <p role="alert">{manualError}</p>}
               <div className="ff-form" style={{ gap: 16 }}>
                 <div className="ff-form-group">
                   <label className="ff-form-label">Nome do Cliente ou Paciente *</label>
@@ -1711,6 +1724,8 @@ export default function CompanyDashboard({
                     type="text"
                     className="ff-input"
                     value={manualName}
+                    disabled={isIssuingTicket}
+                    maxLength={150}
                     onChange={(e) => setManualName(e.target.value)}
                     placeholder="Ex: Carlos Eduardo"
                     style={{ paddingLeft: 14 }}
@@ -1724,6 +1739,7 @@ export default function CompanyDashboard({
                   <select
                     className="ff-input"
                     value={manualService}
+                    disabled={isIssuingTicket}
                     onChange={(e) => setManualService(e.target.value)}
                     style={{ paddingLeft: 14 }}
                   >
@@ -1738,6 +1754,7 @@ export default function CompanyDashboard({
                   <input
                     type="checkbox"
                     id="priorityCheck"
+                    disabled={isIssuingTicket}
                     checked={isPriority}
                     onChange={(e) => setIsPriority(e.target.checked)}
                     style={{ width: 18, height: 18, accentColor: '#7c3aed', cursor: 'pointer' }}
@@ -1751,9 +1768,10 @@ export default function CompanyDashboard({
                   type="submit"
                   className="btn-primary"
                   style={{ background: '#7c3aed', width: '100%', justifyContent: 'center', padding: 12, marginTop: 8 }}
+                  disabled={isIssuingTicket}
                 >
                   <Plus size={16} />
-                  <span>Imprimir & Inserir na Fila</span>
+                  <span>{isIssuingTicket ? 'Emitindo...' : 'Imprimir & Inserir na Fila'}</span>
                 </button>
               </div>
             </form>

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, mock, test } from 'node:test';
 import {
   AUTH_CLEARED_EVENT, clearAuth, fetchCurrentUser, fetchMyQueues,
   getStoredUser, getToken, loginApi, setStoredUser, setToken,
+  addManualTicketApi,
 } from '../src/services/api.js';
 
 const user = { id: 'demo-company', email: 'test@example.invalid', role: 'company' };
@@ -145,4 +146,42 @@ test('falha ao guardar token impede a entrada no painel', async () => {
   mock.method(globalThis, 'fetch', async () => Response.json({ access_token: 'test-token', user }));
   await assert.rejects(loginApi(user.email, 'test-only'), /armazenamento no navegador/);
   assert.equal(getToken(), null);
+});
+
+const manualPayload = { queue_id: 'clinica-vida', customer_name: 'Teste', service_name: 'Consulta', is_priority: true };
+
+test('emissão usa Bearer e retorna o número e a prioridade do servidor', async () => {
+  setToken('test-token');
+  const ticket = { ...manualPayload, ticket_number: '#49', estimated_wait_text: 'Aguardando' };
+  mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, '/api/tickets/manual');
+    assert.equal(options.method, 'POST');
+    assert.equal(options.headers.Authorization, 'Bearer test-token');
+    assert.deepEqual(JSON.parse(options.body), manualPayload);
+    return Response.json(ticket, { status: 201 });
+  });
+  assert.deepEqual(await addManualTicketApi(manualPayload), ticket);
+});
+
+for (const status of [401, 404, 422, 500]) {
+  test(`emissão HTTP ${status} rejeita a operação sem retornar senha local`, async () => {
+    setToken('test-token');
+    const fetchMock = mock.method(globalThis, 'fetch', async () => Response.json({}, { status }));
+    await assert.rejects(addManualTicketApi(manualPayload));
+    assert.equal(fetchMock.mock.callCount(), 1);
+    if (status === 401) assert.equal(getToken(), null);
+  });
+}
+
+test('falha de conexão na emissão é informada sem repetir o POST', async () => {
+  setToken('test-token');
+  const fetchMock = mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
+  await assert.rejects(addManualTicketApi(manualPayload), /confirmar a emissão/);
+  assert.equal(fetchMock.mock.callCount(), 1);
+});
+
+test('resposta incompleta não é aceita como senha emitida', async () => {
+  setToken('test-token');
+  mock.method(globalThis, 'fetch', async () => Response.json({ ticket_number: '#49' }, { status: 201 }));
+  await assert.rejects(addManualTicketApi(manualPayload), /confirmar os dados/);
 });

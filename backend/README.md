@@ -1,10 +1,11 @@
-# Backend FilaFlow — etapas 1 a 5
+# Backend FilaFlow — etapas 1 a 6
 
 API mínima em Python com FastAPI, independente do frontend React.
 Disponibiliza `GET /api/health`, que responde com HTTP 200 e `{"status": "ok"}`,
 e `GET /api/queues`, que lista uma fila demonstrativa em memória.
 Também oferece `POST /api/auth/login` e `GET /api/auth/me` para autenticação
 de desenvolvimento. Nenhum desses endpoints acessa banco de dados.
+`POST /api/tickets/manual` emite uma senha em memória, exigindo autenticação.
 
 ## Arquivos e responsabilidades
 
@@ -16,12 +17,16 @@ de desenvolvimento. Nenhum desses endpoints acessa banco de dados.
 - `app/api/auth.py`: recebe o login JSON e protege a consulta do usuário atual.
 - `app/schemas/auth.py`: define os dados de entrada e as respostas de autenticação.
 - `app/services/auth.py`: verifica a senha, assina tokens e valida seu uso.
+- `app/api/tickets.py`: recebe a emissão manual e exige token válido.
+- `app/schemas/tickets.py`: valida os campos e define a resposta da emissão.
+- `app/services/tickets.py`: gera números sequenciais e guarda as senhas em memória.
 - `app/core/config.py`: lê as configurações opcionais de banco e autenticação.
 - `.env.example`: documenta as variáveis previstas, sem credenciais.
 - `tests/test_health.py`: verifica o código HTTP e o JSON da resposta.
 - `tests/test_config.py`: verifica a leitura das configurações do ambiente.
 - `tests/test_queues.py`: verifica a listagem pública com e sem configuração de banco.
 - `tests/test_auth.py`: verifica login, acesso protegido e rejeição de tokens inválidos.
+- `tests/test_tickets.py`: verifica emissão, validação, autenticação e concorrência.
 - `requirements.txt`: lista as dependências da aplicação e do teste.
 - `.gitignore`: impede o versionamento do ambiente virtual, caches e arquivos `.env`.
 
@@ -261,8 +266,58 @@ Para conferir manualmente:
 7. Pare o backend e tente entrar: deve aparecer uma mensagem de conexão, sem sucesso simulado.
 
 O backend continua sendo responsável por validar tokens nas rotas protegidas.
-A restrição de navegação React não substitui essa validação. Operações de senhas
-ainda usam as simulações existentes e serão integradas nas próximas etapas.
+A restrição de navegação React não substitui essa validação. A emissão manual
+está integrada; chamada, finalização e demais operações ainda são demonstrativas.
+
+## Emissão manual de senha (etapa 6)
+
+`POST /api/tickets/manual` exige `Authorization: Bearer <token>` e recebe:
+
+```json
+{
+  "queue_id": "clinica-vida",
+  "customer_name": "Paciente de exemplo",
+  "service_name": "Consulta Oftalmologia Geral",
+  "is_priority": false
+}
+```
+
+A resposta é `201 Created`, com esses mesmos campos e `ticket_number` (por exemplo,
+`#49`) e `estimated_wait_text: "Aguardando"`. Não há cálculo real de previsão
+nesta etapa. Nome e serviço são obrigatórios, aceitam até 150 caracteres e têm
+espaços das extremidades removidos. Prioridade é um booleano, opcional com padrão
+`false`. Fila desconhecida retorna `404`; dados inválidos, `422`; sem token válido,
+`401` (ou `503` se a configuração da autenticação estiver indisponível).
+
+A rota valida o usuário antes de chamar o serviço. O serviço guarda a senha em
+uma lista e incrementa o contador dentro de um `Lock`, da biblioteca padrão:
+isso impede que duas requisições simultâneas recebam o mesmo número no mesmo
+processo. A numeração começa em `#49` porque o painel já demonstra senhas até `#48`.
+
+O painel usa os dados devolvidos pelo servidor. Durante o envio, os campos,
+o botão de emissão e o fechamento do modal ficam bloqueados. Se ocorrer erro,
+o modal preserva os campos e não adiciona uma senha local. A prioridade segue a
+posição de inserção já usada pelo painel; a regra de atendimento no servidor
+será definida na etapa de chamada da próxima senha. Não foi adicionada impressão
+física, apesar do texto preexistente do botão.
+
+Limites da memória nesta etapa:
+
+- Execute com um único processo, sem `--workers` múltiplos. Cada processo teria
+  seu próprio contador e sua própria lista.
+- Reiniciar o servidor, inclusive pelo `--reload`, perde as senhas e reinicia a
+  numeração. Recarregue também o painel após reiniciar o backend.
+- Recarregar somente o navegador restaura a fila demonstrativa local; ainda não
+  há endpoint para recuperar as senhas emitidas. Outras abas não são sincronizadas.
+- Não há repetição automática de POST nem garantia de idempotência. Se a conexão
+  cair depois da criação no servidor, a confirmação pode não chegar ao navegador;
+  reenviar poderá criar outra senha.
+
+Para conferir manualmente, faça login no painel e clique em **Nova Senha Balcão**.
+Preencha nome e serviço, envie e compare o número na fila com a resposta `201`
+da aba Network. Repita com prioridade. Depois, com o formulário preenchido,
+pare o backend e tente emitir: os campos devem permanecer e nenhuma nova linha
+deve aparecer na fila.
 
 ## Testar
 
@@ -272,7 +327,7 @@ Dentro de `backend/`, sem precisar iniciar o servidor:
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-Resultado esperado: `28 passed` (saúde, configuração, filas e autenticação).
+Resultado esperado: `40 passed` (saúde, configuração, filas, autenticação e emissão).
 Os testes isolam as variáveis
 com `monkeypatch`, sem alterar permanentemente o ambiente e sem acessar banco.
 
@@ -288,23 +343,24 @@ node --test tests/auth-api.test.js
 npm run build
 ```
 
-Resultado esperado: 15 testes JavaScript aprovados e compilação concluída.
+Resultado esperado: 22 testes JavaScript aprovados e compilação concluída.
 Os testes usam `node:test`, integrado ao Node, com respostas HTTP simuladas.
-Cobrem login, erros, restauração, logout e respostas atrasadas, sem credenciais reais.
+Cobrem login, erros, restauração, logout, respostas atrasadas e emissão manual,
+sem credenciais reais.
 Na validação desta etapa também foi usado Edge com Playwright temporário para
 exercitar o fluxo completo com o backend local. Playwright não foi adicionado
 ao `package.json` ou ao `package-lock.json`.
 
 ## Limites desta etapa
 
-Não há persistência, operações de senhas ou WebSocket implementados.
+Não há persistência em banco, chamada de senhas no servidor ou WebSocket implementados.
 Autenticação está disponível apenas para o usuário de desenvolvimento configurado.
 A listagem de filas é apenas demonstrativa e não exige autenticação.
 A leitura de `DATABASE_URL` está preparada. A conexão PostgreSQL, seu driver
 e os modelos de persistência ficam para uma etapa posterior;
 nenhuma credencial ou conexão de banco é necessária agora.
 
-O login empresarial está integrado. Os demais fluxos do frontend continuam
+O login empresarial e a emissão manual estão integrados. Os demais fluxos continuam
 demonstrativos; chamadas a endpoints ainda não implementados não são atendidas
 por esta API.
 O proxy Vite existente já direciona `/api` para a porta 8000 no desenvolvimento.

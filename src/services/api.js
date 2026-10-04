@@ -190,11 +190,23 @@ export async function addManualTicketApi(ticketData) {
       method: 'POST',
       body: JSON.stringify(ticketData)
     });
-    if (!res.ok) throw new Error('Erro ao emitir senha');
-    return await res.json();
+    if (!res.ok) {
+      if (res.status === 422) throw new Error('Confira o nome, o serviço e a prioridade informados.');
+      if (res.status === 404) throw new Error('Fila não encontrada. Não foi possível emitir a senha.');
+      throw new Error('Não foi possível emitir a senha. Tente novamente mais tarde.');
+    }
+    const ticket = await res.json();
+    if (typeof ticket.ticket_number !== 'string' || !ticket.ticket_number ||
+        typeof ticket.customer_name !== 'string' || typeof ticket.service_name !== 'string' ||
+        typeof ticket.is_priority !== 'boolean' || ticket.queue_id !== ticketData.queue_id) {
+      throw new Error('Não foi possível confirmar os dados da senha emitida.');
+    }
+    return ticket;
   } catch (err) {
-    console.warn('[FilaFlow API] Erro ao emitir senha:', err);
-    return null;
+    if (err instanceof TypeError || err instanceof SyntaxError) {
+      throw new Error('Não foi possível confirmar a emissão. Verifique a conexão antes de tentar novamente.');
+    }
+    throw err;
   }
 }
 
