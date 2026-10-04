@@ -1,8 +1,13 @@
-"""Cria a aplicação FastAPI e disponibiliza a verificação de funcionamento."""
+"""Cria a aplicação FastAPI, registra suas rotas e oferece o endpoint de saúde."""
 
 from fastapi import FastAPI
 
+from app.api.queues import router as queues_router
+
 app = FastAPI(title="FilaFlow API")
+
+# Inclui as rotas de filas para que o servidor possa receber suas requisições.
+app.include_router(queues_router)
 
 
 @app.get("/api/health")
