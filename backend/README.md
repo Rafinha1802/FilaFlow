@@ -1,4 +1,4 @@
-# Backend FilaFlow — etapas 1 a 4
+# Backend FilaFlow — etapas 1 a 5
 
 API mínima em Python com FastAPI, independente do frontend React.
 Disponibiliza `GET /api/health`, que responde com HTTP 200 e `{"status": "ok"}`,
@@ -115,15 +115,16 @@ execute `npm run dev` em outro terminal na raiz do projeto (após `npm ci`,
 caso as dependências do frontend ainda não estejam instaladas).
 Abra http://localhost:5174/empresa/dashboard e confira, na aba Network das
 ferramentas do navegador, a resposta 200 de `/api/queues` e seu array JSON.
-O painel deve manter Clínica Vida, Dr. Carlos Mendes e Consultório 04.
+Faça login com o usuário de desenvolvimento configurado abaixo. Após entrar,
+o painel deve manter Clínica Vida, Dr. Carlos Mendes e Consultório 04.
 
 A chamada existente do React já aceita esses campos. A resposta não inclui
 `aheadList`: a lista local de pacientes permanece intacta. As filas do aplicativo
 cliente também continuam locais. Isso limita a integração desta etapa aos
 dados de identificação da fila; operações de senhas ficam para etapas futuras.
-O login automático existente no React ainda usa credenciais fixas de demonstração;
-elas não são cadastradas por este backend. A integração do login empresarial
-ficará para a etapa 5. WebSocket ainda não foi implementado.
+O login empresarial agora exige as credenciais configuradas no backend.
+Não há login automático com credenciais fixas. WebSocket ainda não foi
+implementado, portanto suas tentativas de conexão podem gerar avisos no console.
 
 ## Configuração por variáveis de ambiente
 
@@ -225,7 +226,43 @@ antes de executar `/me`. Outras rotas poderão usá-la em etapas futuras.
 `/api/queues` continua público. Não há refresh token, logout no servidor ou
 revogação individual; um token emitido permanece válido até expirar, salvo
 troca da chave ou do e-mail configurado. A autenticação é destinada ao
-desenvolvimento local; a interface React ainda mantém seus acessos simulados.
+desenvolvimento local. O painel empresarial exige login; os acessos de cliente
+e profissional continuam demonstrativos.
+
+## Integração do login empresarial (etapa 5)
+
+O formulário existente em `src/components/Company/CompanyLogin.jsx` envia
+as credenciais usando `src/services/api.js`. Só uma resposta válida do servidor
+libera o painel em `src/App.jsx`. Não há senha padrão nem atalho de demonstração
+que contorne o login. Cadastro empresarial e recuperação de senha continuam
+indisponíveis; os botões informam essa limitação.
+
+O token e o usuário são armazenados nas chaves existentes `filaflow_token` e
+`filaflow_user` do `localStorage`. A senha não é armazenada. Ao acessar a rota
+empresarial ou recarregar a página, o frontend consulta `/api/auth/me` antes de
+exibir o painel, sem confiar apenas no usuário salvo no navegador.
+Se a validação falhar, o formulário reaparece. Uma resposta `401` limpa a sessão
+sem tentar autenticar novamente com credenciais de demonstração.
+
+O botão Sair remove a sessão empresarial do navegador. As outras abas recebem
+a atualização de armazenamento e também perdem acesso. Isso não revoga o JWT
+no servidor: uma cópia do token continua sujeita à validade descrita acima.
+O login simulado do cliente deixou de chamar o endpoint empresarial, para não
+sobrescrever sua sessão. Os estilos e os demais fluxos demonstrativos foram mantidos.
+
+Para conferir manualmente:
+
+1. Configure o usuário e inicie o backend na porta 8000 conforme as instruções acima.
+2. Na raiz do projeto, execute `npm ci` se necessário e depois `npm run dev`.
+3. Abra http://localhost:5174/empresa/dashboard. Sem sessão válida, o formulário deve aparecer.
+4. Tente uma senha incorreta: deve aparecer uma mensagem de erro, sem abrir o painel.
+5. Informe as credenciais configuradas: o painel deve abrir. Recarregue para conferir a restauração via `/api/auth/me`.
+6. Abra o painel em outra aba e clique em Sair na primeira. Ambas devem perder o acesso empresarial.
+7. Pare o backend e tente entrar: deve aparecer uma mensagem de conexão, sem sucesso simulado.
+
+O backend continua sendo responsável por validar tokens nas rotas protegidas.
+A restrição de navegação React não substitui essa validação. Operações de senhas
+ainda usam as simulações existentes e serão integradas nas próximas etapas.
 
 ## Testar
 
@@ -243,6 +280,21 @@ Na combinação de versões validada, o Starlette (dependência do FastAPI)
 emite um aviso de descontinuação do uso de HTTPX no cliente de testes.
 O teste continua funcionando; o aviso não foi ocultado.
 
+Para testar o serviço HTTP e o gerenciamento de sessão, execute na raiz do projeto
+(validado com Node.js 24.13.0):
+
+```powershell
+node --test tests/auth-api.test.js
+npm run build
+```
+
+Resultado esperado: 15 testes JavaScript aprovados e compilação concluída.
+Os testes usam `node:test`, integrado ao Node, com respostas HTTP simuladas.
+Cobrem login, erros, restauração, logout e respostas atrasadas, sem credenciais reais.
+Na validação desta etapa também foi usado Edge com Playwright temporário para
+exercitar o fluxo completo com o backend local. Playwright não foi adicionado
+ao `package.json` ou ao `package-lock.json`.
+
 ## Limites desta etapa
 
 Não há persistência, operações de senhas ou WebSocket implementados.
@@ -252,8 +304,9 @@ A leitura de `DATABASE_URL` está preparada. A conexão PostgreSQL, seu driver
 e os modelos de persistência ficam para uma etapa posterior;
 nenhuma credencial ou conexão de banco é necessária agora.
 
-O frontend permanece com seu comportamento atual de demonstração. Suas chamadas
-aos endpoints ainda não implementados não são atendidas por esta API.
+O login empresarial está integrado. Os demais fluxos do frontend continuam
+demonstrativos; chamadas a endpoints ainda não implementados não são atendidas
+por esta API.
 O proxy Vite existente já direciona `/api` para a porta 8000 no desenvolvimento.
 Execute o backend com o comando acima: `iniciar_tudo.bat` ainda não procura
 a pasta `backend/`.
@@ -265,3 +318,5 @@ a pasta `backend/`.
 - [Modelos de resposta](https://fastapi.tiangolo.com/tutorial/response-model/)
 - [Organização de rotas com APIRouter](https://fastapi.tiangolo.com/tutorial/bigger-applications/)
 - [Hashes de senha e JWT com pwdlib e PyJWT](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/)
+- [Executor de testes do Node.js](https://nodejs.org/api/test.html)
+- [Validação com navegadores no Playwright](https://playwright.dev/docs/browsers)

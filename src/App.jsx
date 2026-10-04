@@ -3,6 +3,7 @@ import { useAppRouter } from './router/useAppRouter';
 import Navbar from './components/LandingPage/Navbar';
 import LandingPage from './components/LandingPage/LandingPage';
 import CompanyDashboard from './components/Company/CompanyDashboard';
+import CompanyLogin from './components/Company/CompanyLogin';
 import ProfessionalWorkspace from './components/Professional/ProfessionalWorkspace';
 import ClientMobileApp from './components/Client/ClientMobileApp';
 import QrScannerModal from './components/Client/QrScannerModal';
@@ -18,7 +19,9 @@ import {
   reportDelayApi, 
   addManualTicketApi, 
   setupQueueWebSocket, 
-  ensureAuthToken 
+  fetchCurrentUser,
+  clearAuth,
+  AUTH_CLEARED_EVENT
 } from './services/api';
 
 export default function App() {
@@ -31,13 +34,51 @@ export default function App() {
   const [checkoutCycle, setCheckoutCycle] = useState('monthly');
 
   // Authentication State - Empresa / Profissional (B2B)
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [currentUser, setCurrentUser] = useState({
-    name: 'Dr. Carlos Mendes',
-    email: 'atendimento@clinicavida.com.br',
-    companyName: 'Clínica Vida',
-    unitName: 'Unidade Centro'
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authCheckedPath, setAuthCheckedPath] = useState(null);
+  const [sessionError, setSessionError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    const resetSession = () => {
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+    };
+    const validateSession = async () => {
+      if (!isCompanyRoute) return;
+      setAuthCheckedPath(null);
+      setSessionError('');
+      try {
+        const user = await fetchCurrentUser();
+        if (active) {
+          setCurrentUser(user);
+          setIsAuthenticated(Boolean(user));
+        }
+      } catch (err) {
+        if (active) {
+          resetSession();
+          setSessionError('Não foi possível validar sua sessão. Entre novamente.');
+        }
+      } finally {
+        if (active) setAuthCheckedPath(currentPath);
+      }
+    };
+    const onStorage = (event) => {
+      if (event.key === 'filaflow_token' || event.key === null) {
+        resetSession();
+        validateSession();
+      }
+    };
+    window.addEventListener(AUTH_CLEARED_EVENT, resetSession);
+    window.addEventListener('storage', onStorage);
+    validateSession();
+    return () => {
+      active = false;
+      window.removeEventListener(AUTH_CLEARED_EVENT, resetSession);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [currentPath, isCompanyRoute]);
 
   // Client / Patient User for Mobile App (Público em geral, NÃO médico!)
   const [mobileClientUser, setMobileClientUser] = useState(() => {
@@ -134,11 +175,6 @@ export default function App() {
   // Sincronização Automática com o Backend FastAPI & WebSockets
   // -------------------------------------------------------------
   useEffect(() => {
-    // 1. Garante autenticação em segundo plano com o backend (JWT)
-    ensureAuthToken().catch((err) => {
-      console.log('[FilaFlow] Backend não detectado ou inicializando:', err);
-    });
-
     // 2. Busca filas reais do backend FastAPI
     async function syncBackendData() {
       try {
@@ -203,7 +239,7 @@ export default function App() {
     };
   }, []);
 
-  // Navegação direta para o Painel da Empresa sem telas de login/cadastro
+  // A rota empresarial valida a sessão antes de exibir o painel.
   const handleOpenDashboard = () => {
     navigate('/empresa/dashboard');
   };
@@ -222,8 +258,19 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    clearAuth();
+    setIsAuthenticated(false);
+    setCurrentUser(null);
     navigate('/');
-    showToast('Retornou à página inicial.');
+    showToast('Sessão encerrada.');
+  };
+
+  const handleCompanyLogin = (user) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    setSessionError('');
+    setAuthCheckedPath('/empresa/dashboard');
+    navigate('/empresa/dashboard');
   };
 
   // 1. Chamar Próxima Senha (integrado à API real e com fallback local imediato)
@@ -584,8 +631,10 @@ export default function App() {
         />
       )}
 
-      {/* ROTA 3: /empresa (Painel Operacional da Empresa DIRETO - Sem bloqueio de login/cadastro) */}
+      {/* ROTA 3: /empresa (Login e painel empresarial) */}
       {isCompanyRoute && (
+        authCheckedPath !== currentPath ? <p role="status">Verificando sessão...</p> :
+        isAuthenticated ? (
         <CompanyDashboard
           businessData={businessData}
           activeAttendingTicket={activeAttendingTicket}
@@ -599,6 +648,14 @@ export default function App() {
           onGoToSite={() => navigate('/')}
           onLogout={handleLogout}
         />
+        ) : (
+          <CompanyLogin
+            initialError={sessionError}
+            onLoginSuccess={handleCompanyLogin}
+            onGoToSignup={() => alert('O cadastro de empresas ainda não está disponível.')}
+            onCancel={() => navigate('/')}
+          />
+        )
       )}
 
       {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital DIRETO) */}

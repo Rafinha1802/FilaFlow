@@ -3,11 +3,8 @@ const API_BASE = '/api';
 const TOKEN_STORAGE_KEY = 'filaflow_token';
 const USER_STORAGE_KEY = 'filaflow_user';
 
-// Credenciais padrão da demonstração para login automático com o backend
-export const DEFAULT_DEMO_CREDENTIALS = {
-  email: 'atendimento@clinicavida.com.br',
-  password: '123456'
-};
+export const AUTH_CLEARED_EVENT = 'filaflow:auth-cleared';
+let authRevision = 0;
 
 // Gerenciamento de Token JWT no LocalStorage
 export function getToken() {
@@ -52,80 +49,83 @@ export function setStoredUser(user) {
 }
 
 export function clearAuth() {
+  authRevision += 1;
   setToken(null);
   setStoredUser(null);
+  window.dispatchEvent(new Event(AUTH_CLEARED_EVENT));
 }
 
 /**
  * Realiza login direto no backend FastAPI.
  */
-export async function loginApi(email = DEFAULT_DEMO_CREDENTIALS.email, password = DEFAULT_DEMO_CREDENTIALS.password) {
+export async function loginApi(email, password, { signal } = {}) {
+  const revision = authRevision;
   try {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
+      signal
     });
 
     if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || 'Falha na autenticação');
+      if (res.status === 401) throw new Error('E-mail ou senha incorretos.');
+      if (res.status === 503) throw new Error('Login indisponível no momento. Tente novamente mais tarde.');
+      if (res.status === 422) throw new Error('Confira o e-mail e a senha informados.');
+      throw new Error('Não foi possível entrar. Tente novamente.');
     }
 
     const data = await res.json();
-    if (data.access_token) {
-      setToken(data.access_token);
-      if (data.user) setStoredUser(data.user);
-      console.log('[FilaFlow API] Autenticado com sucesso no backend FastAPI!');
+    if (typeof data.access_token !== 'string' || !data.access_token || data.user?.role !== 'company') {
+      throw new Error('Resposta de autenticação inválida. Tente novamente.');
     }
+    // Uma resposta atrasada não pode restaurar uma sessão encerrada.
+    if (signal?.aborted || revision !== authRevision) throw new DOMException('Login cancelado.', 'AbortError');
+    setToken(data.access_token);
+    setStoredUser(data.user);
+    if (getToken() !== data.access_token) throw new Error('Permita o armazenamento no navegador para entrar.');
     return data;
   } catch (err) {
-    console.warn('[FilaFlow API] Backend offline ou credenciais não sincronizadas:', err.message);
-    return null;
+    if (err.name === 'AbortError') throw err;
+    if (revision === authRevision) clearAuth();
+    if (err instanceof TypeError) throw new Error('Não foi possível conectar ao servidor. Tente novamente.');
+    throw err;
   }
-}
-
-/**
- * Garante que o frontend possua um token válido ativo.
- * Caso não haja token armazenado, tenta autenticar automaticamente com as credenciais padrão da clínica.
- */
-export async function ensureAuthToken(forceRefresh = false) {
-  let token = getToken();
-  if (!token || forceRefresh) {
-    const loginRes = await loginApi();
-    token = loginRes?.access_token || null;
-  }
-  return token;
 }
 
 /**
  * Wrapper de fetch com injeção automática de Authorization Bearer JWT
  */
 async function fetchWithAuth(url, options = {}) {
-  let token = await ensureAuthToken();
+  const token = getToken();
+  if (!token) throw new Error('Entre na sua conta para continuar.');
   const headers = {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    'Authorization': `Bearer ${token}`,
     ...(options.headers || {})
   };
 
-  try {
-    let res = await fetch(url, { ...options, headers });
-
-    // Se retornar 401 (token expirado ou inválido), tenta renovar o login 1 vez
-    if (res.status === 401) {
-      console.log('[FilaFlow API] Token expirado (401). Renovando autenticação com o backend...');
-      token = await ensureAuthToken(true);
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-        res = await fetch(url, { ...options, headers });
-      }
-    }
-
-    return res;
-  } catch (err) {
-    throw err;
+  const res = await fetch(url, { ...options, headers });
+  if (res.status === 401) {
+    if (getToken() === token) clearAuth();
+    throw new Error('Sua sessão expirou. Entre novamente.');
   }
+  return res;
+}
+
+export async function fetchCurrentUser() {
+  const token = getToken();
+  if (!token) return null;
+  const res = await fetchWithAuth(`${API_BASE}/auth/me`);
+  if (!res.ok) throw new Error('Não foi possível validar sua sessão. Tente entrar novamente.');
+  const user = await res.json();
+  if (getToken() !== token) return null;
+  if (user?.role !== 'company') {
+    clearAuth();
+    throw new Error('Sessão empresarial inválida. Entre novamente.');
+  }
+  setStoredUser(user);
+  return user;
 }
 
 // -------------------------------------------------------------

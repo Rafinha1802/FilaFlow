@@ -15,7 +15,6 @@ import {
   Check,
   Clock
 } from 'lucide-react';
-import { loginApi } from '../../services/api';
 
 export default function MobileAuthView({
   initialMode = 'login', // 'login' | 'signup' | 'register' | 'recovery'
@@ -63,10 +62,6 @@ export default function MobileAuthView({
     setIsLoading(true);
 
     try {
-      if (identifier.includes('@')) {
-        await loginApi(identifier, loginPassword).catch(() => {});
-      }
-
       const registeredUsers = JSON.parse(
         localStorage.getItem('filaflow_registered_clients') || '[]'
       );
