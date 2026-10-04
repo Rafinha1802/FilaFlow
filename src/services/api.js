@@ -326,59 +326,72 @@ export async function createOrderApi(orderData) {
 // Conexão WebSocket para Notificações e Eventos Live
 // -------------------------------------------------------------
 
-export function setupQueueWebSocket(onMessage, companyId = 'clinica-vida') {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+export function setupQueueWebSocket(onMessage, queueId = 'clinica-vida', onConnectionChange = () => {}) {
   const token = getToken();
-  const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : `?company_id=${encodeURIComponent(companyId)}`;
-  const wsUrl = `${protocol}//${window.location.host}/ws${tokenQuery}`;
-
+  if (!token) return null;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/ws`;
   let socket = null;
+  let stopped = false;
+  let reconnectTimer = null;
   let pingInterval = null;
+  let watchdog = null;
 
-  try {
-    socket = new WebSocket(wsUrl);
-
-    socket.onopen = () => {
-      console.log('[FilaFlow WS] Conectado ao servidor WebSocket FastAPI em tempo real.');
-      // Envia comando de inscrição de sala da empresa e fila
-      try {
-        socket.send(JSON.stringify({
-          type: 'subscribe',
-          companyId: companyId,
-          queueId: 'clinica-vida',
-          token: token
-        }));
-      } catch (e) {}
-
-      // Ping a cada 25s para manter a conexão WebSocket ativa no backend
-      pingInterval = setInterval(() => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: 'ping' }));
-        }
-      }, 25000);
+  const clearTimers = () => {
+    clearTimeout(reconnectTimer);
+    clearInterval(pingInterval);
+    clearTimeout(watchdog);
+  };
+  const connect = () => {
+    if (stopped || getToken() !== token) return;
+    try {
+      socket = new WebSocket(wsUrl);
+    } catch {
+      onConnectionChange(false);
+      reconnectTimer = setTimeout(connect, 2000);
+      return;
+    }
+    const currentSocket = socket;
+    currentSocket.onopen = () => {
+      if (stopped || getToken() !== token) { currentSocket.close(); return; }
+      currentSocket.send(JSON.stringify({ type: 'subscribe', queue_id: queueId, token }));
+      watchdog = setTimeout(() => currentSocket.close(), 10000);
     };
-
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'pong') return;
-        if (onMessage) onMessage(data);
-      } catch (e) {
-        console.error('[FilaFlow WS] Erro ao processar mensagem recebida:', e);
+    currentSocket.onmessage = (event) => {
+      if (stopped || getToken() !== token) return;
+      let data;
+      try { data = JSON.parse(event.data); } catch { currentSocket.close(); return; }
+      if (data?.type === 'pong') { clearTimeout(watchdog); return; }
+      if (data?.queue_id !== queueId) return;
+      if (data.type === 'READY') {
+        clearTimeout(watchdog);
+        clearInterval(pingInterval);
+        onConnectionChange(true);
+        pingInterval = setInterval(() => {
+          if (currentSocket.readyState === WebSocket.OPEN) {
+            currentSocket.send(JSON.stringify({ type: 'ping' }));
+            watchdog = setTimeout(() => currentSocket.close(), 10000);
+          }
+        }, 20000);
       }
+      onMessage?.(data);
     };
-
-    socket.onerror = (err) => {
-      console.warn('[FilaFlow WS] Conexão WebSocket offline ou instável');
+    currentSocket.onerror = () => currentSocket.close();
+    currentSocket.onclose = (event) => {
+      clearTimers();
+      if (stopped || getToken() !== token) return;
+      if (event.code === 1008) { stopped = true; clearAuth(); return; }
+      onConnectionChange(false);
+      // A nova mensagem READY faz o painel consultar eventos perdidos na queda.
+      reconnectTimer = setTimeout(connect, 2000);
     };
-
-    socket.onclose = () => {
-      if (pingInterval) clearInterval(pingInterval);
-      console.log('[FilaFlow WS] Conexão WebSocket encerrada.');
-    };
-  } catch (e) {
-    console.warn('[FilaFlow WS] WebSocket não pôde ser iniciado:', e);
-  }
-
-  return socket;
+  };
+  connect();
+  return {
+    close() {
+      stopped = true;
+      clearTimers();
+      if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
+    }
+  };
 }

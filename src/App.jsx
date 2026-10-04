@@ -124,6 +124,8 @@ export default function App() {
   const [queueError, setQueueError] = useState('');
   const [queueBusy, setQueueBusy] = useState(false);
   const queueOperation = useRef(false);
+  const queueRefresh = useRef(null);
+  const queueVersion = useRef(0);
 
   const toDashboardTicket = (ticket) => ticket && ({
     ticket: ticket.ticket_number,
@@ -141,22 +143,57 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+    let refreshing = false;
+    let refreshRequested = false;
+    let ws = null;
     setQueueReady(false);
     setQueueError('');
-    if (isAuthenticated && isCompanyRoute) {
-      fetchQueueStateApi().then((data) => {
-        if (active) {
+
+    const refreshQueue = async () => {
+      refreshRequested = true;
+      if (!active || refreshing || queueOperation.current) return;
+      refreshing = true;
+      try {
+        while (active && refreshRequested && !queueOperation.current) {
+          refreshRequested = false;
+          const version = queueVersion.current;
+          const data = await fetchQueueStateApi();
+          if (!active) return;
+          // Uma consulta antiga não deve sobrescrever uma operação mais recente.
+          if (version !== queueVersion.current) {
+            refreshRequested = true;
+            continue;
+          }
           applyQueueState(data);
           setQueueReady(true);
         }
-      }).catch(() => {
-        if (active) setQueueError('Não foi possível carregar a fila. Recarregue a página.');
+      } catch {
+        if (active) {
+          setQueueReady(false);
+          setQueueError('Não foi possível atualizar a fila. Recarregue a página.');
+        }
+      } finally {
+        refreshing = false;
+      }
+    };
+
+    if (isAuthenticated && isCompanyRoute) {
+      queueRefresh.current = refreshQueue;
+      refreshQueue();
+      ws = setupQueueWebSocket((event) => {
+        if (['READY', 'QUEUE_UPDATED', 'TICKET_CALLED'].includes(event.type)) refreshQueue();
+      }, 'clinica-vida', (connected) => {
+        if (active) setQueueError(connected ? '' : 'Atualização em tempo real interrompida. Tentando reconectar.');
       });
     } else {
       setActiveAttendingTicket(null);
       setCompanyWaitingQueue([]);
     }
-    return () => { active = false; };
+    return () => {
+      active = false;
+      queueRefresh.current = null;
+      ws?.close();
+    };
   }, [isAuthenticated, isCompanyRoute]);
 
   // Client Active Queues (Multi-Queues in Mobile App)
@@ -220,19 +257,7 @@ export default function App() {
               room: vidaQueue.room || prev.room
             }));
 
-            // Atualiza fila de espera no dashboard caso venha do backend
-            if (vidaQueue.aheadList && vidaQueue.aheadList.length > 0) {
-              setCompanyWaitingQueue(
-                vidaQueue.aheadList.map((t, idx) => ({
-                  ticket: t.ticket || `#${idx + 44}`,
-                  name: t.name || 'Paciente',
-                  service: vidaQueue.serviceName || 'Consulta Geral',
-                  time: t.time || '~15 min',
-                  isPriority: false,
-                  isUser: !!t.isUser
-                }))
-              );
-            }
+
           }
         }
       } catch (err) {
@@ -242,31 +267,6 @@ export default function App() {
 
     syncBackendData();
 
-    // 3. Conexão WebSocket para receber chamadas de senha e recálculos da IA em tempo real
-    const ws = setupQueueWebSocket((event) => {
-      console.log('[FilaFlow WS Recebido]', event);
-      if (event.type === 'TICKET_CALLED') {
-        playChime();
-        const ticketNum = event.ticketNumber || event.ticket?.ticket_number || '#--';
-        const clientName = event.customerName || event.ticket?.customer_name || 'Paciente';
-        const roomName = event.room || 'Consultório 04';
-
-        setActiveAttendingTicket({
-          ticket: ticketNum,
-          name: clientName,
-          service: event.serviceName || 'Atendimento'
-        });
-
-        setCompanyWaitingQueue((prev) => prev.filter((t) => t.ticket !== ticketNum));
-        showToast(`🔔 SENHA CHAMADA: ${ticketNum} (${clientName}) no ${roomName}`);
-      } else if (event.type === 'QUEUE_UPDATED' || event.type === 'AI_PREDICTIONS_UPDATED') {
-        syncBackendData();
-      }
-    });
-
-    return () => {
-      if (ws) ws.close();
-    };
   }, []);
 
   // A rota empresarial valida a sessão antes de exibir o painel.
@@ -307,6 +307,7 @@ export default function App() {
   const handleCallNextTicket = async () => {
     if (!queueReady || queueOperation.current) return null;
     queueOperation.current = true;
+    queueVersion.current += 1;
     setQueueBusy(true);
     setQueueError('');
     const token = getToken();
@@ -326,6 +327,7 @@ export default function App() {
     } finally {
       queueOperation.current = false;
       setQueueBusy(false);
+      queueRefresh.current?.();
     }
   };
 
@@ -365,6 +367,7 @@ export default function App() {
   const handleAddManualTicket = async ({ name, serviceName, isPriority }) => {
     if (!queueReady || queueOperation.current) throw new Error('Aguarde a atualização da fila.');
     queueOperation.current = true;
+    queueVersion.current += 1;
     setQueueBusy(true);
     const token = getToken();
     try {
@@ -392,6 +395,7 @@ export default function App() {
     } finally {
       queueOperation.current = false;
       setQueueBusy(false);
+      queueRefresh.current?.();
     }
   };
 

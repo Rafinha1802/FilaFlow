@@ -1,6 +1,8 @@
 # Aplicação e servidor HTTP.
 fastapi==0.142.2
 uvicorn==0.54.0
+# Implementação do protocolo WebSocket usada pelo Uvicorn.
+websockets==17.2
 
 # Define e valida os formatos das respostas; também é dependência do FastAPI.
 pydantic==2.13.5

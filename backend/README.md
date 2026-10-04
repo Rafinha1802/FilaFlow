@@ -1,4 +1,4 @@
-# Backend FilaFlow — etapas 1 a 7
+# Backend FilaFlow — etapas 1 a 8
 
 API mínima em Python com FastAPI, independente do frontend React.
 Disponibiliza `GET /api/health`, que responde com HTTP 200 e `{"status": "ok"}`,
@@ -8,6 +8,7 @@ de desenvolvimento. Nenhum desses endpoints acessa banco de dados.
 `POST /api/tickets/manual` emite uma senha em memória, exigindo autenticação.
 `GET /api/tickets` consulta a fila empresarial e `POST /api/tickets/next` chama
 a próxima senha. Ambos exigem autenticação e o parâmetro `queue_id`.
+`/ws` avisa os painéis empresariais autenticados sobre emissões e chamadas.
 
 ## Arquivos e responsabilidades
 
@@ -22,6 +23,8 @@ a próxima senha. Ambos exigem autenticação e o parâmetro `queue_id`.
 - `app/api/tickets.py`: expõe emissão, consulta e chamada com token válido.
 - `app/schemas/tickets.py`: define emissão, estado da fila e resposta de chamada.
 - `app/services/tickets.py`: guarda senhas e atendimento atual e controla a ordem de chamada.
+- `app/api/websocket.py`: autentica a assinatura e acompanha a conexão WebSocket.
+- `app/services/events.py`: guarda assinantes e envia avisos de mudança na fila.
 - `app/core/config.py`: lê as configurações opcionais de banco e autenticação.
 - `.env.example`: documenta as variáveis previstas, sem credenciais.
 - `tests/test_health.py`: verifica o código HTTP e o JSON da resposta.
@@ -29,6 +32,7 @@ a próxima senha. Ambos exigem autenticação e o parâmetro `queue_id`.
 - `tests/test_queues.py`: verifica a listagem pública com e sem configuração de banco.
 - `tests/test_auth.py`: verifica login, acesso protegido e rejeição de tokens inválidos.
 - `tests/test_tickets.py`: verifica emissão, prioridade, chamada, fila vazia e concorrência.
+- `tests/test_websocket.py`: verifica autenticação, eventos para vários clientes e desconexões.
 - `requirements.txt`: lista as dependências da aplicação e do teste.
 - `.gitignore`: impede o versionamento do ambiente virtual, caches e arquivos `.env`.
 
@@ -36,6 +40,8 @@ a próxima senha. Ambos exigem autenticação e o parâmetro `queue_id`.
 
 - **FastAPI**: define a API em `app/main.py` e gera sua documentação interativa.
 - **Uvicorn**: servidor que executa a aplicação e recebe as requisições HTTP.
+- **websockets**: implementação do protocolo WebSocket utilizada pelo Uvicorn
+  para atender `/ws`. Não requer um serviço externo.
 - **Pydantic**: define e valida o formato da resposta em `app/schemas/queues.py`.
   Já era instalado pelo FastAPI; agora está declarado como dependência direta.
 - **pytest**: executa os testes da pasta `tests/`.
@@ -130,8 +136,8 @@ não inclui pacientes. O painel consulta as senhas separadamente em
 `GET /api/tickets?queue_id=clinica-vida`, com autenticação.
 As filas demonstrativas do aplicativo cliente continuam locais.
 O login empresarial agora exige as credenciais configuradas no backend.
-Não há login automático com credenciais fixas. WebSocket ainda não foi
-implementado, portanto suas tentativas de conexão podem gerar avisos no console.
+Não há login automático com credenciais fixas. O WebSocket é aberto somente
+quando a área empresarial está autenticada.
 
 ## Configuração por variáveis de ambiente
 
@@ -311,7 +317,7 @@ Limites da memória nesta etapa:
 - Reiniciar o servidor, inclusive pelo `--reload`, perde as senhas e reinicia a
   numeração. Recarregue também o painel após reiniciar o backend.
 - Recarregar o navegador consulta as senhas e o atendimento atual do servidor.
-  Outras abas ainda não recebem atualizações automaticamente.
+  Outras abas empresariais autenticadas também recebem avisos via WebSocket.
 - Não há repetição automática de POST nem garantia de idempotência. Se a conexão
   cair depois da criação no servidor, a confirmação pode não chegar ao navegador;
   reenviar poderá criar outra senha.
@@ -360,13 +366,71 @@ de chamadas: se uma resposta se perder após o servidor processar o POST, recarr
 para consultar o estado antes de tentar novamente. Enquanto uma emissão ou chamada
 estiver em andamento, o painel bloqueia outra dessas operações na mesma aba.
 Chamadas distintas feitas em abas diferentes podem avançar mais de uma senha;
-a sincronização em tempo real ainda pertence à etapa 8.
+o WebSocket atualiza os painéis após cada operação.
 
 Para conferir, emita uma senha normal e duas prioritárias. O botão **Chamar Próximo**
 deve chamar as prioritárias na ordem de emissão e depois a normal. Recarregue entre
 as chamadas e confira a persistência em memória do servidor. Após esvaziar a fila,
 clique novamente: o atendimento atual deve permanecer. Pare o backend antes de uma
 chamada e confirme que o painel exibe erro sem avançar a fila local.
+
+## Atualização em tempo real (etapa 8)
+
+Atualize as dependências dentro de `backend/` antes de iniciar o servidor:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+O proxy Vite existente já encaminha `/ws` para a porta 8000. O frontend usa
+`ws://` no desenvolvimento HTTP e `wss://` quando a página usa HTTPS.
+O navegador envia como primeira mensagem:
+
+```json
+{"type": "subscribe", "queue_id": "clinica-vida", "token": "<token obtido no login>"}
+```
+
+O token não aparece na URL. O servidor valida a assinatura e a fila antes de
+registrar o assinante. Sem uma assinatura válida, nenhum evento de fila é enviado.
+Uma assinatura válida recebe `{"type":"READY","queue_id":"clinica-vida"}`.
+
+Após uma emissão, o servidor envia `QUEUE_UPDATED`; após uma chamada efetiva,
+envia `TICKET_CALLED`. Os avisos contêm apenas `type` e `queue_id`, sem nomes de
+pacientes. Ao receber um aviso, cada painel consulta o estado completo pela API
+autenticada. Assim, o servidor continua sendo a fonte dos dados, e uma resposta
+HTTP e um evento WebSocket não adicionam a mesma senha duas vezes.
+Fila vazia não gera um evento de chamada.
+
+Consultas são agrupadas quando vários avisos chegam juntos. Uma consulta iniciada
+antes de uma operação local não sobrescreve sua resposta; o painel consulta
+novamente o estado mais recente. A confirmação e o som da chamada permanecem na
+aba que executou o comando. Nas demais abas, os dados são atualizados sem repetir
+o anúncio sonoro.
+
+O cliente envia `ping` a cada 20 segundos e o servidor responde `pong`, verificando
+novamente o token. O token também é verificado antes de cada aviso. Token inválido
+ou expirado encerra a conexão com código `1008`; o frontend limpa a sessão e
+solicita novo login. O servidor aguarda até 5 segundos pela assinatura inicial e
+até 45 segundos entre mensagens. Conexões inativas são encerradas.
+
+Em quedas comuns, o cliente tenta reconectar após 2 segundos. Ao receber outro
+`READY`, consulta novamente a fila para recuperar mudanças ocorridas durante a
+queda. Se faltar confirmação de conexão ou `pong` por 10 segundos, o cliente
+fecha o socket para permitir a reconexão. Sair da conta ou deixar a área empresarial
+fecha a conexão e cancela os temporizadores. O painel informa quando a atualização
+em tempo real está interrompida.
+
+Para conferir, abra duas abas em `/empresa/dashboard` com uma sessão válida.
+Emita uma senha na primeira e veja a linha aparecer na segunda; chame na segunda
+e confira o atendimento atual nas duas. Interrompa temporariamente a conexão de
+uma aba e confira a recuperação ao reconectar. Ao sair, as conexões devem fechar.
+O app de clientes e o consultório profissional continuam demonstrativos nesta etapa.
+
+Os assinantes e os dados continuam na memória de **um único processo**. Não use
+múltiplos workers: eles não compartilham fila nem conexões. Não há histórico de
+eventos; após uma queda, recuperamos o estado atual por HTTP. Uma aba desconectada
+não impede o sucesso de uma emissão ou chamada. Reiniciar o servidor ainda perde
+as senhas e o atendimento atual.
 
 ## Testar
 
@@ -376,7 +440,7 @@ Dentro de `backend/`, sem precisar iniciar o servidor:
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-Resultado esperado: `47 passed` (saúde, configuração, filas, autenticação, emissão e chamada).
+Resultado esperado: `61 passed` (incluindo os testes de WebSocket).
 Os testes isolam as variáveis
 com `monkeypatch`, sem alterar permanentemente o ambiente e sem acessar banco.
 
@@ -392,9 +456,9 @@ node --test tests/auth-api.test.js
 npm run build
 ```
 
-Resultado esperado: 30 testes JavaScript aprovados e compilação concluída.
+Resultado esperado: 38 testes JavaScript aprovados e compilação concluída.
 Os testes usam `node:test`, integrado ao Node, com respostas HTTP simuladas.
-Cobrem login, erros, restauração, logout, respostas atrasadas, emissão e chamada,
+Cobrem login, erros, restauração, logout, respostas atrasadas, emissão, chamada e WebSocket,
 sem credenciais reais.
 Na validação desta etapa também foi usado Edge com Playwright temporário para
 exercitar o fluxo completo com o backend local. Playwright não foi adicionado
@@ -402,14 +466,14 @@ ao `package.json` ou ao `package-lock.json`.
 
 ## Limites desta etapa
 
-Não há persistência em banco ou WebSocket implementados.
+Não há persistência em banco.
 Autenticação está disponível apenas para o usuário de desenvolvimento configurado.
 A listagem de filas é apenas demonstrativa e não exige autenticação.
 A leitura de `DATABASE_URL` está preparada. A conexão PostgreSQL, seu driver
 e os modelos de persistência ficam para uma etapa posterior;
 nenhuma credencial ou conexão de banco é necessária agora.
 
-O login empresarial, a emissão, a consulta e a chamada de senhas estão integrados.
+O login empresarial, a emissão, a consulta, a chamada e a atualização em tempo real estão integrados.
 Os demais fluxos continuam
 demonstrativos; chamadas a endpoints ainda não implementados não são atendidas
 por esta API.
@@ -426,3 +490,5 @@ a pasta `backend/`.
 - [Hashes de senha e JWT com pwdlib e PyJWT](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/)
 - [Executor de testes do Node.js](https://nodejs.org/api/test.html)
 - [Validação com navegadores no Playwright](https://playwright.dev/docs/browsers)
+- [WebSockets no FastAPI](https://fastapi.tiangolo.com/advanced/websockets/)
+- [Configuração de WebSocket no Uvicorn](https://www.uvicorn.org/settings/)

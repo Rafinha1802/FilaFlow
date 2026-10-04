@@ -5,11 +5,13 @@ import {
   getStoredUser, getToken, loginApi, setStoredUser, setToken,
   addManualTicketApi,
   callNextTicketApi, fetchQueueStateApi,
+  setupQueueWebSocket,
 } from '../src/services/api.js';
 
 const user = { id: 'demo-company', email: 'test@example.invalid', role: 'company' };
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
 const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+const originalWebSocket = Object.getOwnPropertyDescriptor(globalThis, 'WebSocket');
 
 beforeEach(() => {
   const values = new Map();
@@ -24,6 +26,9 @@ beforeEach(() => {
 
 afterEach(() => {
   mock.restoreAll();
+  mock.timers.reset();
+  if (originalWebSocket) Object.defineProperty(globalThis, 'WebSocket', originalWebSocket);
+  else delete globalThis.WebSocket;
   if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
   else delete globalThis.window;
   if (originalStorage) Object.defineProperty(globalThis, 'localStorage', originalStorage);
@@ -237,4 +242,128 @@ test('resposta incompleta de chamada é rejeitada', async () => {
   setToken('test-token');
   mock.method(globalThis, 'fetch', async () => Response.json({ called_ticket: { ticket_number: '#49' } }));
   await assert.rejects(callNextTicketApi(), /Resposta da fila inválida/);
+});
+
+function mockWebSockets() {
+  mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
+  window.location = { protocol: 'http:', host: 'localhost:5174' };
+  const sockets = [];
+  class FakeSocket {
+    static OPEN = 1;
+    static CLOSING = 2;
+    readyState = 0;
+    sent = [];
+    constructor(url) { this.url = url; sockets.push(this); }
+    send(data) { this.sent.push(JSON.parse(data)); }
+    open() { this.readyState = 1; this.onopen(); }
+    receive(data) { this.onmessage({ data: JSON.stringify(data) }); }
+    close(code = 1000) { this.readyState = 3; this.onclose?.({ code }); }
+  }
+  Object.defineProperty(globalThis, 'WebSocket', { configurable: true, value: FakeSocket });
+  return sockets;
+}
+
+test('WebSocket não conecta sem sessão e não inclui token na URL', () => {
+  const sockets = mockWebSockets();
+  assert.equal(setupQueueWebSocket(() => {}), null);
+  assert.equal(sockets.length, 0);
+  setToken('test-token');
+  const connection = setupQueueWebSocket(() => {});
+  assert.equal(sockets[0].url, 'ws://localhost:5174/ws');
+  sockets[0].open();
+  assert.deepEqual(sockets[0].sent, [{ type: 'subscribe', queue_id: 'clinica-vida', token: 'test-token' }]);
+  connection.close();
+});
+
+test('READY e eventos da fila são entregues; pong e outra fila são ignorados', () => {
+  const sockets = mockWebSockets();
+  setToken('test-token');
+  const received = [];
+  const connection = setupQueueWebSocket(event => received.push(event.type));
+  sockets[0].open();
+  sockets[0].receive({ type: 'READY', queue_id: 'clinica-vida' });
+  sockets[0].receive({ type: 'TICKET_CALLED', queue_id: 'other' });
+  sockets[0].receive({ type: 'pong' });
+  sockets[0].receive({ type: 'TICKET_CALLED', queue_id: 'clinica-vida' });
+  assert.deepEqual(received, ['READY', 'TICKET_CALLED']);
+  connection.close();
+});
+
+test('queda reconecta e novo READY permite recuperar estado perdido', () => {
+  const sockets = mockWebSockets();
+  setToken('test-token');
+  const states = [];
+  const connection = setupQueueWebSocket(() => {}, 'clinica-vida', state => states.push(state));
+  sockets[0].open();
+  sockets[0].receive({ type: 'READY', queue_id: 'clinica-vida' });
+  sockets[0].close(1006);
+  mock.timers.tick(2000);
+  assert.equal(sockets.length, 2);
+  sockets[1].open();
+  sockets[1].receive({ type: 'READY', queue_id: 'clinica-vida' });
+  assert.deepEqual(states, [true, false, true]);
+  connection.close();
+});
+
+test('encerrar conexão cancela reconexão e heartbeat', () => {
+  const sockets = mockWebSockets();
+  setToken('test-token');
+  const connection = setupQueueWebSocket(() => {});
+  sockets[0].open();
+  sockets[0].receive({ type: 'READY', queue_id: 'clinica-vida' });
+  connection.close();
+  mock.timers.tick(60000);
+  assert.equal(sockets.length, 1);
+  assert.equal(sockets[0].sent.length, 1);
+});
+
+test('recusa de autenticação limpa sessão e não reconecta', () => {
+  const sockets = mockWebSockets();
+  setToken('test-token');
+  setupQueueWebSocket(() => {});
+  sockets[0].open();
+  sockets[0].close(1008);
+  mock.timers.tick(60000);
+  assert.equal(getToken(), null);
+  assert.equal(sockets.length, 1);
+});
+
+test('ausência de pong fecha conexão para permitir recuperação', () => {
+  const sockets = mockWebSockets();
+  setToken('test-token');
+  const connection = setupQueueWebSocket(() => {});
+  sockets[0].open();
+  sockets[0].receive({ type: 'READY', queue_id: 'clinica-vida' });
+  mock.timers.tick(20000);
+  assert.deepEqual(sockets[0].sent[1], { type: 'ping' });
+  mock.timers.tick(10000);
+  assert.equal(sockets[0].readyState, 3);
+  connection.close();
+});
+
+test('sessão removida durante uma queda não é reaberta pelo WebSocket', () => {
+  const sockets = mockWebSockets();
+  setToken('test-token');
+  const connection = setupQueueWebSocket(() => {});
+  sockets[0].open();
+  sockets[0].close(1006);
+  clearAuth();
+  mock.timers.tick(2000);
+  assert.equal(sockets.length, 1);
+  connection.close();
+});
+
+test('falha ao criar WebSocket não interrompe o painel e pode ser cancelada', () => {
+  mockWebSockets();
+  setToken('test-token');
+  let attempts = 0;
+  Object.defineProperty(globalThis, 'WebSocket', { configurable: true, value: class {
+    constructor() { attempts++; throw new Error('Unavailable'); }
+  } });
+  const statuses = [];
+  const connection = setupQueueWebSocket(() => {}, 'clinica-vida', status => statuses.push(status));
+  assert.deepEqual(statuses, [false]);
+  connection.close();
+  mock.timers.tick(10000);
+  assert.equal(attempts, 1);
 });
