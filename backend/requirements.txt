@@ -1,0 +1,7 @@
+# Aplicação e servidor HTTP.
+fastapi==0.142.2
+uvicorn==0.54.0
+
+# Testes: HTTPX é utilizado pelo TestClient do FastAPI.
+pytest==9.1.1
+httpx==0.28.1
