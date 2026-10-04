@@ -4,6 +4,7 @@ import {
   AUTH_CLEARED_EVENT, clearAuth, fetchCurrentUser, fetchMyQueues,
   getStoredUser, getToken, loginApi, setStoredUser, setToken,
   addManualTicketApi,
+  callNextTicketApi, fetchQueueStateApi,
 } from '../src/services/api.js';
 
 const user = { id: 'demo-company', email: 'test@example.invalid', role: 'company' };
@@ -184,4 +185,56 @@ test('resposta incompleta não é aceita como senha emitida', async () => {
   setToken('test-token');
   mock.method(globalThis, 'fetch', async () => Response.json({ ticket_number: '#49' }, { status: 201 }));
   await assert.rejects(addManualTicketApi(manualPayload), /confirmar os dados/);
+});
+
+test('consulta autenticada restaura atendimento e fila do servidor', async () => {
+  setToken('test-token');
+  const state = { active_ticket: null, remaining_queue: [{ ...manualPayload, ticket_number: '#49' }] };
+  mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, '/api/tickets?queue_id=clinica-vida');
+    assert.equal(options.headers.Authorization, 'Bearer test-token');
+    return Response.json(state);
+  });
+  assert.deepEqual(await fetchQueueStateApi(), state);
+});
+
+test('chamada confirma a senha e a fila restante devolvidas pelo servidor', async () => {
+  setToken('test-token');
+  const ticket = { ...manualPayload, ticket_number: '#49' };
+  const state = { active_ticket: ticket, called_ticket: ticket, remaining_queue: [] };
+  mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, '/api/tickets/next?queue_id=clinica-vida');
+    assert.equal(options.method, 'POST');
+    assert.equal(options.headers.Authorization, 'Bearer test-token');
+    return Response.json(state);
+  });
+  assert.deepEqual(await callNextTicketApi(), state);
+});
+
+test('fila vazia preserva o atendimento atual, sem chamada simulada', async () => {
+  setToken('test-token');
+  const state = { active_ticket: { ...manualPayload, ticket_number: '#49' }, called_ticket: null, remaining_queue: [] };
+  mock.method(globalThis, 'fetch', async () => Response.json(state));
+  assert.deepEqual(await callNextTicketApi(), state);
+});
+
+for (const status of [401, 404, 500]) {
+  test(`falha HTTP ${status} na chamada não retorna dados simulados nem repete o POST`, async () => {
+    setToken('test-token');
+    const fetchMock = mock.method(globalThis, 'fetch', async () => Response.json({}, { status }));
+    await assert.rejects(callNextTicketApi());
+    assert.equal(fetchMock.mock.callCount(), 1);
+  });
+}
+
+test('falha de conexão na chamada informa confirmação incerta', async () => {
+  setToken('test-token');
+  mock.method(globalThis, 'fetch', async () => { throw new TypeError('offline'); });
+  await assert.rejects(callNextTicketApi(), /Recarregue a fila/);
+});
+
+test('resposta incompleta de chamada é rejeitada', async () => {
+  setToken('test-token');
+  mock.method(globalThis, 'fetch', async () => Response.json({ called_ticket: { ticket_number: '#49' } }));
+  await assert.rejects(callNextTicketApi(), /Resposta da fila inválida/);
 });

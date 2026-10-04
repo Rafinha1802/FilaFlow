@@ -21,6 +21,7 @@ PAYLOAD = {
 def isolated_tickets(monkeypatch):
     # Cada teste recebe um armazenamento independente, sem apagar dados reais.
     monkeypatch.setattr(tickets, "_tickets", [])
+    monkeypatch.setattr(tickets, "_active_tickets", {})
     monkeypatch.setattr(tickets, "_next_ticket_number", 49)
 
 
@@ -93,3 +94,67 @@ def test_concurrent_issuance_has_unique_numbers():
         created = list(executor.map(lambda _: tickets.create_manual_ticket(data), range(40)))
     assert {item.ticket_number for item in created} == {f"#{n}" for n in range(49, 89)}
     assert len(tickets._tickets) == 40
+
+
+def test_next_obeys_priority_and_fifo_and_snapshot(client):
+    for name, priority in [("Normal 1", False), ("Priority 1", True),
+                           ("Normal 2", False), ("Priority 2", True)]:
+        assert client.post("/api/tickets/manual", json={
+            **PAYLOAD, "customer_name": name, "is_priority": priority,
+        }).status_code == 201
+    snapshot = client.get("/api/tickets?queue_id=clinica-vida")
+    assert snapshot.status_code == 200
+    assert snapshot.json()["active_ticket"] is None
+    assert [t["ticket_number"] for t in snapshot.json()["remaining_queue"]] == ["#50", "#52", "#49", "#51"]
+    for number, remaining in [("#50", 3), ("#52", 2), ("#49", 1), ("#51", 0)]:
+        response = client.post("/api/tickets/next?queue_id=clinica-vida")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["called_ticket"]["ticket_number"] == number
+        assert data["active_ticket"] == data["called_ticket"]
+        assert len(data["remaining_queue"]) == remaining
+        # Uma nova consulta permite reconstruir o painel após recarregar.
+        assert client.get("/api/tickets?queue_id=clinica-vida").json() == {
+            "active_ticket": data["active_ticket"], "remaining_queue": data["remaining_queue"],
+        }
+    empty = client.post("/api/tickets/next?queue_id=clinica-vida").json()
+    assert empty["called_ticket"] is None
+    assert empty["remaining_queue"] == []
+    assert empty["active_ticket"]["ticket_number"] == "#51"
+
+
+def test_initial_queue_is_empty(client):
+    assert client.get("/api/tickets?queue_id=clinica-vida").json() == {
+        "active_ticket": None, "remaining_queue": [],
+    }
+    assert client.post("/api/tickets/next?queue_id=clinica-vida").json() == {
+        "called_ticket": None, "active_ticket": None, "remaining_queue": [],
+    }
+
+
+@pytest.mark.parametrize("method,path", [("GET", "/api/tickets"), ("POST", "/api/tickets/next")])
+def test_queue_read_and_next_reject_unknown_queue(client, method, path):
+    assert client.request(method, path + "?queue_id=unknown").status_code == 404
+    assert tickets._tickets == []
+    assert tickets._active_tickets == {}
+
+
+@pytest.mark.parametrize("method,path", [("GET", "/api/tickets"), ("POST", "/api/tickets/next")])
+def test_queue_read_and_next_require_authentication(client, method, path):
+    client.post("/api/tickets/manual", json=PAYLOAD)
+    client.headers.pop("Authorization")
+    assert client.request(method, path + "?queue_id=clinica-vida").status_code == 401
+    assert len(tickets._tickets) == 1
+    assert tickets._active_tickets == {}
+
+
+def test_concurrent_calls_never_call_the_same_ticket_twice():
+    for _ in range(20):
+        tickets.create_manual_ticket(ManualTicketRequest(**PAYLOAD))
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        results = list(executor.map(lambda _: tickets.call_next_ticket("clinica-vida"), range(30)))
+    called = [r.called_ticket.ticket_number for r in results if r.called_ticket]
+    assert len(called) == 20
+    assert len(set(called)) == 20
+    assert sum(r.called_ticket is None for r in results) == 10
+    assert tickets.get_queue_state("clinica-vida").remaining_queue == []

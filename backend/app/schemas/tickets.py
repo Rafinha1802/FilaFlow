@@ -22,3 +22,15 @@ class Ticket(BaseModel):
     service_name: str
     is_priority: bool
     estimated_wait_text: str = "Aguardando"
+
+
+class QueueState(BaseModel):
+    """Estado necessário para reconstruir o painel, inclusive quando vazio."""
+
+    active_ticket: Ticket | None
+    remaining_queue: list[Ticket]
+
+
+class NextTicketResponse(QueueState):
+    # Sem próxima senha, o atendimento atual é preservado.
+    called_ticket: Ticket | None

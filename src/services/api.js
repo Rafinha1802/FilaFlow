@@ -159,15 +159,39 @@ export async function callNextTicketApi(queueId = 'clinica-vida') {
     const res = await fetchWithAuth(`${API_BASE}/tickets/next?queue_id=${encodeURIComponent(queueId)}`, {
       method: 'POST'
     });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || 'Erro ao chamar próximo');
+    if (!res.ok) throw new Error('Não foi possível chamar a próxima senha.');
+    const data = await readQueueState(res);
+    if (data.called_ticket !== null && !isQueueTicket(data.called_ticket)) {
+      throw new Error('Resposta de chamada inválida. Recarregue a fila.');
     }
-    return await res.json();
+    return data;
   } catch (err) {
-    console.warn('[FilaFlow API] Erro ao chamar próximo:', err);
-    return null;
+    if (err instanceof TypeError || err instanceof SyntaxError) {
+      throw new Error('Não foi possível confirmar a chamada. Recarregue a fila antes de tentar novamente.');
+    }
+    throw err;
   }
+}
+
+function isQueueTicket(ticket) {
+  return ticket && typeof ticket.ticket_number === 'string' && ticket.ticket_number.length > 0 &&
+    typeof ticket.customer_name === 'string' && typeof ticket.service_name === 'string' &&
+    typeof ticket.is_priority === 'boolean';
+}
+
+async function readQueueState(res) {
+  const data = await res.json();
+  if (!data || (data.active_ticket !== null && !isQueueTicket(data.active_ticket)) ||
+      !Array.isArray(data.remaining_queue) || !data.remaining_queue.every(isQueueTicket)) {
+    throw new Error('Resposta da fila inválida. Recarregue a página.');
+  }
+  return data;
+}
+
+export async function fetchQueueStateApi(queueId = 'clinica-vida') {
+  const res = await fetchWithAuth(`${API_BASE}/tickets?queue_id=${encodeURIComponent(queueId)}`);
+  if (!res.ok) throw new Error('Não foi possível carregar a fila. Recarregue a página.');
+  return readQueueState(res);
 }
 
 export async function reportDelayApi(queueId = 'clinica-vida', minutes = 5) {

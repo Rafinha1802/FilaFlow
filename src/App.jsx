@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppRouter } from './router/useAppRouter';
 import Navbar from './components/LandingPage/Navbar';
 import LandingPage from './components/LandingPage/LandingPage';
@@ -20,6 +20,8 @@ import {
   addManualTicketApi, 
   setupQueueWebSocket, 
   fetchCurrentUser,
+  fetchQueueStateApi,
+  getToken,
   clearAuth,
   AUTH_CLEARED_EVENT
 } from './services/api';
@@ -114,20 +116,48 @@ export default function App() {
   });
 
   // Active Attending Ticket in Company Dashboard
-  const [activeAttendingTicket, setActiveAttendingTicket] = useState({
-    ticket: '#43',
-    name: 'Maria Silva',
-    service: 'Consulta Oftalmologia Geral'
-  });
+  const [activeAttendingTicket, setActiveAttendingTicket] = useState(null);
 
   // Waiting Queue in Company Dashboard
-  const [companyWaitingQueue, setCompanyWaitingQueue] = useState([
-    { ticket: '#44', name: 'João Santos', service: 'Consulta Oftalmologia Geral', time: '~10 min', isPriority: false },
-    { ticket: '#45', name: 'Ana Costa', service: 'Exame de Fundo de Olho', time: '~22 min', isPriority: false },
-    { ticket: '#46', name: 'Pedro Lima', service: 'Retorno de Consulta', time: '~34 min', isPriority: false },
-    { ticket: '#47', name: 'Rafael', service: 'Consulta Oftalmologia Geral', time: '~42 min', isPriority: false, isUser: true },
-    { ticket: '#48', name: 'Mariana Alencar', service: 'Avaliação Cirúrgica', time: '~55 min', isPriority: true }
-  ]);
+  const [companyWaitingQueue, setCompanyWaitingQueue] = useState([]);
+  const [queueReady, setQueueReady] = useState(false);
+  const [queueError, setQueueError] = useState('');
+  const [queueBusy, setQueueBusy] = useState(false);
+  const queueOperation = useRef(false);
+
+  const toDashboardTicket = (ticket) => ticket && ({
+    ticket: ticket.ticket_number,
+    name: ticket.customer_name,
+    service: ticket.service_name,
+    time: ticket.estimated_wait_text,
+    isPriority: ticket.is_priority,
+    isUser: false
+  });
+
+  const applyQueueState = (data) => {
+    setActiveAttendingTicket(toDashboardTicket(data.active_ticket));
+    setCompanyWaitingQueue(data.remaining_queue.map(toDashboardTicket));
+  };
+
+  useEffect(() => {
+    let active = true;
+    setQueueReady(false);
+    setQueueError('');
+    if (isAuthenticated && isCompanyRoute) {
+      fetchQueueStateApi().then((data) => {
+        if (active) {
+          applyQueueState(data);
+          setQueueReady(true);
+        }
+      }).catch(() => {
+        if (active) setQueueError('Não foi possível carregar a fila. Recarregue a página.');
+      });
+    } else {
+      setActiveAttendingTicket(null);
+      setCompanyWaitingQueue([]);
+    }
+    return () => { active = false; };
+  }, [isAuthenticated, isCompanyRoute]);
 
   // Client Active Queues (Multi-Queues in Mobile App)
   const [clientActiveQueues, setClientActiveQueues] = useState(INITIAL_QUEUES);
@@ -273,83 +303,30 @@ export default function App() {
     navigate('/empresa/dashboard');
   };
 
-  // 1. Chamar Próxima Senha (integrado à API real e com fallback local imediato)
+  // A chamada só altera o painel depois da confirmação do servidor.
   const handleCallNextTicket = async () => {
-    // Tenta chamar a API do backend
-    const apiRes = await callNextTicketApi('clinica-vida');
-
-    if (apiRes && apiRes.called_ticket) {
-      const ct = apiRes.called_ticket;
-      const nextOne = {
-        ticket: ct.ticket_number,
-        name: ct.customer_name,
-        service: ct.service_name,
-        isUser: ct.is_user
-      };
-
-      setActiveAttendingTicket(nextOne);
-      if (apiRes.remaining_queue) {
-        setCompanyWaitingQueue(
-          apiRes.remaining_queue.map((t) => ({
-            ticket: t.ticket_number,
-            name: t.customer_name,
-            service: t.service_name,
-            time: t.estimated_wait_text || '~12 min',
-            isPriority: t.is_priority,
-            isUser: t.is_user
-          }))
-        );
-      } else {
-        setCompanyWaitingQueue((prev) => prev.slice(1));
+    if (!queueReady || queueOperation.current) return null;
+    queueOperation.current = true;
+    setQueueBusy(true);
+    setQueueError('');
+    const token = getToken();
+    try {
+      const data = await callNextTicketApi('clinica-vida');
+      if (getToken() !== token) return null;
+      applyQueueState(data);
+      if (!data.called_ticket) {
+        showToast('Não há clientes na fila de espera.');
+        return null;
       }
-
-      playChime();
-      showToast(`🔔 Senha ${ct.ticket_number} chamada no ${businessData.room || 'Consultório 04'}!`);
-      return;
+      showToast(`Senha ${data.called_ticket.ticket_number} chamada no ${businessData.room}.`);
+      return data.called_ticket;
+    } catch (err) {
+      setQueueError(err.message);
+      return null;
+    } finally {
+      queueOperation.current = false;
+      setQueueBusy(false);
     }
-
-    // Fallback local se o backend estiver iniciando ou offline
-    if (companyWaitingQueue.length === 0) {
-      alert('Não há mais clientes na fila de espera no momento.');
-      return;
-    }
-
-    const nextOne = companyWaitingQueue[0];
-    const remainingQueue = companyWaitingQueue.slice(1);
-
-    setActiveAttendingTicket(nextOne);
-    setCompanyWaitingQueue(remainingQueue);
-    playChime();
-
-    if (nextOne.isUser || nextOne.ticket === '#47') {
-      showToast(`🔔 SUA VEZ CHEGOU! Senha ${nextOne.ticket} chamada no ${businessData.room || 'Consultório 04'}.`);
-    } else {
-      showToast(`🔔 Senha ${nextOne.ticket} (${nextOne.name}) chamada no ${businessData.room || 'Consultório 04'}.`);
-    }
-
-    // Sincroniza aplicativo cliente
-    setClientActiveQueues((prevQueues) =>
-      prevQueues.map((queue) => {
-        if (queue.id === 'clinica-vida') {
-          const newPos = Math.max(1, queue.position - 1);
-          const newWait = Math.max(2, queue.initialWaitMin - 8);
-          const isNowUserTurn = newPos === 1;
-
-          return {
-            ...queue,
-            position: newPos,
-            initialWaitMin: newWait,
-            estimatedWaitText: isNowUserTurn ? 'Sua Vez! Dirija-se à Sala' : `${newWait - 4}-${newWait + 3} min`,
-            status: isNowUserTurn ? 'ready' : 'waiting',
-            statusDetail: isNowUserTurn
-              ? '🟢 SUA VEZ: Dirija-se ao guichê/sala agora!'
-              : `Ritmo acelerado: ${newPos} atendimentos à frente`,
-            aheadList: queue.aheadList ? queue.aheadList.slice(1) : []
-          };
-        }
-        return queue;
-      })
-    );
   };
 
   // 2. Reportar Atraso (recalculado com IA)
@@ -376,22 +353,28 @@ export default function App() {
 
   // 3. Pular senha / Não compareceu
   const handleSkipTicket = () => {
-    handleCallNextTicket();
+    showToast('O registro de ausência ainda não está integrado.');
   };
 
   // 4. Finalizar atendimento atual
   const handleFinishCurrent = () => {
-    handleCallNextTicket();
+    showToast('A conclusão de atendimento ainda não está integrada.');
   };
 
   // 5. Emitir Senha Manual no Balcão
   const handleAddManualTicket = async ({ name, serviceName, isPriority }) => {
+    if (!queueReady || queueOperation.current) throw new Error('Aguarde a atualização da fila.');
+    queueOperation.current = true;
+    setQueueBusy(true);
+    const token = getToken();
+    try {
     const ticket = await addManualTicketApi({
       queue_id: 'clinica-vida',
       customer_name: name,
       service_name: serviceName,
       is_priority: isPriority
     });
+    if (getToken() !== token) throw new Error('Sessão encerrada. Entre novamente para consultar a fila.');
 
     const newTicketObj = {
       ticket: ticket.ticket_number,
@@ -401,13 +384,15 @@ export default function App() {
       isPriority: ticket.is_priority
     };
 
-    setCompanyWaitingQueue((prev) =>
-      ticket.is_priority && prev.length > 0
-        ? [prev[0], newTicketObj, ...prev.slice(1)]
-        : [...prev, newTicketObj]
-    );
+    setCompanyWaitingQueue((prev) => [...prev, newTicketObj].sort(
+      (a, b) => Number(b.isPriority) - Number(a.isPriority)
+    ));
     showToast(`Senha ${newTicketObj.ticket} emitida e adicionada à fila!`);
     return ticket;
+    } finally {
+      queueOperation.current = false;
+      setQueueBusy(false);
+    }
   };
 
   // 6. Confirmação do Pré-Checkin do Cliente
@@ -636,6 +621,8 @@ export default function App() {
         authCheckedPath !== currentPath ? <p role="status">Verificando sessão...</p> :
         isAuthenticated ? (
         <CompanyDashboard
+          queueBusy={!queueReady || queueBusy}
+          queueError={queueError}
           businessData={businessData}
           activeAttendingTicket={activeAttendingTicket}
           waitingQueue={companyWaitingQueue}
