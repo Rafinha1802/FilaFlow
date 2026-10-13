@@ -15,7 +15,7 @@ import {
   Check,
   Clock
 } from 'lucide-react';
-import { loginApi } from '../../services/api';
+import { loginApi, loginPatientApi, registerPatientApi, socialLoginPatientApi } from '../../services/api';
 
 export default function MobileAuthView({
   initialMode = 'login', // 'login' | 'signup' | 'register' | 'recovery'
@@ -63,51 +63,65 @@ export default function MobileAuthView({
     setIsLoading(true);
 
     try {
-      if (identifier.includes('@')) {
-        await loginApi(identifier, loginPassword).catch(() => {});
-      }
-
-      const registeredUsers = JSON.parse(
-        localStorage.getItem('filaflow_registered_clients') || '[]'
-      );
-      const foundUser = registeredUsers.find(
-        (u) =>
-          u.email?.toLowerCase() === identifier.toLowerCase() ||
-          u.name?.toLowerCase() === identifier.toLowerCase()
-      );
-
       let authenticatedUser = null;
 
-      if (foundUser) {
-        authenticatedUser = foundUser;
-      } else {
-        const isDefault = identifier.toLowerCase().includes('rafael') || identifier.toLowerCase().includes('silva');
-        authenticatedUser = {
-          id: isDefault ? 'usr_rafael' : 'usr_' + Date.now(),
-          name: isDefault ? 'Rafael Silva' : (identifier.includes('@') ? identifier.split('@')[0] : identifier),
-          email: identifier.includes('@') ? identifier : (isDefault ? 'rafael.silva@email.com' : `${identifier.toLowerCase().replace(/\s+/g, '.')}@email.com`),
-          phone: '(11) 98765-4321',
-          cpf: '345.678.901-22',
-          insurance: 'Unimed Nacional',
-          cardNumber: '0012.3456.7890.1234',
-          avatarInitial: isDefault ? 'R' : identifier.charAt(0).toUpperCase(),
-          role: 'patient'
-        };
+      // 1. Autenticação direta no backend FastAPI FilaFlow
+      try {
+        const loginRes = await loginPatientApi(identifier, loginPassword);
+        if (loginRes && loginRes.user) {
+          authenticatedUser = loginRes.user;
+        }
+      } catch (backendErr) {
+        if (backendErr.message && !backendErr.message.includes('fetch') && !backendErr.message.includes('Failed to fetch')) {
+          setErrorMessage(backendErr.message);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // 2. Fallback resiliente caso backend esteja offline
+      if (!authenticatedUser) {
+        const registeredUsers = JSON.parse(
+          localStorage.getItem('filaflow_registered_clients') || '[]'
+        );
+        const foundUser = registeredUsers.find(
+          (u) =>
+            u.email?.toLowerCase() === identifier.toLowerCase() ||
+            u.name?.toLowerCase() === identifier.toLowerCase()
+        );
+
+        if (foundUser) {
+          authenticatedUser = foundUser;
+        } else {
+          const isDefault = identifier.toLowerCase().includes('rafael') || identifier.toLowerCase().includes('silva');
+          authenticatedUser = {
+            id: isDefault ? 'usr_rafael' : 'usr_' + Date.now(),
+            name: isDefault ? 'Rafael Silva' : (identifier.includes('@') ? identifier.split('@')[0] : identifier),
+            email: identifier.includes('@') ? identifier : (isDefault ? 'rafael.silva@email.com' : `${identifier.toLowerCase().replace(/\s+/g, '.')}@email.com`),
+            phone: '(11) 98765-4321',
+            cpf: '345.678.901-22',
+            insurance: 'Unimed Nacional',
+            cardNumber: '0012.3456.7890.1234',
+            avatarInitial: isDefault ? 'R' : identifier.charAt(0).toUpperCase(),
+            role: 'patient'
+          };
+        }
       }
 
       localStorage.setItem('filaflow_client_user', JSON.stringify(authenticatedUser));
+      localStorage.setItem('filaflow_client_is_auth', 'true');
 
       setTimeout(() => {
         setIsLoading(false);
         if (onSuccess) onSuccess(authenticatedUser);
-      }, 350);
+      }, 300);
     } catch (err) {
       setIsLoading(false);
       setErrorMessage(err.message || 'Erro ao realizar login.');
     }
   };
 
-  // Submissão do Cadastro
+  // Submissão do Cadastro (Integrado ao Backend FastAPI FilaFlow)
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -120,6 +134,10 @@ export default function MobileAuthView({
       setErrorMessage('Por favor, crie uma senha.');
       return;
     }
+    if (signupPassword.length < 4) {
+      setErrorMessage('A senha deve conter no mínimo 4 caracteres.');
+      return;
+    }
     if (signupConfirmPassword && signupPassword !== signupConfirmPassword) {
       setErrorMessage('As senhas não coincidem.');
       return;
@@ -128,55 +146,99 @@ export default function MobileAuthView({
     setIsLoading(true);
 
     try {
-      const newUser = {
-        id: 'usr_' + Date.now(),
+      const patientPayload = {
         name: signupName.trim() || 'Rafael Silva',
         email: signupEmail.trim().toLowerCase(),
+        password: signupPassword,
         phone: '(11) 98765-4321',
         cpf: '345.678.901-22',
         insurance: 'Unimed Nacional',
-        cardNumber: '0012.3456.7890.1234',
-        avatarInitial: (signupName.trim() || signupEmail).charAt(0).toUpperCase(),
-        role: 'patient',
-        createdAt: new Date().toISOString()
+        card_number: '0012.3456.7890.1234'
       };
+
+      let registeredUser = null;
+
+      // 1. Enviar cadastro para o backend FastAPI
+      try {
+        const regRes = await registerPatientApi(patientPayload);
+        if (regRes && regRes.user) {
+          registeredUser = regRes.user;
+        }
+      } catch (backendErr) {
+        if (backendErr.message && !backendErr.message.includes('fetch') && !backendErr.message.includes('Failed to fetch')) {
+          setErrorMessage(backendErr.message);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // 2. Fallback caso backend esteja offline
+      if (!registeredUser) {
+        registeredUser = {
+          id: 'usr_' + Date.now(),
+          name: patientPayload.name,
+          email: patientPayload.email,
+          phone: patientPayload.phone,
+          cpf: patientPayload.cpf,
+          insurance: patientPayload.insurance,
+          cardNumber: patientPayload.card_number,
+          avatarInitial: (signupName.trim() || signupEmail).charAt(0).toUpperCase(),
+          role: 'patient',
+          createdAt: new Date().toISOString()
+        };
+      }
 
       const existing = JSON.parse(
         localStorage.getItem('filaflow_registered_clients') || '[]'
       );
-      existing.push(newUser);
+      existing.push(registeredUser);
       localStorage.setItem('filaflow_registered_clients', JSON.stringify(existing));
-      localStorage.setItem('filaflow_client_user', JSON.stringify(newUser));
+      localStorage.setItem('filaflow_client_user', JSON.stringify(registeredUser));
+      localStorage.setItem('filaflow_client_is_auth', 'true');
 
       setTimeout(() => {
         setIsLoading(false);
-        if (onSuccess) onSuccess(newUser);
-      }, 350);
+        if (onSuccess) onSuccess(registeredUser);
+      }, 300);
     } catch (err) {
       setIsLoading(false);
       setErrorMessage('Erro ao criar conta.');
     }
   };
 
-  // Login Social (Apple / Google)
-  const handleSocialLogin = (provider) => {
+  // Login Social (Apple / Google) integrado ao backend
+  const handleSocialLogin = async (provider) => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      const socialUser = {
-        id: `usr_${provider}_` + Date.now(),
-        name: 'Rafael Silva',
-        email: 'rafael.silva@email.com',
-        phone: '(11) 98765-4321',
-        cpf: '345.678.901-22',
-        insurance: 'Unimed Nacional',
-        cardNumber: '0012.3456.7890.1234',
-        avatarInitial: 'R',
-        role: 'patient'
-      };
+    try {
+      let socialUser = null;
+      try {
+        const res = await socialLoginPatientApi(provider, 'rafael.silva@email.com', 'Rafael Silva');
+        if (res && res.user) {
+          socialUser = res.user;
+        }
+      } catch (e) {}
+
+      if (!socialUser) {
+        socialUser = {
+          id: `usr_${provider}_` + Date.now(),
+          name: 'Rafael Silva',
+          email: 'rafael.silva@email.com',
+          phone: '(11) 98765-4321',
+          cpf: '345.678.901-22',
+          insurance: 'Unimed Nacional',
+          cardNumber: '0012.3456.7890.1234',
+          avatarInitial: 'R',
+          role: 'patient'
+        };
+      }
+
       localStorage.setItem('filaflow_client_user', JSON.stringify(socialUser));
+      localStorage.setItem('filaflow_client_is_auth', 'true');
+      setIsLoading(false);
       if (onSuccess) onSuccess(socialUser);
-    }, 350);
+    } catch (err) {
+      setIsLoading(false);
+    }
   };
 
   return (

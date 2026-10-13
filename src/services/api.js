@@ -346,3 +346,113 @@ export function setupQueueWebSocket(onMessage, companyId = 'clinica-vida') {
 
   return socket;
 }
+
+
+// -------------------------------------------------------------
+// Autenticação e Perfil de Paciente / Cliente Mobile
+// -------------------------------------------------------------
+
+export async function loginPatientApi(emailOrName, password) {
+  try {
+    const res = await fetch(`${API_BASE}/auth/patient/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailOrName, password })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Credenciais de paciente incorretas');
+    }
+
+    const data = await res.json();
+    if (data.access_token) {
+      setToken(data.access_token);
+      if (data.user) {
+        setStoredUser(data.user);
+        localStorage.setItem('filaflow_client_user', JSON.stringify(data.user));
+        localStorage.setItem('filaflow_client_is_auth', 'true');
+      }
+    }
+    return data;
+  } catch (err) {
+    console.warn('[FilaFlow API] Erro no login de paciente:', err.message);
+    throw err;
+  }
+}
+
+export async function registerPatientApi(patientData) {
+  try {
+    const res = await fetch(`${API_BASE}/auth/patient/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patientData)
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Erro ao realizar cadastro de paciente');
+    }
+
+    const data = await res.json();
+    if (data.access_token) {
+      setToken(data.access_token);
+      if (data.user) {
+        setStoredUser(data.user);
+        localStorage.setItem('filaflow_client_user', JSON.stringify(data.user));
+        localStorage.setItem('filaflow_client_is_auth', 'true');
+      }
+    }
+    return data;
+  } catch (err) {
+    console.warn('[FilaFlow API] Erro ao cadastrar paciente:', err.message);
+    throw err;
+  }
+}
+
+export async function socialLoginPatientApi(provider = 'google', email = 'rafael.silva@email.com', name = 'Rafael Silva') {
+  try {
+    const res = await fetch(`${API_BASE}/auth/patient/social-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, email, name })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Falha no login social');
+    }
+
+    const data = await res.json();
+    if (data.access_token) {
+      setToken(data.access_token);
+      if (data.user) {
+        setStoredUser(data.user);
+        localStorage.setItem('filaflow_client_user', JSON.stringify(data.user));
+        localStorage.setItem('filaflow_client_is_auth', 'true');
+      }
+    }
+    return data;
+  } catch (err) {
+    console.warn('[FilaFlow API] Erro no login social:', err.message);
+    throw err;
+  }
+}
+
+export async function updatePatientProfileApi(profileData) {
+  try {
+    const res = await fetchWithAuth(`${API_BASE}/auth/patient/profile`, {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Erro ao atualizar perfil do paciente');
+    }
+    return await res.json();
+  } catch (err) {
+    console.warn('[FilaFlow API] Erro ao atualizar perfil:', err.message);
+    throw err;
+  }
+}
+

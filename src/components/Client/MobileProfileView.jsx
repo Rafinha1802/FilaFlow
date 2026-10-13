@@ -4,13 +4,10 @@ import {
   ShieldCheck, 
   Bell, 
   Clock, 
-  ArrowLeft, 
-  ExternalLink,
   ChevronRight,
   Sparkles,
   MessageCircle,
   Smartphone,
-  Volume2,
   CalendarCheck,
   Award,
   LogOut,
@@ -31,7 +28,6 @@ export default function MobileProfileView({
 }) {
   const [whatsappAlerts, setWhatsappAlerts] = useState(true);
   const [pushAlerts, setPushAlerts] = useState(true);
-  const [soundChime, setSoundChime] = useState(true);
   const [conflictGuard, setConflictGuard] = useState(true);
 
   const isDoctor = Boolean(currentUser?.name?.includes('Dr.') || currentUser?.email?.includes('clinicavida'));
@@ -212,28 +208,6 @@ export default function MobileProfileView({
             </label>
           </div>
 
-          <div className="clean-item-divider"></div>
-
-          {/* Som */}
-          <div className="clean-toggle-item">
-            <div className="toggle-left-info">
-              <div className="icon-squircle mini lavender">
-                <Volume2 size={15} />
-              </div>
-              <div>
-                <strong>Sinal Sonoro de Chamada</strong>
-                <span>Tocar aviso acústico quando for a sua vez</span>
-              </div>
-            </div>
-            <label className="clean-toggle-switch">
-              <input 
-                type="checkbox" 
-                checked={soundChime} 
-                onChange={(e) => setSoundChime(e.target.checked)} 
-              />
-              <span className="clean-switch-slider"></span>
-            </label>
-          </div>
 
           <div className="clean-item-divider"></div>
 
@@ -320,38 +294,6 @@ export default function MobileProfileView({
         </div>
       </div>
 
-      {/* Navegação e Links do Ecossistema */}
-      <div className="clean-settings-block">
-        <h4 className="clean-settings-title">Ecossistema FilaFlow</h4>
-
-        <div className="clean-links-group">
-          <button className="clean-link-row" onClick={onGoToLanding}>
-            <div className="link-row-left">
-              <div className="icon-squircle mini sky">
-                <ArrowLeft size={15} />
-              </div>
-              <div>
-                <strong>Página Institucional (/)</strong>
-                <span>Planos, proposta para empresas e FAQ</span>
-              </div>
-            </div>
-            <ChevronRight size={16} color="#94a3b8" />
-          </button>
-
-          <button className="clean-link-row" onClick={onGoToCompany}>
-            <div className="link-row-left">
-              <div className="icon-squircle mini lavender">
-                <ExternalLink size={15} />
-              </div>
-              <div>
-                <strong>Painel da Empresa (SaaS B2B)</strong>
-                <span>Módulo dos atendentes e triagem de guichês</span>
-              </div>
-            </div>
-            <ChevronRight size={16} color="#94a3b8" />
-          </button>
-        </div>
-      </div>
 
       {/* Rodapé da Versão */}
       <div className="clean-profile-footer">

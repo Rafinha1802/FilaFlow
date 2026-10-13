@@ -134,40 +134,41 @@ export default function InteractiveHeroPhone({ activeQueue }) {
               </div>
             </div>
 
-            {/* Queue List Box */}
+            {/* Seu Lugar na Fila */}
             <div className="ff-phone-queue-box">
               <div className="ff-queue-box-title">
-                <span>Fila em Andamento</span>
-                <span className="ff-queue-count-pill">{queue.aheadList ? queue.aheadList.length : 5} pessoas</span>
+                <span>Seu Lugar na Fila</span>
+                <span className="ff-queue-count-pill">{queue.position}º lugar</span>
               </div>
 
-              <div className="ff-queue-list-compact">
-                {queue.aheadList && queue.aheadList.slice(0, 5).map((item, idx) => {
-                  let rowClass = 'waiting';
-                  let statusBadgeClass = 'badge-waiting';
-                  if (item.status === 'Em atendimento') {
-                    rowClass = 'current';
-                    statusBadgeClass = 'badge-current';
-                  } else if (item.status.includes('Próximo')) {
-                    rowClass = 'next';
-                    statusBadgeClass = 'badge-next';
-                  } else if (item.isUser) {
-                    rowClass = 'you';
-                    statusBadgeClass = 'badge-you';
-                  }
+              <div className="ff-personal-pos-card">
+                <div className="pos-card-main">
+                  <div className="pos-badge-highlight">
+                    <span className="pos-big-num">{queue.position}º</span>
+                    <span className="pos-big-label">Sua posição</span>
+                  </div>
+                  <div className="pos-details-col">
+                    <strong>{queue.position > 1 ? `${queue.position - 1} pessoas na sua frente` : 'Você é o próximo!'}</strong>
+                    <span>Notificação no celular quando for sua vez</span>
+                  </div>
+                </div>
 
-                  return (
-                    <div key={idx} className={`ff-queue-row-compact ${rowClass}`}>
-                      <div className="queue-row-left">
-                        <span className="queue-row-ticket">{item.ticket}</span>
-                        <span className="queue-row-name">{item.name}</span>
-                      </div>
-                      <span className={`queue-status-chip ${statusBadgeClass}`}>
-                        {item.status}
-                      </span>
-                    </div>
-                  );
-                })}
+                <div className="pos-steps-bar">
+                  <div className="pos-step done">
+                    <span className="step-dot">✓</span>
+                    <span className="step-lbl">Check-in</span>
+                  </div>
+                  <div className="pos-step-line done"></div>
+                  <div className="pos-step active">
+                    <span className="step-dot">●</span>
+                    <span className="step-lbl">Na Fila</span>
+                  </div>
+                  <div className="pos-step-line"></div>
+                  <div className="pos-step pending">
+                    <span className="step-dot">○</span>
+                    <span className="step-lbl">Chamada</span>
+                  </div>
+                </div>
               </div>
             </div>
 
