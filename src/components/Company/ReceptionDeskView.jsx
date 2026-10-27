@@ -72,7 +72,7 @@ const DEFAULT_PATIENTS = [
     room: 'Consultório 04',
     status: 'awaiting_auth',
     is_priority: false,
-    notes: 'Chegou via check-in pelo aplicativo FilaFlow',
+    notes: 'Chegou via check-in pelo aplicativo TemFyla',
     created_at: new Date(Date.now() - 8 * 60000).toISOString()
   },
   {

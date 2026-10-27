@@ -31,8 +31,8 @@ export default function CompanyLogin({
   return (
     <div className="ff-auth-page">
       <div className="ff-login-card">
-        <div className="ff-logo-mark" style={{ width: 44, height: 44, margin: '0 auto' }}>
-          <Layers size={24} />
+        <div className="ff-logo-mark" style={{ width: 48, height: 48, margin: '0 auto' }}>
+          <img src="/temfyla-icon.png" alt="TemFyla Logo" className="ff-logo-img" />
         </div>
 
         <div className="ff-login-header">
@@ -106,7 +106,7 @@ export default function CompanyLogin({
         </button>
 
         <div style={{ marginTop: 20, fontSize: 13, color: '#64748b' }}>
-          Sua empresa ainda não usa o FilaFlow?{' '}
+          Sua empresa ainda não usa o TemFyla?{' '}
           <button
             onClick={onGoToSignup}
             style={{ color: '#7c3aed', fontWeight: 700, textDecoration: 'underline' }}

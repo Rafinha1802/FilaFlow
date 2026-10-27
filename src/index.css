@@ -277,17 +277,19 @@ textarea {
 }
 
 .ff-logo-mark {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 11px;
-  background: var(--grad-primary);
+  background: #0a0617;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 6px 14px -2px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 4px 14px -2px rgba(124, 58, 237, 0.4);
   position: relative;
   overflow: hidden;
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  flex-shrink: 0;
 }
 
 .ff-logo-mark::after {
@@ -296,8 +298,17 @@ textarea {
   top: 0;
   left: 0;
   right: 0;
-  height: 50%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
+  height: 45%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.ff-logo-mark img,
+.ff-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .ff-logo-text {
@@ -305,7 +316,7 @@ textarea {
 }
 
 .ff-logo-text span {
-  background: var(--grad-purple-hero);
+  background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -2228,14 +2239,17 @@ textarea {
 }
 
 .ff-footer-logo-text {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 800;
   color: white;
   font-family: var(--font-title);
+  letter-spacing: -0.02em;
 }
 
 .ff-footer-logo-text span {
-  color: #a78bfa;
+  background: linear-gradient(135deg, #c084fc 0%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .ff-footer-nav {
@@ -3472,6 +3486,147 @@ textarea {
   margin: 0 8px;
 }
 
+/* Multi-Professional Registration in Onboarding / Auth */
+.ff-pro-register-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ff-pro-register-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.ff-pro-register-card:hover {
+  border-color: #c4b5fd;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.08);
+}
+
+.ff-pro-card-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.ff-pro-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ff-pro-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ff-pro-card-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.ff-pro-card-room {
+  font-size: 11px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid #bfdbfe;
+}
+
+.ff-pro-card-email-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #6d28d9;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  padding: 2px 8px;
+  border-radius: 6px;
+  word-break: break-all;
+}
+
+.ff-pro-card-meta {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 3px;
+}
+
+.ff-pro-card-del-btn {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.ff-pro-card-del-btn:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  transform: scale(1.05);
+}
+
+.ff-add-pro-box {
+  background: #faf5ff;
+  border: 1.5px dashed #c4b5fd;
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 16px;
+  animation: fade-in 0.2s ease;
+}
+
+.ff-btn-toggle-add-pro {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: #faf5ff;
+  border: 1.5px dashed #a855f7;
+  border-radius: 12px;
+  color: #7c3aed;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ff-btn-toggle-add-pro:hover {
+  background: #f3e8ff;
+  border-color: #7c3aed;
+  transform: translateY(-1px);
+}
+
 .ff-btn-autofill {
   display: flex;
   align-items: center;
@@ -4214,7 +4369,7 @@ textarea {
 }
 
 /* ============================================================
-   FilaFlow Mobile App Ecosystem (/app) Styles
+   TemFyla Mobile App Ecosystem (/app) Styles
    High-Fidelity Smartphone & Dashboard Aesthetics
    ============================================================ */
 

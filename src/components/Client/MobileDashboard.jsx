@@ -90,7 +90,7 @@ export default function MobileDashboard({
           <div className="toast-content-col">
             <div className="toast-top-row">
               <strong className="toast-title">
-                {typeof toastMessage === 'object' ? toastMessage.title : 'FilaFlow'}
+                {typeof toastMessage === 'object' ? toastMessage.title : 'TemFyla'}
               </strong>
               <span className="toast-time">Agora</span>
             </div>

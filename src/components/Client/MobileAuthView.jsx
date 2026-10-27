@@ -65,7 +65,7 @@ export default function MobileAuthView({
     try {
       let authenticatedUser = null;
 
-      // 1. Autenticação direta no backend FastAPI FilaFlow
+      // 1. Autenticação direta no backend FastAPI TemFyla
       try {
         const loginRes = await loginPatientApi(identifier, loginPassword);
         if (loginRes && loginRes.user) {
@@ -82,7 +82,7 @@ export default function MobileAuthView({
       // 2. Fallback resiliente caso backend esteja offline
       if (!authenticatedUser) {
         const registeredUsers = JSON.parse(
-          localStorage.getItem('filaflow_registered_clients') || '[]'
+          localStorage.getItem('temfyla_registered_clients') || localStorage.getItem('filaflow_registered_clients') || '[]'
         );
         const foundUser = registeredUsers.find(
           (u) =>
@@ -108,8 +108,8 @@ export default function MobileAuthView({
         }
       }
 
-      localStorage.setItem('filaflow_client_user', JSON.stringify(authenticatedUser));
-      localStorage.setItem('filaflow_client_is_auth', 'true');
+      localStorage.setItem('temfyla_client_user', JSON.stringify(authenticatedUser));
+      localStorage.setItem('temfyla_client_is_auth', 'true');
 
       setTimeout(() => {
         setIsLoading(false);
@@ -121,7 +121,7 @@ export default function MobileAuthView({
     }
   };
 
-  // Submissão do Cadastro (Integrado ao Backend FastAPI FilaFlow)
+  // Submissão do Cadastro (Integrado ao Backend FastAPI TemFyla)
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -189,12 +189,12 @@ export default function MobileAuthView({
       }
 
       const existing = JSON.parse(
-        localStorage.getItem('filaflow_registered_clients') || '[]'
+        localStorage.getItem('temfyla_registered_clients') || localStorage.getItem('filaflow_registered_clients') || '[]'
       );
       existing.push(registeredUser);
-      localStorage.setItem('filaflow_registered_clients', JSON.stringify(existing));
-      localStorage.setItem('filaflow_client_user', JSON.stringify(registeredUser));
-      localStorage.setItem('filaflow_client_is_auth', 'true');
+      localStorage.setItem('temfyla_registered_clients', JSON.stringify(existing));
+      localStorage.setItem('temfyla_client_user', JSON.stringify(registeredUser));
+      localStorage.setItem('temfyla_client_is_auth', 'true');
 
       setTimeout(() => {
         setIsLoading(false);
@@ -232,8 +232,8 @@ export default function MobileAuthView({
         };
       }
 
-      localStorage.setItem('filaflow_client_user', JSON.stringify(socialUser));
-      localStorage.setItem('filaflow_client_is_auth', 'true');
+      localStorage.setItem('temfyla_client_user', JSON.stringify(socialUser));
+      localStorage.setItem('temfyla_client_is_auth', 'true');
       setIsLoading(false);
       if (onSuccess) onSuccess(socialUser);
     } catch (err) {

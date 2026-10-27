@@ -73,10 +73,10 @@ export default function CompanyOnboarding({
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
             <div className="ff-logo-mark">
-              <Layers size={20} />
+              <img src="/temfyla-icon.png" alt="TemFyla Logo" className="ff-logo-img" />
             </div>
             <span style={{ fontSize: 22, fontWeight: 800, color: 'white', fontFamily: 'Outfit' }}>
-              Fila<span style={{ color: '#a78bfa' }}>Flow</span>
+              Tem<span style={{ color: '#a78bfa' }}>Fyla</span>
             </span>
           </div>
 
@@ -285,7 +285,7 @@ export default function CompanyOnboarding({
               </div>
 
               <div className="ff-form-group">
-                <label className="ff-form-label">Modo do Algoritmo de Previsão FilaFlow</label>
+                <label className="ff-form-label">Modo do Algoritmo de Previsão TemFyla</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                   <div
                     onClick={() => setAiMode('smart')}

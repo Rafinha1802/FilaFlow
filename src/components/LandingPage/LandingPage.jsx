@@ -115,7 +115,7 @@ export default function LandingPage({
 
           {/* Subtitle */}
           <p className="ff-hero-desc">
-            O <strong>FilaFlow</strong> transforma salas de espera sufocantes em experiências fluidas. 
+            O <strong>TemFyla</strong> transforma salas de espera sufocantes em experiências fluidas. 
             Acompanhe atendimentos ao vivo, receba previsões calculadas por Inteligência Artificial 
             e sincronize múltiplas filas direto no celular.
           </p>
@@ -182,7 +182,7 @@ export default function LandingPage({
             Simples para o cliente, <span>inteligente por dentro</span>
           </h2>
           <p className="ff-section-subtitle">
-            Como a tecnologia FilaFlow elimina o estresse da recepção em 6 passos intuitivos e 100% digitais.
+            Como a tecnologia TemFyla elimina o estresse da recepção em 6 passos intuitivos e 100% digitais.
           </p>
         </header>
 
@@ -217,7 +217,7 @@ export default function LandingPage({
           <header className="ff-banner-header">
             <div className="ff-banner-tagline">
               <Zap size={14} />
-              <span>Diferencial Tecnológico FilaFlow</span>
+              <span>Diferencial Tecnológico TemFyla</span>
             </div>
             <h2 className="ff-banner-title">
               Não é apenas uma fila.{' '}
@@ -225,7 +225,7 @@ export default function LandingPage({
             </h2>
             <p className="ff-banner-desc">
               Tradicionais sistemas de senhas apenas imprimem papéis descartáveis e deixam o cliente às escuras. 
-              O FilaFlow conecta dados em tempo real para devolver o tempo e a tranquilidade das pessoas.
+              O TemFyla conecta dados em tempo real para devolver o tempo e a tranquilidade das pessoas.
             </p>
           </header>
 
@@ -492,10 +492,10 @@ export default function LandingPage({
         <div className="ff-footer-inner">
           <div className="ff-footer-brand">
             <div className="ff-logo-mark">
-              <Layers size={18} />
+              <img src="/temfyla-icon.png" alt="TemFyla Logo" className="ff-logo-img" />
             </div>
             <span className="ff-footer-logo-text">
-              Fila<span>Flow</span>
+              Tem<span>Fyla</span>
             </span>
           </div>
 
@@ -506,7 +506,7 @@ export default function LandingPage({
           </div>
 
           <div className="ff-footer-copy">
-            © {new Date().getFullYear()} FilaFlow Tecnologia de Atendimento Inteligente. Todos os direitos reservados.
+            © {new Date().getFullYear()} TemFyla Tecnologia de Atendimento Inteligente. Todos os direitos reservados.
           </div>
         </div>
       </footer>

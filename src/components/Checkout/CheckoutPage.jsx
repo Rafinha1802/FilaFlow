@@ -199,7 +199,7 @@ export default function CheckoutPage({
   };
 
   // Pix copy
-  const pixKeyMock = `00020126580014BR.GOV.BCB.PIX0136d8f28941-8c43-4e89-bf86-${Date.now().toString().slice(-8)}520400005303986540${totalAmount.toFixed(2)}5802BR5920FilaFlow Tech S.A.6009Sao Paulo62070503***6304E8A2`;
+  const pixKeyMock = `00020126580014BR.GOV.BCB.PIX0136d8f28941-8c43-4e89-bf86-${Date.now().toString().slice(-8)}520400005303986540${totalAmount.toFixed(2)}5802BR5920TemFyla Tech S.A.6009Sao Paulo62070503***6304E8A2`;
   
   const handleCopyPix = () => {
     navigator.clipboard.writeText(pixKeyMock);
@@ -391,10 +391,10 @@ export default function CheckoutPage({
 
             <div className="ff-logo-group" onClick={onGoBack} style={{ cursor: 'pointer' }}>
               <div className="ff-logo-mark">
-                <Receipt size={18} />
+                <img src="/temfyla-icon.png" alt="TemFyla Logo" className="ff-logo-img" />
               </div>
               <span className="ff-logo-text">
-                Fila<span>Flow</span>
+                Tem<span>Fyla</span>
               </span>
             </div>
           </div>
@@ -668,7 +668,7 @@ export default function CheckoutPage({
                         <rect x="136" y="74" width="14" height="8" rx="2" fill="#0f172a" />
                         <rect x="158" y="74" width="18" height="8" rx="2" fill="#0f172a" />
 
-                        {/* Center FilaFlow Badge */}
+                        {/* Center TemFyla Badge */}
                         <rect x="82" y="82" width="36" height="36" rx="8" fill="#7c3aed" />
                         <path d="M92 94h16M92 100h12M92 106h8" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
 
@@ -724,7 +724,7 @@ export default function CheckoutPage({
                         </div>
                         <div className="ff-pix-step">
                           <span className="ff-pix-num">3</span>
-                          <span>Confira o beneficiário <strong>FilaFlow Soluções Tecnológicas</strong> e confirme</span>
+                          <span>Confira o beneficiário <strong>TemFyla Soluções Tecnológicas</strong> e confirme</span>
                         </div>
                       </div>
 
@@ -918,7 +918,7 @@ export default function CheckoutPage({
                         Prazo de compensação bancária: 1 a 3 dias úteis
                       </div>
                       <div style={{ fontSize: 12, color: '#b45309', marginTop: 2 }}>
-                        A liberação da sua conta FilaFlow ocorre de forma 100% automática assim que o banco liquidar o pagamento.
+                        A liberação da sua conta TemFyla ocorre de forma 100% automática assim que o banco liquidar o pagamento.
                       </div>
                     </div>
                   </div>
@@ -928,7 +928,7 @@ export default function CheckoutPage({
                     <div className="ff-boleto-head">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Receipt size={18} color="#7c3aed" />
-                        <span style={{ fontWeight: 800, color: '#0f172a' }}>Banco FilaFlow S.A.</span>
+                        <span style={{ fontWeight: 800, color: '#0f172a' }}>Banco TemFyla S.A.</span>
                       </div>
                       <div style={{ fontWeight: 800, fontSize: 14, color: '#64748b' }}>
                         | 341-7 |
@@ -938,7 +938,7 @@ export default function CheckoutPage({
                     <div className="ff-boleto-info-grid">
                       <div>
                         <div className="ff-boleto-lbl">Beneficiário</div>
-                        <div className="ff-boleto-val">FilaFlow Soluções Tecnológicas S.A. (51.942.109/0001-88)</div>
+                        <div className="ff-boleto-val">TemFyla Soluções Tecnológicas S.A. (51.942.109/0001-88)</div>
                       </div>
                       <div>
                         <div className="ff-boleto-lbl">Vencimento</div>

@@ -264,7 +264,7 @@ export default function MobileQueuesView({
               <Sparkles size={18} />
             </div>
             <div className="impact-banner-text">
-              <strong>Economia com o FilaFlow: 64% de tempo poupado</strong>
+              <strong>Economia com o TemFyla: 64% de tempo poupado</strong>
               <p>A IA evitou mais de 45 minutos de permanência em salas de espera este mês.</p>
             </div>
           </div>

@@ -11,6 +11,7 @@ import QueueSearchModal from './components/Client/QueueSearchModal';
 import PricingModal from './components/Common/PricingModal';
 import CheckoutPage from './components/Checkout/CheckoutPage';
 import SimControlBar from './components/Common/SimControlBar';
+import CompanyAuth from './components/Company/CompanyAuth';
 import { INITIAL_QUEUES, REGISTERED_PROFESSIONALS } from './data/mockData';
 import { 
   fetchQueues, 
@@ -24,25 +25,84 @@ import {
 export default function App() {
   // Client-Side History Router: '/' (Site) | '/app' (Mobile App) | '/empresa' (SaaS B2B) | '/profissional' (Consultório) | '/checkout' (Pagamento)
   const { currentPath, navigate, isAppRoute, isCompanyRoute, isCheckoutRoute, isProfessionalRoute, isSiteRoute } = useAppRouter();
-  const [activeProfessional, setActiveProfessional] = useState(REGISTERED_PROFESSIONALS[0]);
+  
+  // Authentication State - Empresa (B2B) - Desconectado por padrão, exige login/cadastro
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      return sessionStorage.getItem('temfyla_company_is_auth') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  // Authentication State - Profissional (Consultório) - Desconectado por padrão, exige login
+  const [isProfessionalAuthenticated, setIsProfessionalAuthenticated] = useState(() => {
+    try {
+      return sessionStorage.getItem('temfyla_pro_is_auth') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  // Limpa estados residuais antigos de teste se não houver sessão ativa
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('temfyla_company_is_auth') !== 'true') {
+        localStorage.removeItem('temfyla_company_is_auth');
+      }
+      if (sessionStorage.getItem('temfyla_pro_is_auth') !== 'true') {
+        localStorage.removeItem('temfyla_pro_is_auth');
+      }
+    } catch (e) {}
+  }, []);
+
+  // Lista de Profissionais Cadastrados (com persistência no localStorage)
+  const [allRegisteredProfessionals, setAllRegisteredProfessionals] = useState(() => {
+    try {
+      const saved = localStorage.getItem('temfyla_registered_professionals');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return REGISTERED_PROFESSIONALS;
+  });
+
+  // Profissional Ativo Logado no Consultório
+  const [activeProfessional, setActiveProfessional] = useState(() => {
+    try {
+      const saved = localStorage.getItem('temfyla_pro_user');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return null;
+  });
+
+  // Parâmetros de tela de autenticação
+  const [authRole, setAuthRole] = useState('company'); // 'company' | 'professional'
+  const [authTab, setAuthTab] = useState('login'); // 'login' | 'register'
 
   // Checkout Selected Plan State
   const [checkoutPlan, setCheckoutPlan] = useState('Profissional');
   const [checkoutCycle, setCheckoutCycle] = useState('monthly');
 
-  // Authentication State - Empresa / Profissional (B2B)
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [currentUser, setCurrentUser] = useState({
-    name: 'Dr. Carlos Mendes',
-    email: 'atendimento@clinicavida.com.br',
-    companyName: 'Clínica Vida',
-    unitName: 'Unidade Centro'
+  // Current Logged-in Company / Admin
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('temfyla_company_user');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      name: 'Dr. Carlos Mendes',
+      email: 'atendimento@clinicavida.com.br',
+      companyName: 'Clínica Vida',
+      unitName: 'Unidade Centro'
+    };
   });
 
   // Client / Patient User for Mobile App (Público em geral, NÃO médico!)
   const [mobileClientUser, setMobileClientUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('filaflow_client_user');
+      const saved = localStorage.getItem('temfyla_client_user') || localStorage.getItem('filaflow_client_user');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (!parsed.name?.includes('Dr.') && !parsed.name?.includes('Médic')) {
@@ -136,7 +196,7 @@ export default function App() {
   useEffect(() => {
     // 1. Garante autenticação em segundo plano com o backend (JWT)
     ensureAuthToken().catch((err) => {
-      console.log('[FilaFlow] Backend não detectado ou inicializando:', err);
+      console.log('[TemFyla] Backend não detectado ou inicializando:', err);
     });
 
     // 2. Busca filas reais do backend FastAPI
@@ -144,7 +204,7 @@ export default function App() {
       try {
         const queues = await fetchQueues();
         if (Array.isArray(queues) && queues.length > 0) {
-          console.log('[FilaFlow] Filas sincronizadas com o backend:', queues);
+          console.log('[TemFyla] Filas sincronizadas com o backend:', queues);
           const vidaQueue = queues.find((q) => q.id === 'clinica-vida') || queues[0];
           if (vidaQueue) {
             setBusinessData((prev) => ({
@@ -170,7 +230,7 @@ export default function App() {
           }
         }
       } catch (err) {
-        console.warn('[FilaFlow] Rodando com dados locais:', err);
+        console.warn('[TemFyla] Rodando com dados locais:', err);
       }
     }
 
@@ -178,7 +238,7 @@ export default function App() {
 
     // 3. Conexão WebSocket para receber chamadas de senha e recálculos da IA em tempo real
     const ws = setupQueueWebSocket((event) => {
-      console.log('[FilaFlow WS Recebido]', event);
+      console.log('[TemFyla WS Recebido]', event);
       if (event.type === 'TICKET_CALLED') {
         playChime();
         const ticketNum = event.ticketNumber || event.ticket?.ticket_number || '#--';
@@ -211,19 +271,148 @@ export default function App() {
   const handleOpenProfessional = (professionalObj = null) => {
     if (professionalObj) {
       setActiveProfessional(professionalObj);
-    } else if (!activeProfessional) {
-      setActiveProfessional(REGISTERED_PROFESSIONALS[0]);
+      setIsProfessionalAuthenticated(true);
+      try {
+        localStorage.setItem('temfyla_pro_is_auth', 'true');
+        localStorage.setItem('temfyla_pro_user', JSON.stringify(professionalObj));
+      } catch (e) {}
+      navigate('/profissional');
+      return;
     }
+
+    if (isProfessionalAuthenticated && activeProfessional) {
+      navigate('/profissional');
+    } else {
+      setAuthRole('professional');
+      setAuthTab('login');
+      navigate('/profissional');
+    }
+  };
+
+  const handleOpenDashboard = () => {
+    if (isAuthenticated) {
+      navigate('/empresa/dashboard');
+    } else {
+      setAuthRole('company');
+      setAuthTab('login');
+      navigate('/empresa');
+    }
+  };
+
+  const handleCompanyLoginSuccess = (companyInfo) => {
+    setIsAuthenticated(true);
+    try {
+      localStorage.setItem('temfyla_company_is_auth', 'true');
+      localStorage.setItem('temfyla_company_user', JSON.stringify(companyInfo));
+    } catch (e) {}
+    if (companyInfo.companyName) {
+      setBusinessData(prev => ({
+        ...prev,
+        companyName: companyInfo.companyName,
+        unitName: companyInfo.unitName || prev.unitName,
+        attendantName: companyInfo.attendantName || prev.attendantName,
+        room: companyInfo.room || prev.room,
+        category: companyInfo.category || prev.category
+      }));
+      setCurrentUser({
+        name: companyInfo.attendantName || 'Gestor',
+        email: companyInfo.email || 'contato@empresa.com.br',
+        companyName: companyInfo.companyName,
+        unitName: companyInfo.unitName || 'Unidade Principal'
+      });
+    }
+    navigate('/empresa/dashboard');
+    playChime();
+    showToast(`Bem-vindo ao Painel TemFyla, ${companyInfo.companyName || 'Empresa'}!`);
+  };
+
+  const handleCompanyRegisterSuccess = (regData) => {
+    if (regData.professionals && Array.isArray(regData.professionals) && regData.professionals.length > 0) {
+      setAllRegisteredProfessionals(prev => {
+        const existingEmails = new Set(prev.map(p => p.email.toLowerCase()));
+        const toAdd = regData.professionals.filter(p => !existingEmails.has(p.email.toLowerCase()));
+        const updated = [...prev, ...toAdd];
+        try {
+          localStorage.setItem('temfyla_registered_professionals', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+    }
+
+    const firstPro = regData.professionals?.[0];
+    setBusinessData(prev => ({
+      ...prev,
+      companyName: regData.companyName,
+      unitName: regData.unitName,
+      category: regData.category || 'Clínica',
+      attendantName: firstPro?.name || regData.attendantName || regData.adminName,
+      room: regData.queueName || firstPro?.room || 'Consultório 01'
+    }));
+
+    setCurrentUser({
+      name: regData.adminName || firstPro?.name || 'Gestor',
+      email: regData.email,
+      companyName: regData.companyName,
+      unitName: regData.unitName
+    });
+
+    setIsAuthenticated(true);
+    try {
+      localStorage.setItem('temfyla_company_is_auth', 'true');
+      localStorage.setItem('temfyla_company_user', JSON.stringify(regData));
+    } catch (e) {}
+
+    navigate('/empresa/dashboard');
+    playChime();
+    const count = regData.professionals?.length || 0;
+    showToast(`Empresa cadastrada! ${count} profissional(is) com acesso liberado.`);
+  };
+
+  const handleProfessionalLoginSuccess = (proInfo) => {
+    setIsProfessionalAuthenticated(true);
+    setActiveProfessional(proInfo);
+    try {
+      localStorage.setItem('temfyla_pro_is_auth', 'true');
+      localStorage.setItem('temfyla_pro_user', JSON.stringify(proInfo));
+    } catch (e) {}
     navigate('/profissional');
+    playChime();
+    showToast(`Bem-vindo(a) ao seu consultório, ${proInfo.name}!`);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    try {
+      localStorage.removeItem('temfyla_company_is_auth');
+      localStorage.removeItem('temfyla_company_user');
+    } catch (e) {}
+    navigate('/');
+    showToast('Você saiu do painel da empresa.');
+  };
+
+  const handleProfessionalLogout = () => {
+    setIsProfessionalAuthenticated(false);
+    try {
+      localStorage.removeItem('temfyla_pro_is_auth');
+      localStorage.removeItem('temfyla_pro_user');
+    } catch (e) {}
+    navigate('/');
+    showToast('Sessão do consultório encerrada com sucesso.');
+  };
+
+  const handleAddNewTeamProfessional = (newPro) => {
+    setAllRegisteredProfessionals(prev => {
+      const updated = [...prev, newPro];
+      try {
+        localStorage.setItem('temfyla_registered_professionals', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    showToast(`Profissional ${newPro.name} cadastrado(a)! Acesso liberado no site com o e-mail: ${newPro.email}`);
   };
 
   const handleOpenClient = () => {
     navigate('/app');
-  };
-
-  const handleLogout = () => {
-    navigate('/');
-    showToast('Retornou à página inicial.');
   };
 
   // 1. Chamar Próxima Senha (integrado à API real e com fallback local imediato)
@@ -494,13 +683,23 @@ export default function App() {
       {isSiteRoute && (
         <Navbar
           isAuthenticated={isAuthenticated}
+          isProfessionalAuthenticated={isProfessionalAuthenticated}
+          activeProfessional={activeProfessional}
           currentUser={currentUser}
           onGoToLanding={() => navigate('/')}
-          onOpenLogin={() => navigate('/empresa/dashboard')}
-          onOpenSignup={() => navigate('/empresa/dashboard')}
+          onOpenLogin={() => {
+            setAuthRole('company');
+            setAuthTab('login');
+            navigate('/empresa');
+          }}
+          onOpenSignup={() => {
+            setAuthRole('company');
+            setAuthTab('register');
+            navigate('/empresa');
+          }}
           onOpenDashboard={handleOpenDashboard}
           onOpenPricing={() => setIsPricingOpen(true)}
-          onOpenProfessional={() => handleOpenProfessional()}
+          onOpenProfessional={handleOpenProfessional}
           onLogout={handleLogout}
         />
       )}
@@ -550,8 +749,16 @@ export default function App() {
       {isSiteRoute && (
         <LandingPage
           activeQueue={clientActiveQueues[0]}
-          onOpenSignup={() => navigate('/empresa/dashboard')}
-          onOpenLogin={() => navigate('/empresa/dashboard')}
+          onOpenSignup={() => {
+            setAuthRole('company');
+            setAuthTab('register');
+            navigate('/empresa');
+          }}
+          onOpenLogin={() => {
+            setAuthRole('company');
+            setAuthTab('login');
+            navigate('/empresa');
+          }}
           onOpenPricing={() => setIsPricingOpen(true)}
         />
       )}
@@ -584,36 +791,67 @@ export default function App() {
         />
       )}
 
-      {/* ROTA 3: /empresa (Painel Operacional da Empresa DIRETO - Sem bloqueio de login/cadastro) */}
+      {/* ROTA 3: /empresa (Painel Operacional da Empresa ou Tela de Autenticação) */}
       {isCompanyRoute && (
-        <CompanyDashboard
-          businessData={businessData}
-          activeAttendingTicket={activeAttendingTicket}
-          waitingQueue={companyWaitingQueue}
-          onCallNext={handleCallNextTicket}
-          onReportDelay={handleReportDelay}
-          onFinishCurrent={handleFinishCurrent}
-          onSkipTicket={handleSkipTicket}
-          onAddManualTicket={handleAddManualTicket}
-          onOpenMobileTest={handleOpenClient}
-          onGoToSite={() => navigate('/')}
-          onLogout={handleLogout}
-        />
+        isAuthenticated ? (
+          <CompanyDashboard
+            businessData={businessData}
+            activeAttendingTicket={activeAttendingTicket}
+            waitingQueue={companyWaitingQueue}
+            onCallNext={handleCallNextTicket}
+            onReportDelay={handleReportDelay}
+            onFinishCurrent={handleFinishCurrent}
+            onSkipTicket={handleSkipTicket}
+            onAddManualTicket={handleAddManualTicket}
+            onOpenMobileTest={handleOpenClient}
+            onGoToSite={() => navigate('/')}
+            onLogout={handleLogout}
+            registeredProfessionals={allRegisteredProfessionals}
+            onAddProfessional={handleAddNewTeamProfessional}
+          />
+        ) : (
+          <CompanyAuth
+            initialTab={authTab}
+            initialRole={authRole}
+            onLoginSuccess={handleCompanyLoginSuccess}
+            onProfessionalLoginSuccess={handleProfessionalLoginSuccess}
+            onRegisterSuccess={handleCompanyRegisterSuccess}
+            onBackToLanding={() => navigate('/')}
+            onGoToClient={() => navigate('/app')}
+            registeredProfessionals={allRegisteredProfessionals}
+          />
+        )
       )}
 
-      {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital DIRETO) */}
+      {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital ou Tela de Autenticação) */}
       {isProfessionalRoute && (
-        <ProfessionalWorkspace
-          professional={activeProfessional || REGISTERED_PROFESSIONALS[0]}
-          allProfessionals={REGISTERED_PROFESSIONALS}
-          onSwitchProfessional={(pro) => setActiveProfessional(pro)}
-          onLogout={() => {
-            navigate('/');
-            showToast('Sessão do consultório encerrada com sucesso.');
-          }}
-          onGoToSite={() => navigate('/')}
-          onOpenMobileView={() => navigate('/app')}
-        />
+        isProfessionalAuthenticated && activeProfessional ? (
+          <ProfessionalWorkspace
+            professional={activeProfessional}
+            allProfessionals={allRegisteredProfessionals}
+            onSwitchProfessional={(pro) => {
+              setActiveProfessional(pro);
+              try {
+                localStorage.setItem('temfyla_pro_user', JSON.stringify(pro));
+              } catch (e) {}
+              showToast(`Perfil alterado para ${pro.name}`);
+            }}
+            onLogout={handleProfessionalLogout}
+            onGoToSite={() => navigate('/')}
+            onOpenMobileView={() => navigate('/app')}
+          />
+        ) : (
+          <CompanyAuth
+            initialTab="login"
+            initialRole="professional"
+            onLoginSuccess={handleCompanyLoginSuccess}
+            onProfessionalLoginSuccess={handleProfessionalLoginSuccess}
+            onRegisterSuccess={handleCompanyRegisterSuccess}
+            onBackToLanding={() => navigate('/')}
+            onGoToClient={() => navigate('/app')}
+            registeredProfessionals={allRegisteredProfessionals}
+          />
+        )
       )}
 
       {/* ROTA 4: /checkout (Página de Pagamento / Checkout por Pix, Cartão e Boleto) */}

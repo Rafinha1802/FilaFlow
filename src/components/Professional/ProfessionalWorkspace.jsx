@@ -218,7 +218,7 @@ export default function ProfessionalWorkspace({
   const handleAddMinutes = (additionalMinutes) => {
     setTargetMinutes(prev => prev + additionalMinutes);
     showToast(
-      `⏱️ +${additionalMinutes} min adicionados! A IA FilaFlow recalculou os horários dos ${waitingList.length} pacientes na fila e notificou os celulares.`
+      `⏱️ +${additionalMinutes} min adicionados! A IA TemFyla recalculou os horários dos ${waitingList.length} pacientes na fila e notificou os celulares.`
     );
   };
 
@@ -370,13 +370,13 @@ export default function ProfessionalWorkspace({
     } else {
       setConsultationStatus('break');
       setIsTimerRunning(false);
-      showToast(`☕ Modo Intervalo ativado (15 min). A IA FilaFlow informou os pacientes na sala de espera com previsão ajustada.`);
+      showToast(`☕ Modo Intervalo ativado (15 min). A IA TemFyla informou os pacientes na sala de espera com previsão ajustada.`);
     }
   };
 
   // Copy Digital Rx
   const handleCopyRx = () => {
-    const text = `--- FILAFLOW HEALTH ---\nDOCUMENTO CLÍNICO DIGITAL\nProfissional: ${pro.name} (${pro.crm})\nLocal: ${pro.companyName} - ${pro.room}\nPaciente: ${currentTicket?.name || 'Paciente'}\nData: ${new Date().toLocaleDateString('pt-BR')}\n\nTipo: ${rxDocType.toUpperCase()}\nPrescrição / Justificativa:\n${rxDetails}\n\nCódigo de Validação Digital: FLF-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const text = `--- TEMFYLA HEALTH ---\nDOCUMENTO CLÍNICO DIGITAL\nProfissional: ${pro.name} (${pro.crm})\nLocal: ${pro.companyName} - ${pro.room}\nPaciente: ${currentTicket?.name || 'Paciente'}\nData: ${new Date().toLocaleDateString('pt-BR')}\n\nTipo: ${rxDocType.toUpperCase()}\nPrescrição / Justificativa:\n${rxDetails}\n\nCódigo de Validação Digital: TFY-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     navigator.clipboard?.writeText(text);
     setRxCopied(true);
     setTimeout(() => setRxCopied(false), 2500);
@@ -1167,7 +1167,7 @@ export default function ProfessionalWorkspace({
                   </div>
                   <div className="rx-digital-seal">
                     <ShieldCheck size={13} color="#10b981" />
-                    <span>Assinado Digitalmente ICP-Brasil (Simulado FilaFlow)</span>
+                    <span>Assinado Digitalmente ICP-Brasil (Simulado TemFyla)</span>
                   </div>
                 </div>
               </div>

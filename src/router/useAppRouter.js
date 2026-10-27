@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 /**
- * Custom lightweight history-based router for FilaFlow
+ * Custom lightweight history-based router for TemFyla
  * Supports seamless navigation between:
  * - / (Institutional Site / Landing Page)
  * - /app (Mobile App Experience)

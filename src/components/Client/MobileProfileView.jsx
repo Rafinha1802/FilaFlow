@@ -48,7 +48,7 @@ export default function MobileProfileView({
         </div>
       </div>
 
-      {/* Hero Card Perfil estilo FilaFlow */}
+      {/* Hero Card Perfil estilo TemFyla */}
       {isAuthenticated ? (
         <div className="clean-profile-hero-card">
           <div className="profile-avatar-squircle">
@@ -65,7 +65,7 @@ export default function MobileProfileView({
             </span>
             <span className="clean-chip-badge lavender">
               <Sparkles size={13} />
-              <span>FilaFlow VIP</span>
+              <span>TemFyla VIP</span>
             </span>
           </div>
 
@@ -140,7 +140,7 @@ export default function MobileProfileView({
       <div className="clean-profile-stats-card">
         <div className="profile-stats-header">
           <Award size={16} color="#6366f1" />
-          <span>Seu Tempo Poupado com o FilaFlow</span>
+          <span>Seu Tempo Poupado com o TemFyla</span>
         </div>
 
         <div className="profile-stats-grid">
@@ -297,7 +297,7 @@ export default function MobileProfileView({
 
       {/* Rodapé da Versão */}
       <div className="clean-profile-footer">
-        <span>FilaFlow Mobile App • v2.4 PWA</span>
+        <span>TemFyla Mobile App • v2.4 PWA</span>
         <small>Sincronizado via WebSockets • Criptografia ponta a ponta</small>
       </div>
     </div>

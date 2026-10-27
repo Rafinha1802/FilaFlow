@@ -1403,7 +1403,7 @@ export default function CompanyDashboard({
           boxShadow: '0 10px 35px rgba(0,0,0,0.05)'
         }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            TOTEM DE BALCÃO • FILAFLOW
+            TOTEM DE BALCÃO • TEMFYLA
           </div>
 
           <h2 style={{ fontSize: 28, fontWeight: 900, color: '#0f172a', marginTop: 6 }}>
