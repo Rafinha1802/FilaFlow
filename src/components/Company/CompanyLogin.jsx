@@ -1,29 +1,22 @@
 import React, { useState } from 'react';
-import { Layers, Mail, Lock, ArrowRight, Sparkles, Building2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight } from 'lucide-react';
+import BrandLogo from '../Common/BrandLogo';
 
 export default function CompanyLogin({
   onLoginSuccess,
   onGoToSignup,
   onCancel
 }) {
-  const [email, setEmail] = useState('atendimento@clinicavida.com.br');
-  const [password, setPassword] = useState('••••••••');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!email) return;
     onLoginSuccess({
-      companyName: 'Clínica Vida',
-      unitName: 'Unidade Centro',
-      attendantName: 'Dr. Carlos Mendes',
-      category: 'Clínica'
-    });
-  };
-
-  const handleDemoLogin = () => {
-    onLoginSuccess({
-      companyName: 'Clínica Vida',
-      unitName: 'Unidade Centro',
-      attendantName: 'Dr. Carlos Mendes',
+      companyName: 'Minha Empresa',
+      unitName: 'Unidade Principal',
+      attendantName: email.split('@')[0],
       category: 'Clínica'
     });
   };
@@ -31,8 +24,8 @@ export default function CompanyLogin({
   return (
     <div className="ff-auth-page">
       <div className="ff-login-card">
-        <div className="ff-logo-mark" style={{ width: 44, height: 44, margin: '0 auto' }}>
-          <Layers size={24} />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <BrandLogo size={42} textColor="#0f172a" />
         </div>
 
         <div className="ff-login-header">
@@ -61,7 +54,11 @@ export default function CompanyLogin({
           <div className="ff-form-group">
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <label className="ff-form-label">Senha</label>
-              <a href="#forgot" style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600 }}>
+              <a 
+                href="#forgot" 
+                onClick={(e) => { e.preventDefault(); alert('Utilize o link de recuperação enviado ao seu e-mail corporativo cadastrado.'); }} 
+                style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600 }}
+              >
                 Esqueceu?
               </a>
             </div>
@@ -72,7 +69,7 @@ export default function CompanyLogin({
                 className="ff-input"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Digite sua senha"
                 required
               />
             </div>
@@ -84,32 +81,11 @@ export default function CompanyLogin({
           </button>
         </form>
 
-        <div className="ff-login-divider"></div>
-
-        {/* Demo Fast Login */}
-        <button
-          type="button"
-          className="ff-login-alt-btn"
-          onClick={handleDemoLogin}
-          style={{
-            borderColor: '#ddd6fe',
-            color: '#6d28d9',
-            background: '#faf5ff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8
-          }}
-        >
-          <Sparkles size={16} />
-          <span>Acesso Rápido Demo: Clínica Vida</span>
-        </button>
-
-        <div style={{ marginTop: 20, fontSize: 13, color: '#64748b' }}>
-          Sua empresa ainda não usa o FilaFlow?{' '}
+        <div style={{ marginTop: 24, fontSize: 13, color: '#64748b', textAlign: 'center' }}>
+          Sua empresa ainda não usa o TemFyla?{' '}
           <button
             onClick={onGoToSignup}
-            style={{ color: '#7c3aed', fontWeight: 700, textDecoration: 'underline' }}
+            style={{ color: '#7c3aed', fontWeight: 700, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Cadastrar Gratuitamente
           </button>

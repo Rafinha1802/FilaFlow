@@ -26,14 +26,24 @@ import {
 } from 'lucide-react';
 import { PRICING_PLANS } from '../../data/mockData';
 
+import { getPendingCompanyRegistration } from '../../services/authService';
+import BrandLogo from '../Common/BrandLogo';
+
 export default function CheckoutPage({
   initialPlanName = 'Profissional',
   initialBillingCycle = 'monthly', // 'monthly' | 'annual'
+  pendingRegistrationData: propPendingData = null,
   onGoBack,
   onPaymentSuccess
 }) {
+  const pendingRegistrationData = propPendingData || getPendingCompanyRegistration();
+
   // Plan Selection
-  const [selectedPlanName, setSelectedPlanName] = useState(initialPlanName);
+  const [selectedPlanName, setSelectedPlanName] = useState(() => {
+    if (pendingRegistrationData?.professionalsList?.length > 3) return 'Enterprise';
+    if (pendingRegistrationData?.professionalsList?.length > 1) return 'Profissional';
+    return initialPlanName;
+  });
   const [billingCycle, setBillingCycle] = useState(initialBillingCycle);
 
   // Active plan object
@@ -43,12 +53,24 @@ export default function CheckoutPage({
   const [paymentMethod, setPaymentMethod] = useState('pix');
 
   // Customer / Business Information State
-  const [customerInfo, setCustomerInfo] = useState({
-    name: 'Dra. Beatriz Santos',
-    companyName: 'Centro Médico Aurora',
-    email: 'contato@centromedicofila.com.br',
-    document: '28.749.123/0001-44', // CNPJ / CPF
-    phone: '(11) 97123-4567'
+  const [customerInfo, setCustomerInfo] = useState(() => {
+    if (pendingRegistrationData?.companyData) {
+      const cd = pendingRegistrationData.companyData;
+      return {
+        name: cd.adminName || cd.attendantName || '',
+        companyName: cd.companyName || '',
+        email: cd.email || '',
+        document: cd.cnpj || '',
+        phone: cd.phone || ''
+      };
+    }
+    return {
+      name: '',
+      companyName: '',
+      email: '',
+      document: '',
+      phone: ''
+    };
   });
 
   // Credit Card Form State
@@ -199,7 +221,7 @@ export default function CheckoutPage({
   };
 
   // Pix copy
-  const pixKeyMock = `00020126580014BR.GOV.BCB.PIX0136d8f28941-8c43-4e89-bf86-${Date.now().toString().slice(-8)}520400005303986540${totalAmount.toFixed(2)}5802BR5920FilaFlow Tech S.A.6009Sao Paulo62070503***6304E8A2`;
+  const pixKeyMock = `00020126580014BR.GOV.BCB.PIX0136d8f28941-8c43-4e89-bf86-${Date.now().toString().slice(-8)}520400005303986540${totalAmount.toFixed(2)}5802BR5920TemFyla Tech S.A.6009Sao Paulo62070503***6304E8A2`;
   
   const handleCopyPix = () => {
     navigator.clipboard.writeText(pixKeyMock);
@@ -223,38 +245,20 @@ export default function CheckoutPage({
     setTimeout(() => {
       setIsProcessing(false);
       const order = {
-        orderId: `FLF-${Math.floor(100000 + Math.random() * 900000)}`,
+        orderId: `TFL-${Math.floor(100000 + Math.random() * 900000)}`,
         planName: currentPlan.name,
         billingCycle,
         amount: totalAmount,
         paymentMethod: methodChosen || paymentMethod,
-        customerName: customerInfo.name || 'Dra. Beatriz Santos',
-        companyName: customerInfo.companyName || 'Centro Médico Aurora',
-        email: customerInfo.email || 'contato@centromedicofila.com.br',
+        customerName: customerInfo.name || 'Administrador',
+        companyName: customerInfo.companyName || 'Empresa Cadastrada',
+        email: customerInfo.email || 'contato@empresa.com.br',
         document: customerInfo.document,
+        pendingRegistrationData,
         date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
       };
       setOrderCompleted(order);
     }, 1200);
-  };
-
-  // Quick fill sample data for fast testing
-  const handleFillDemoData = () => {
-    setCustomerInfo({
-      name: 'Dr. Carlos Mendes',
-      companyName: 'Clínica Vida',
-      email: 'atendimento@clinicavida.com.br',
-      document: '12.345.678/0001-90',
-      phone: '(11) 98765-4321'
-    });
-    setCardData({
-      number: '5502 0012 3456 7890',
-      name: 'CARLOS MENDES',
-      expiry: '08/29',
-      cvv: '882',
-      installments: '1',
-      saveCard: true
-    });
   };
 
   // -------------------------------------------------------------
@@ -389,13 +393,8 @@ export default function CheckoutPage({
               <span>Voltar ao Site</span>
             </button>
 
-            <div className="ff-logo-group" onClick={onGoBack} style={{ cursor: 'pointer' }}>
-              <div className="ff-logo-mark">
-                <Receipt size={18} />
-              </div>
-              <span className="ff-logo-text">
-                Fila<span>Flow</span>
-              </span>
+            <div onClick={onGoBack} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <BrandLogo size={34} textColor="#0f172a" />
             </div>
           </div>
 
@@ -408,6 +407,46 @@ export default function CheckoutPage({
 
       {/* Main Checkout Container */}
       <div className="ff-checkout-container">
+        {/* Onboarding Arrival Alert Banner */}
+        {pendingRegistrationData && (
+          <div style={{
+            background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+            border: '1.5px solid #c4b5fd',
+            borderRadius: 16,
+            padding: '16px 20px',
+            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            boxShadow: '0 4px 14px rgba(124, 58, 237, 0.08)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 26 }}>🎉</span>
+              <div>
+                <h3 style={{ fontSize: 15, fontWeight: 800, color: '#4c1d95', margin: 0 }}>
+                  Cadastro da Empresa Concluído: {pendingRegistrationData.companyData?.companyName}
+                </h3>
+                <p style={{ fontSize: 13, color: '#6d28d9', margin: '3px 0 0' }}>
+                  {pendingRegistrationData.professionalsList?.length || 1} profissional(is) cadastrado(s) com e-mails e horários configurados. Escolha o plano abaixo para concluir a ativação.
+                </p>
+              </div>
+            </div>
+            <span style={{
+              background: '#7c3aed',
+              color: 'white',
+              padding: '6px 14px',
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 800,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 8px rgba(124, 58, 237, 0.3)'
+            }}>
+              14 Dias Grátis
+            </span>
+          </div>
+        )}
+
         {/* Progress Stepper Bar */}
         <div className="ff-chk-stepper-wrap">
           <div className="ff-chk-step done">
@@ -450,25 +489,6 @@ export default function CheckoutPage({
               LEFT COLUMN: FORM & PAYMENT METHODS
               ======================================================== */}
           <div className="ff-checkout-left-col">
-            {/* Quick Demo Data Banner */}
-            <div className="ff-demo-banner-box">
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 13, color: '#581c87' }}>
-                  Modo de Demonstração Interativa
-                </div>
-                <div style={{ fontSize: 12, color: '#6b21a8', marginTop: 2 }}>
-                  Deseja testar sem digitar? Preencha os campos com um clique.
-                </div>
-              </div>
-              <button 
-                type="button" 
-                onClick={handleFillDemoData} 
-                className="ff-demo-fill-btn"
-              >
-                Preencher Dados de Teste
-              </button>
-            </div>
-
             {/* Block 1: Customer & Business Details */}
             <div className="ff-checkout-card">
               <div className="ff-checkout-card-header">
@@ -724,7 +744,7 @@ export default function CheckoutPage({
                         </div>
                         <div className="ff-pix-step">
                           <span className="ff-pix-num">3</span>
-                          <span>Confira o beneficiário <strong>FilaFlow Soluções Tecnológicas</strong> e confirme</span>
+                          <span>Confira o beneficiário <strong>TemFyla Soluções Tecnológicas</strong> e confirme</span>
                         </div>
                       </div>
 
@@ -918,7 +938,7 @@ export default function CheckoutPage({
                         Prazo de compensação bancária: 1 a 3 dias úteis
                       </div>
                       <div style={{ fontSize: 12, color: '#b45309', marginTop: 2 }}>
-                        A liberação da sua conta FilaFlow ocorre de forma 100% automática assim que o banco liquidar o pagamento.
+                        A liberação da sua conta TemFyla ocorre de forma 100% automática assim que o banco liquidar o pagamento.
                       </div>
                     </div>
                   </div>
@@ -928,7 +948,7 @@ export default function CheckoutPage({
                     <div className="ff-boleto-head">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Receipt size={18} color="#7c3aed" />
-                        <span style={{ fontWeight: 800, color: '#0f172a' }}>Banco FilaFlow S.A.</span>
+                        <span style={{ fontWeight: 800, color: '#0f172a' }}>Banco TemFyla S.A.</span>
                       </div>
                       <div style={{ fontWeight: 800, fontSize: 14, color: '#64748b' }}>
                         | 341-7 |
@@ -938,7 +958,7 @@ export default function CheckoutPage({
                     <div className="ff-boleto-info-grid">
                       <div>
                         <div className="ff-boleto-lbl">Beneficiário</div>
-                        <div className="ff-boleto-val">FilaFlow Soluções Tecnológicas S.A. (51.942.109/0001-88)</div>
+                        <div className="ff-boleto-val">TemFyla Soluções Tecnológicas S.A. (51.942.109/0001-88)</div>
                       </div>
                       <div>
                         <div className="ff-boleto-lbl">Vencimento</div>

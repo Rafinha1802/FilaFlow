@@ -44,9 +44,17 @@ export function useAppRouter() {
 
   const isCheckoutRoute = currentPath === '/checkout' || currentPath === '/pagamento';
   const isAppRoute = currentPath === '/app' || currentPath.startsWith('/app/');
-  const isCompanyRoute = currentPath === '/empresa' || currentPath === '/empresa/dashboard';
+  const isCompanyRoute = currentPath === '/empresa' || currentPath.startsWith('/empresa');
   const isProfessionalRoute = currentPath === '/profissional' || currentPath.startsWith('/profissional');
   const isSiteRoute = !isAppRoute && !isCompanyRoute && !isCheckoutRoute && !isProfessionalRoute;
+
+  // Subroute helpers
+  const isCompanyLogin = currentPath === '/empresa/login';
+  const isCompanyRegister = currentPath === '/empresa/cadastro';
+  const isCompanyDashboard = currentPath === '/empresa/dashboard';
+
+  const isProfessionalLogin = currentPath === '/profissional/login';
+  const isProfessionalRegister = currentPath === '/profissional/cadastro';
 
   return {
     currentPath,
@@ -55,6 +63,11 @@ export function useAppRouter() {
     isCompanyRoute,
     isCheckoutRoute,
     isProfessionalRoute,
-    isSiteRoute
+    isSiteRoute,
+    isCompanyLogin,
+    isCompanyRegister,
+    isCompanyDashboard,
+    isProfessionalLogin,
+    isProfessionalRegister
   };
 }

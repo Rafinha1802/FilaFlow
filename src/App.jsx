@@ -3,15 +3,28 @@ import { useAppRouter } from './router/useAppRouter';
 import Navbar from './components/LandingPage/Navbar';
 import LandingPage from './components/LandingPage/LandingPage';
 import CompanyDashboard from './components/Company/CompanyDashboard';
+import CompanyAuth from './components/Company/CompanyAuth';
 import ProfessionalWorkspace from './components/Professional/ProfessionalWorkspace';
+import ProfessionalAuth from './components/Professional/ProfessionalAuth';
 import ClientMobileApp from './components/Client/ClientMobileApp';
 import QrScannerModal from './components/Client/QrScannerModal';
 import PreCheckinModal from './components/Client/PreCheckinModal';
 import QueueSearchModal from './components/Client/QueueSearchModal';
 import PricingModal from './components/Common/PricingModal';
 import CheckoutPage from './components/Checkout/CheckoutPage';
-import SimControlBar from './components/Common/SimControlBar';
 import { INITIAL_QUEUES, REGISTERED_PROFESSIONALS } from './data/mockData';
+import { 
+  getCompanySession, 
+  setCompanySession, 
+  getProfessionalSession, 
+  setProfessionalSession, 
+  registerCompanyAndProfessionals, 
+  logoutCompany, 
+  logoutProfessional,
+  getStoredProfessionals,
+  getPendingCompanyRegistration,
+  setPendingCompanyRegistration
+} from './services/authService';
 import { 
   fetchQueues, 
   callNextTicketApi, 
@@ -23,20 +36,55 @@ import {
 
 export default function App() {
   // Client-Side History Router: '/' (Site) | '/app' (Mobile App) | '/empresa' (SaaS B2B) | '/profissional' (Consultório) | '/checkout' (Pagamento)
-  const { currentPath, navigate, isAppRoute, isCompanyRoute, isCheckoutRoute, isProfessionalRoute, isSiteRoute } = useAppRouter();
-  const [activeProfessional, setActiveProfessional] = useState(REGISTERED_PROFESSIONALS[0]);
+  const { 
+    currentPath, 
+    navigate, 
+    isAppRoute, 
+    isCompanyRoute, 
+    isCheckoutRoute, 
+    isProfessionalRoute, 
+    isSiteRoute,
+    isCompanyLogin,
+    isCompanyRegister,
+    isProfessionalLogin,
+    isProfessionalRegister
+  } = useAppRouter();
+
+  // Authentication State - Empresa (B2B)
+  const [companyUser, setCompanyUser] = useState(() => getCompanySession());
+
+  // Authentication State - Profissional (Consultório)
+  const [professionalUser, setProfessionalUser] = useState(() => getProfessionalSession());
+  const [activeProfessional, setActiveProfessional] = useState(() => {
+    return getProfessionalSession() || REGISTERED_PROFESSIONALS[0];
+  });
+
+  // Pending Company Registration (passed to Checkout/Payment)
+  const [pendingRegistrationData, setPendingRegistrationData] = useState(() => getPendingCompanyRegistration());
 
   // Checkout Selected Plan State
   const [checkoutPlan, setCheckoutPlan] = useState('Profissional');
   const [checkoutCycle, setCheckoutCycle] = useState('monthly');
 
-  // Authentication State - Empresa / Profissional (B2B)
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [currentUser, setCurrentUser] = useState({
-    name: 'Dr. Carlos Mendes',
-    email: 'atendimento@clinicavida.com.br',
-    companyName: 'Clínica Vida',
-    unitName: 'Unidade Centro'
+  // Business / Company Data State
+  const [businessData, setBusinessData] = useState(() => {
+    const session = getCompanySession();
+    if (session) {
+      return {
+        companyName: session.companyName,
+        unitName: session.unitName || 'Unidade Centro',
+        attendantName: session.attendantName || 'Dr. Carlos Mendes',
+        category: session.category || 'Clínica',
+        room: session.room || 'Consultório 04'
+      };
+    }
+    return {
+      companyName: 'Clínica Vida',
+      unitName: 'Unidade Centro',
+      attendantName: 'Dr. Carlos Mendes',
+      category: 'Clínica',
+      room: 'Consultório 04'
+    };
   });
 
   // Client / Patient User for Mobile App (Público em geral, NÃO médico!)
@@ -62,15 +110,6 @@ export default function App() {
     };
   });
   const [isClientAuthenticated, setIsClientAuthenticated] = useState(true);
-
-  // Company State
-  const [businessData, setBusinessData] = useState({
-    companyName: 'Clínica Vida',
-    unitName: 'Unidade Centro',
-    attendantName: 'Dr. Carlos Mendes',
-    category: 'Clínica',
-    room: 'Consultório 04'
-  });
 
   // Active Attending Ticket in Company Dashboard
   const [activeAttendingTicket, setActiveAttendingTicket] = useState({
@@ -203,27 +242,82 @@ export default function App() {
     };
   }, []);
 
-  // Navegação direta para o Painel da Empresa sem telas de login/cadastro
+  // Navegação e Controle de Autenticação - Empresa (B2B)
   const handleOpenDashboard = () => {
-    navigate('/empresa/dashboard');
+    if (companyUser) {
+      navigate('/empresa/dashboard');
+    } else {
+      navigate('/empresa/login');
+    }
   };
 
+  const handleOpenCompanySignup = () => {
+    navigate('/empresa/cadastro');
+  };
+
+  const handleCompanyLoginSuccess = (company) => {
+    setCompanyUser(company);
+    setBusinessData((prev) => ({
+      ...prev,
+      companyName: company.companyName,
+      unitName: company.unitName || prev.unitName,
+      attendantName: company.attendantName || prev.attendantName,
+      category: company.category || prev.category,
+      room: company.room || prev.room
+    }));
+    navigate('/empresa/dashboard');
+    playChime();
+    showToast(`Bem-vindo ao Painel da ${company.companyName}!`);
+  };
+
+  const handleCompanyLogout = () => {
+    logoutCompany();
+    setCompanyUser(null);
+    navigate('/empresa/login');
+    showToast('Sessão da empresa encerrada.');
+  };
+
+  // Navegação e Controle de Autenticação - Profissional (Consultório)
   const handleOpenProfessional = (professionalObj = null) => {
     if (professionalObj) {
+      setProfessionalSession(professionalObj);
+      setProfessionalUser(professionalObj);
       setActiveProfessional(professionalObj);
-    } else if (!activeProfessional) {
-      setActiveProfessional(REGISTERED_PROFESSIONALS[0]);
+      navigate('/profissional');
+    } else if (professionalUser) {
+      setActiveProfessional(professionalUser);
+      navigate('/profissional');
+    } else {
+      navigate('/profissional/login');
     }
+  };
+
+  const handleProfessionalLoginSuccess = (pro) => {
+    setProfessionalSession(pro);
+    setProfessionalUser(pro);
+    setActiveProfessional(pro);
     navigate('/profissional');
+    playChime();
+    showToast(`Consultório do(a) ${pro.name} aberto com sucesso!`);
+  };
+
+  const handleProfessionalLogout = () => {
+    logoutProfessional();
+    setProfessionalUser(null);
+    navigate('/profissional/login');
+    showToast('Sessão do consultório encerrada com sucesso.');
+  };
+
+  // Redirecionamento da Empresa após cadastro para Pagamento
+  const handleGoToCheckout = (pendingData) => {
+    setPendingRegistrationData(pendingData);
+    setPendingCompanyRegistration(pendingData);
+    navigate('/checkout');
+    showToast('Cadastro realizado! Selecione o plano ideal para sua empresa.');
   };
 
   const handleOpenClient = () => {
     navigate('/app');
-  };
-
-  const handleLogout = () => {
-    navigate('/');
-    showToast('Retornou à página inicial.');
   };
 
   // 1. Chamar Próxima Senha (integrado à API real e com fallback local imediato)
@@ -493,15 +587,15 @@ export default function App() {
       {/* Top Navbar - Renderizada na Landing Page do Site (/) */}
       {isSiteRoute && (
         <Navbar
-          isAuthenticated={isAuthenticated}
-          currentUser={currentUser}
+          isAuthenticated={!!companyUser}
+          currentUser={companyUser}
           onGoToLanding={() => navigate('/')}
-          onOpenLogin={() => navigate('/empresa/dashboard')}
-          onOpenSignup={() => navigate('/empresa/dashboard')}
+          onOpenLogin={() => navigate('/empresa/login')}
+          onOpenSignup={handleOpenCompanySignup}
           onOpenDashboard={handleOpenDashboard}
           onOpenPricing={() => setIsPricingOpen(true)}
           onOpenProfessional={() => handleOpenProfessional()}
-          onLogout={handleLogout}
+          onLogout={handleCompanyLogout}
         />
       )}
 
@@ -550,8 +644,8 @@ export default function App() {
       {isSiteRoute && (
         <LandingPage
           activeQueue={clientActiveQueues[0]}
-          onOpenSignup={() => navigate('/empresa/dashboard')}
-          onOpenLogin={() => navigate('/empresa/dashboard')}
+          onOpenSignup={handleOpenCompanySignup}
+          onOpenLogin={() => navigate('/empresa/login')}
           onOpenPricing={() => setIsPricingOpen(true)}
         />
       )}
@@ -584,62 +678,120 @@ export default function App() {
         />
       )}
 
-      {/* ROTA 3: /empresa (Painel Operacional da Empresa DIRETO - Sem bloqueio de login/cadastro) */}
+      {/* ROTA 3: /empresa (Painel Operacional da Empresa ou Telas de Login/Cadastro) */}
       {isCompanyRoute && (
-        <CompanyDashboard
-          businessData={businessData}
-          activeAttendingTicket={activeAttendingTicket}
-          waitingQueue={companyWaitingQueue}
-          onCallNext={handleCallNextTicket}
-          onReportDelay={handleReportDelay}
-          onFinishCurrent={handleFinishCurrent}
-          onSkipTicket={handleSkipTicket}
-          onAddManualTicket={handleAddManualTicket}
-          onOpenMobileTest={handleOpenClient}
-          onGoToSite={() => navigate('/')}
-          onLogout={handleLogout}
-        />
+        <>
+          {currentPath === '/empresa/cadastro' ? (
+            <CompanyAuth
+              initialTab="register"
+              onLoginSuccess={handleCompanyLoginSuccess}
+              onGoToCheckout={handleGoToCheckout}
+              onGoToProfessionalLogin={() => navigate('/profissional/login')}
+              onBackToSite={() => navigate('/')}
+              onGoToClient={handleOpenClient}
+            />
+          ) : currentPath === '/empresa/login' ? (
+            <CompanyAuth
+              initialTab="login"
+              onLoginSuccess={handleCompanyLoginSuccess}
+              onGoToCheckout={handleGoToCheckout}
+              onGoToProfessionalLogin={() => navigate('/profissional/login')}
+              onBackToSite={() => navigate('/')}
+              onGoToClient={handleOpenClient}
+            />
+          ) : companyUser ? (
+            <CompanyDashboard
+              businessData={businessData}
+              activeAttendingTicket={activeAttendingTicket}
+              waitingQueue={companyWaitingQueue}
+              onCallNext={handleCallNextTicket}
+              onReportDelay={handleReportDelay}
+              onFinishCurrent={handleFinishCurrent}
+              onSkipTicket={handleSkipTicket}
+              onAddManualTicket={handleAddManualTicket}
+              onOpenMobileTest={handleOpenClient}
+              onGoToSite={() => navigate('/')}
+              onLogout={handleCompanyLogout}
+              onOpenProfessional={(pro) => handleOpenProfessional(pro)}
+            />
+          ) : (
+            <CompanyAuth
+              initialTab="login"
+              onLoginSuccess={handleCompanyLoginSuccess}
+              onGoToCheckout={handleGoToCheckout}
+              onGoToProfessionalLogin={() => navigate('/profissional/login')}
+              onBackToSite={() => navigate('/')}
+              onGoToClient={handleOpenClient}
+            />
+          )}
+        </>
       )}
 
-      {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital DIRETO) */}
+      {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital ou Login) */}
       {isProfessionalRoute && (
-        <ProfessionalWorkspace
-          professional={activeProfessional || REGISTERED_PROFESSIONALS[0]}
-          allProfessionals={REGISTERED_PROFESSIONALS}
-          onSwitchProfessional={(pro) => setActiveProfessional(pro)}
-          onLogout={() => {
-            navigate('/');
-            showToast('Sessão do consultório encerrada com sucesso.');
-          }}
-          onGoToSite={() => navigate('/')}
-          onOpenMobileView={() => navigate('/app')}
-        />
+        <>
+          {currentPath === '/profissional/login' || currentPath === '/profissional/cadastro' ? (
+            <ProfessionalAuth
+              onLoginSuccess={handleProfessionalLoginSuccess}
+              onBackToSite={() => navigate('/')}
+              onGoToCompanyLogin={() => navigate('/empresa/login')}
+              onGoToClient={handleOpenClient}
+            />
+          ) : professionalUser ? (
+            <ProfessionalWorkspace
+              professional={professionalUser || activeProfessional}
+              allProfessionals={getStoredProfessionals()}
+              onSwitchProfessional={(pro) => handleOpenProfessional(pro)}
+              onLogout={handleProfessionalLogout}
+              onGoToSite={() => navigate('/')}
+              onOpenMobileView={() => navigate('/app')}
+            />
+          ) : (
+            <ProfessionalAuth
+              onLoginSuccess={handleProfessionalLoginSuccess}
+              onBackToSite={() => navigate('/')}
+              onGoToCompanyLogin={() => navigate('/empresa/login')}
+              onGoToClient={handleOpenClient}
+            />
+          )}
+        </>
       )}
 
-      {/* ROTA 4: /checkout (Página de Pagamento / Checkout por Pix, Cartão e Boleto) */}
+      {/* ROTA 4: /checkout (Página de Pagamento / Escolha de Planos com dados da Empresa) */}
       {isCheckoutRoute && (
         <CheckoutPage
           initialPlanName={checkoutPlan}
           initialBillingCycle={checkoutCycle}
+          pendingRegistrationData={pendingRegistrationData}
           onGoBack={() => navigate('/')}
           onPaymentSuccess={(order) => {
-            if (order && order.companyName) {
+            if (order && order.pendingRegistrationData) {
+              const regResult = registerCompanyAndProfessionals({
+                companyData: order.pendingRegistrationData.companyData,
+                professionalsList: order.pendingRegistrationData.professionalsList,
+                selectedPlan: order.planName
+              });
+              setCompanyUser(regResult.company);
+              setBusinessData((prev) => ({
+                ...prev,
+                companyName: regResult.company.companyName,
+                unitName: regResult.company.unitName || prev.unitName,
+                attendantName: regResult.company.attendantName || prev.attendantName,
+                category: regResult.company.category || prev.category,
+                room: regResult.company.room || prev.room
+              }));
+              setPendingRegistrationData(null);
+            } else if (order && order.companyName) {
               setBusinessData((prev) => ({
                 ...prev,
                 companyName: order.companyName,
                 attendantName: order.customerName || prev.attendantName,
                 email: order.email || prev.email
               }));
-              setCurrentUser({
-                name: order.customerName || 'Responsável',
-                email: order.email || 'contato@empresa.com.br',
-                companyName: order.companyName,
-                unitName: 'Unidade Principal'
-              });
             }
             navigate('/empresa/dashboard');
             playChime();
-            showToast(`Assinatura do ${order ? order.planName : 'Plano'} ativada com sucesso!`);
+            showToast(`Assinatura do Plano ${order ? order.planName : 'Profissional'} ativada com sucesso!`);
           }}
         />
       )}
@@ -674,35 +826,6 @@ export default function App() {
         onClose={() => setIsSearchOpen(false)}
         onSelectBusiness={handleSearchSelectBusiness}
       />
-
-      {/* Floating Simulation Bar (apenas em ambiente de desenvolvimento Vite) */}
-      {import.meta.env.DEV && (
-        <SimControlBar
-          currentView={
-            isProfessionalRoute
-              ? 'professional'
-              : isAppRoute
-                ? 'client-mobile'
-                : isCompanyRoute
-                  ? 'company-dashboard'
-                  : isCheckoutRoute
-                    ? 'checkout'
-                    : 'landing'
-          }
-          setCurrentView={(view) => {
-            if (view === 'professional') navigate('/profissional');
-            else if (view === 'client-mobile') navigate('/app');
-            else if (view === 'company-dashboard' || view === 'company-auth') navigate('/empresa/dashboard');
-            else if (view === 'checkout') navigate('/checkout');
-            else navigate('/');
-          }}
-          onNextTicket={handleCallNextTicket}
-          onSimulateDelay={handleReportDelay}
-          onToggleConflict={() => setHasConflict(!hasConflict)}
-          onResetQueues={handleResetQueues}
-          onOpenAuth={() => navigate('/empresa/dashboard')}
-        />
-      )}
     </div>
   );
 }

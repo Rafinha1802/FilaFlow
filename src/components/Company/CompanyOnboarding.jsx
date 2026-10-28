@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  Building2, 
-  Layers, 
-  Check, 
-  ArrowRight, 
-  ArrowLeft, 
-  QrCode, 
-  Clock, 
-  Sparkles, 
-  Download, 
+import {
+  Building2,
+  Layers,
+  Check,
+  ArrowRight,
+  ArrowLeft,
+  QrCode,
+  Clock,
+  Sparkles,
+  Download,
   Printer,
   Smartphone,
   CheckCircle2
@@ -35,13 +35,13 @@ export default function CompanyOnboarding({
   const [aiMode, setAiMode] = useState('smart'); // 'smart' | 'conservative' | 'fast'
 
   const categories = [
-    'Clínica', 
-    'Restaurante', 
-    'Salão', 
-    'Laboratório', 
-    'Barbearia', 
-    'Oficina', 
-    'Cartório', 
+    'Clínica',
+    'Restaurante',
+    'Salão',
+    'Laboratório',
+    'Barbearia',
+    'Oficina',
+    'Cartório',
     'Outro'
   ];
 
@@ -285,7 +285,7 @@ export default function CompanyOnboarding({
               </div>
 
               <div className="ff-form-group">
-                <label className="ff-form-label">Modo do Algoritmo de Previsão FilaFlow</label>
+                <label className="ff-form-label">Modo do Algoritmo de Previsão TemFyla</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                   <div
                     onClick={() => setAiMode('smart')}
@@ -365,11 +365,11 @@ export default function CompanyOnboarding({
         {step === 3 && (
           <div>
             <div style={{ marginBottom: 24, textAlign: 'center' }}>
-              <div style={{ 
-                width: 48, 
-                height: 48, 
-                borderRadius: '50%', 
-                background: '#dcfce7', 
+              <div style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: '#dcfce7',
                 color: '#15803d',
                 display: 'flex',
                 alignItems: 'center',
@@ -472,10 +472,10 @@ export default function CompanyOnboarding({
                 </div>
               </div>
 
-              <div style={{ 
-                marginTop: 14, 
-                fontSize: 12, 
-                fontWeight: 600, 
+              <div style={{
+                marginTop: 14,
+                fontSize: 12,
+                fontWeight: 600,
                 color: '#475569',
                 background: '#f1f5f9',
                 padding: '6px 10px',
@@ -509,7 +509,7 @@ export default function CompanyOnboarding({
                 style={{ justifyContent: 'center' }}
               >
                 <Smartphone size={16} />
-                <span>Testar Leitor no Celular do Cliente</span>
+                <span>Visualizar Leitor no Celular</span>
               </button>
             </div>
           </div>

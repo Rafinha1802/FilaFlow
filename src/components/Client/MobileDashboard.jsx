@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  Sparkles, 
-  Clock, 
-  Navigation, 
-  QrCode, 
-  Search, 
-  CheckCircle2, 
-  ChevronRight, 
-  MapPin, 
-  Zap, 
+import {
+  Sparkles,
+  Clock,
+  Navigation,
+  QrCode,
+  Search,
+  CheckCircle2,
+  ChevronRight,
+  MapPin,
+  Zap,
   Bell,
   Bookmark,
   Coffee,
@@ -47,7 +47,7 @@ export default function MobileDashboard({
   const currentQueue = activeQueues.find((q) => q.id === selectedQueueId) || activeQueues[0] || null;
 
   // Find most urgent queue
-  const urgentQueue = activeQueues.length > 0 
+  const urgentQueue = activeQueues.length > 0
     ? [...activeQueues].sort((a, b) => (a.position || 99) - (b.position || 99))[0]
     : null;
 
@@ -69,8 +69,8 @@ export default function MobileDashboard({
   // Disparo de notificação normal ao chegar/carregar fila em espera
   React.useEffect(() => {
     if (displayQueue && !displayQueue.isCheckedInWithSecretary) {
-      const doc = displayQueue.attendantName?.startsWith('Dr') 
-        ? `médico ${displayQueue.attendantName}` 
+      const doc = displayQueue.attendantName?.startsWith('Dr')
+        ? `médico ${displayQueue.attendantName}`
         : `médico ${displayQueue.attendantName || 'responsável'}`;
       showToast({
         title: 'Fila de Espera • Totem QR',
@@ -90,7 +90,7 @@ export default function MobileDashboard({
           <div className="toast-content-col">
             <div className="toast-top-row">
               <strong className="toast-title">
-                {typeof toastMessage === 'object' ? toastMessage.title : 'FilaFlow'}
+                {typeof toastMessage === 'object' ? toastMessage.title : 'TemFyla'}
               </strong>
               <span className="toast-time">Agora</span>
             </div>
@@ -98,8 +98,8 @@ export default function MobileDashboard({
               {typeof toastMessage === 'object' ? toastMessage.message : toastMessage}
             </p>
           </div>
-          <button 
-            className="toast-close-btn" 
+          <button
+            className="toast-close-btn"
             onClick={(e) => { e.stopPropagation(); setToastMessage(null); }}
           >
             ✕
@@ -116,8 +116,8 @@ export default function MobileDashboard({
           </div>
 
           <div className="header-avatar-group">
-            <button 
-              className="btn-icon-soft" 
+            <button
+              className="btn-icon-soft"
               onClick={() => onNavigateTab && onNavigateTab('notifications')}
               title="Notificações"
             >
@@ -185,7 +185,7 @@ export default function MobileDashboard({
               <div className="reception-hint-row">
                 <Clock size={13} />
                 <span>
-                  {displayQueue.position > 1 
+                  {displayQueue.position > 1
                     ? `Há ${displayQueue.position - 1} ${displayQueue.position - 1 === 1 ? 'pessoa' : 'pessoas'} na sua frente no balcão.`
                     : 'Você é o próximo a ser chamado na recepção!'}
                 </span>
@@ -205,7 +205,7 @@ export default function MobileDashboard({
           /* Card Hero Principal Escuro / Violeta Nobre: Lugar na Fila */
           <div className="clean-hero-card dark-theme">
             <div className="hero-card-glow"></div>
-            
+
             <div className="hero-card-header">
               <div className="hero-live-badge">
                 <span className="pulse-dot"></span>
@@ -282,7 +282,7 @@ export default function MobileDashboard({
             {/* Ações: Só pode pedir +5 min quando já estiver na fila do médico */}
             {displayQueue.isCheckedInWithSecretary && (
               <div className="hero-card-actions single-action">
-                <button 
+                <button
                   className="clean-pill-btn translucent"
                   style={{ width: '100%' }}
                   onClick={() => handleAskMoreTime(displayQueue.id)}
@@ -331,7 +331,7 @@ export default function MobileDashboard({
 
         <div className="clean-pastel-bento-grid">
           {/* Card 1: Peach / Consulta */}
-          <div 
+          <div
             className={`pastel-bento-card peach ${displayQueue?.id === 'clinica-vida' ? 'is-selected' : ''}`}
             onClick={() => onSelectQueue && onSelectQueue('clinica-vida')}
           >
@@ -346,7 +346,7 @@ export default function MobileDashboard({
           </div>
 
           {/* Card 2: Mint / Exames */}
-          <div 
+          <div
             className={`pastel-bento-card mint ${displayQueue?.id === 'examelab' || displayQueue?.id === 'lab-exame' ? 'is-selected' : ''}`}
             onClick={() => onSelectQueue && onSelectQueue(activeQueues.find(q => q.id.includes('exame'))?.id || 'examelab')}
           >
@@ -363,7 +363,7 @@ export default function MobileDashboard({
           </div>
 
           {/* Card 3: Sky Blue / QR Check-in */}
-          <div 
+          <div
             className="pastel-bento-card sky"
             onClick={onOpenQrScanner}
           >
@@ -378,7 +378,7 @@ export default function MobileDashboard({
           </div>
 
           {/* Card 4: Lavender / Café */}
-          <div 
+          <div
             className="pastel-bento-card lavender"
             onClick={() => showToast('☕ Cupom ativado! 15% OFF no Café Havanna na sua espera.')}
           >
@@ -413,7 +413,7 @@ export default function MobileDashboard({
               <span className="rating-num">5.0 (420 avaliações)</span>
             </div>
           </div>
-          <button 
+          <button
             className="partner-arrow-btn"
             onClick={() => showToast('☕ Cupom ativado! Apresente o bilhete da Clínica Vida no caixa.')}
             title="Resgatar benefício"

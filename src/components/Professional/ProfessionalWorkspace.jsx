@@ -1,30 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Clock, 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Plus, 
-  Volume2, 
-  VolumeX, 
-  CheckCircle2, 
-  AlertTriangle, 
-  User, 
-  Users, 
-  Sparkles, 
-  Calendar, 
-  ArrowRight, 
-  ArrowLeft, 
-  FileText, 
-  Phone, 
-  Coffee, 
-  LogOut, 
-  Check, 
-  ChevronRight, 
+import {
+  Clock,
+  Play,
+  Pause,
+  RotateCcw,
+  Plus,
+  Volume2,
+  VolumeX,
+  CheckCircle2,
+  AlertTriangle,
+  User,
+  Users,
+  Sparkles,
+  Calendar,
+  ArrowRight,
+  ArrowLeft,
+  FileText,
+  Phone,
+  Coffee,
+  LogOut,
+  Check,
+  ChevronRight,
   ChevronDown,
-  Send, 
-  Building2, 
-  Layers, 
+  Send,
+  Building2,
+  Layers,
   Activity,
   Flame,
   ShieldCheck,
@@ -218,7 +218,7 @@ export default function ProfessionalWorkspace({
   const handleAddMinutes = (additionalMinutes) => {
     setTargetMinutes(prev => prev + additionalMinutes);
     showToast(
-      `⏱️ +${additionalMinutes} min adicionados! A IA FilaFlow recalculou os horários dos ${waitingList.length} pacientes na fila e notificou os celulares.`
+      `⏱️ +${additionalMinutes} min adicionados! A IA TemFyla recalculou os horários dos ${waitingList.length} pacientes na fila e notificou os celulares.`
     );
   };
 
@@ -370,13 +370,13 @@ export default function ProfessionalWorkspace({
     } else {
       setConsultationStatus('break');
       setIsTimerRunning(false);
-      showToast(`☕ Modo Intervalo ativado (15 min). A IA FilaFlow informou os pacientes na sala de espera com previsão ajustada.`);
+      showToast(`☕ Modo Intervalo ativado (15 min). A IA TemFyla informou os pacientes na sala de espera com previsão ajustada.`);
     }
   };
 
   // Copy Digital Rx
   const handleCopyRx = () => {
-    const text = `--- FILAFLOW HEALTH ---\nDOCUMENTO CLÍNICO DIGITAL\nProfissional: ${pro.name} (${pro.crm})\nLocal: ${pro.companyName} - ${pro.room}\nPaciente: ${currentTicket?.name || 'Paciente'}\nData: ${new Date().toLocaleDateString('pt-BR')}\n\nTipo: ${rxDocType.toUpperCase()}\nPrescrição / Justificativa:\n${rxDetails}\n\nCódigo de Validação Digital: FLF-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const text = `--- TEMFYLA HEALTH ---\nDOCUMENTO CLÍNICO DIGITAL\nProfissional: ${pro.name} (${pro.crm})\nLocal: ${pro.companyName} - ${pro.room}\nPaciente: ${currentTicket?.name || 'Paciente'}\nData: ${new Date().toLocaleDateString('pt-BR')}\n\nTipo: ${rxDocType.toUpperCase()}\nPrescrição / Justificativa:\n${rxDetails}\n\nCódigo de Validação Digital: TFL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     navigator.clipboard?.writeText(text);
     setRxCopied(true);
     setTimeout(() => setRxCopied(false), 2500);
@@ -409,10 +409,10 @@ export default function ProfessionalWorkspace({
               {/* Demo Professional Switcher */}
               {allProfessionals.length > 1 && (
                 <div className="pro-switcher-wrapper">
-                  <button 
+                  <button
                     className="btn-pro-switch"
                     onClick={() => setIsSwitchMenuOpen(!isSwitchMenuOpen)}
-                    title="Alternar entre médicos e especialistas de teste"
+                    title="Alternar entre profissionais cadastrados"
                   >
                     <span>Trocar Perfil</span>
                     <ChevronDown size={13} />
@@ -420,7 +420,7 @@ export default function ProfessionalWorkspace({
 
                   {isSwitchMenuOpen && (
                     <div className="pro-switch-menu">
-                      <div className="switch-menu-title">Especialistas Disponíveis (Demo)</div>
+                      <div className="switch-menu-title">Profissionais da Equipe</div>
                       {allProfessionals.map((item) => (
                         <button
                           key={item.id}
@@ -465,14 +465,14 @@ export default function ProfessionalWorkspace({
           <div className={`ff-pro-live-status-chip ${consultationStatus}`}>
             <span className="live-dot-pulse"></span>
             <span>
-              {consultationStatus === 'attending' ? 'Em Atendimento Ativo' : 
-               consultationStatus === 'break' ? 'Em Intervalo (15 min)' : 
-               'Aguardando Próximo'}
+              {consultationStatus === 'attending' ? 'Em Atendimento Ativo' :
+                consultationStatus === 'break' ? 'Em Intervalo (15 min)' :
+                  'Aguardando Próximo'}
             </span>
           </div>
 
           {/* Sound Toggle */}
-          <button 
+          <button
             className={`ff-pro-btn-tool ${soundEnabled ? 'active' : ''}`}
             onClick={() => setSoundEnabled(!soundEnabled)}
             title={soundEnabled ? 'Áudio ativado (Gongo e Chamada por Voz em Português)' : 'Áudio silenciado'}
@@ -481,7 +481,7 @@ export default function ProfessionalWorkspace({
           </button>
 
           {/* Break Mode Button */}
-          <button 
+          <button
             className={`ff-pro-btn-tool ${consultationStatus === 'break' ? 'active-amber' : ''}`}
             onClick={handleToggleBreak}
             title="Pausa rápida para café ou descanso"
@@ -491,7 +491,7 @@ export default function ProfessionalWorkspace({
           </button>
 
           {/* End of Shift / Report */}
-          <button 
+          <button
             className="ff-pro-btn-tool"
             onClick={() => setIsReportModalOpen(true)}
             title="Ver resumo e relatório do turno de hoje"
@@ -501,7 +501,7 @@ export default function ProfessionalWorkspace({
           </button>
 
           {/* Logout */}
-          <button 
+          <button
             className="ff-pro-btn-tool logout"
             onClick={onLogout}
             title="Sair do consultório"
@@ -542,7 +542,7 @@ export default function ProfessionalWorkspace({
               </div>
 
               <div className="timer-controls-row">
-                <button 
+                <button
                   className={`btn-timer-action ${isTimerRunning ? 'pause' : 'play'}`}
                   onClick={() => setIsTimerRunning(!isTimerRunning)}
                   title={isTimerRunning ? 'Pausar cronômetro' : 'Continuar cronômetro'}
@@ -551,7 +551,7 @@ export default function ProfessionalWorkspace({
                   <span>{isTimerRunning ? 'Pausar' : 'Continuar'}</span>
                 </button>
 
-                <button 
+                <button
                   className="btn-timer-action reset"
                   onClick={() => setTimerSeconds(0)}
                   title="Zerar cronômetro da consulta atual"
@@ -565,7 +565,7 @@ export default function ProfessionalWorkspace({
             {/* Barra de Progresso Visual */}
             <div className="timer-progress-container">
               <div className="timer-progress-track">
-                <div 
+                <div
                   className={`timer-progress-fill ${isOverTime ? 'overtime' : progressPercent > 80 ? 'warning' : 'normal'}`}
                   style={{ width: `${progressPercent}%` }}
                 ></div>
@@ -598,32 +598,32 @@ export default function ProfessionalWorkspace({
                 <span>Aumentar tempo da consulta (A IA recalcula os próximos da fila automaticamente):</span>
               </span>
               <div className="add-time-btn-group">
-                <button 
-                  className="btn-add-time" 
+                <button
+                  className="btn-add-time"
                   onClick={() => handleAddMinutes(5)}
                   title="Conceder mais 5 minutos de consulta"
                 >
                   <Plus size={13} />
                   <span>+5 min</span>
                 </button>
-                <button 
-                  className="btn-add-time" 
+                <button
+                  className="btn-add-time"
                   onClick={() => handleAddMinutes(10)}
                   title="Conceder mais 10 minutos de consulta"
                 >
                   <Plus size={13} />
                   <span>+10 min</span>
                 </button>
-                <button 
-                  className="btn-add-time" 
+                <button
+                  className="btn-add-time"
                   onClick={() => handleAddMinutes(15)}
                   title="Conceder mais 15 minutos de consulta"
                 >
                   <Plus size={13} />
                   <span>+15 min</span>
                 </button>
-                <button 
-                  className="btn-add-time custom" 
+                <button
+                  className="btn-add-time custom"
                   onClick={() => {
                     const customMin = prompt('Quantos minutos extras deseja adicionar à consulta atual?', '20');
                     if (customMin && !isNaN(customMin)) {
@@ -685,7 +685,7 @@ export default function ProfessionalWorkspace({
 
                 {/* Ações Rápidas do Paciente Atual */}
                 <div className="patient-action-bar">
-                  <button 
+                  <button
                     className="btn-pro-action recall"
                     onClick={handleRecallCurrent}
                     title="Tocar gongo e re-anunciar senha por voz e no celular"
@@ -694,7 +694,7 @@ export default function ProfessionalWorkspace({
                     <span>Re-chamar Senha</span>
                   </button>
 
-                  <button 
+                  <button
                     className="btn-pro-action rx-doc"
                     onClick={() => setIsRxModalOpen(true)}
                     title="Emitir Atestado, Receita Digital ou Declaração com Chave de Validação"
@@ -703,7 +703,7 @@ export default function ProfessionalWorkspace({
                     <span>Atestado / Receita</span>
                   </button>
 
-                  <button 
+                  <button
                     className="btn-pro-action finish"
                     onClick={handleFinishConsultation}
                     title="Finalizar esta consulta e liberar consultório"
@@ -748,7 +748,7 @@ export default function ProfessionalWorkspace({
                     </button>
                   </div>
 
-                  <textarea 
+                  <textarea
                     className="notes-textarea"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -760,8 +760,8 @@ export default function ProfessionalWorkspace({
                     <span style={{ fontSize: 11, color: '#64748b' }}>
                       Criptografia ponta a ponta • Armazenado em conformidade com a LGPD
                     </span>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="btn-save-notes"
                       onClick={handleSaveNotes}
                     >
@@ -778,8 +778,8 @@ export default function ProfessionalWorkspace({
                 </div>
                 <h4>Consultório Livre no Momento</h4>
                 <p>Nenhum paciente está sendo atendido agora. Clique no botão abaixo para chamar o próximo da fila.</p>
-                <button 
-                  className="btn-call-hero" 
+                <button
+                  className="btn-call-hero"
                   onClick={handleCallNext}
                   disabled={waitingList.length === 0}
                 >
@@ -795,7 +795,7 @@ export default function ProfessionalWorkspace({
         <div className="ff-pro-right-col">
           {/* BOTÃO HERO: Chamar Próximo Paciente */}
           <div className="ff-pro-call-hero-box">
-            <button 
+            <button
               className="btn-call-next-giant"
               onClick={handleCallNext}
               disabled={waitingList.length === 0}
@@ -806,7 +806,7 @@ export default function ProfessionalWorkspace({
               <div className="giant-text-wrap">
                 <span className="giant-title">CHAMAR PRÓXIMO PACIENTE</span>
                 <span className="giant-sub">
-                  {waitingList.length > 0 
+                  {waitingList.length > 0
                     ? `Próximo: ${waitingList[0].ticket} - ${waitingList[0].name} (Gongo + Voz em Português)`
                     : 'Não há mais pacientes aguardando'}
                 </span>
@@ -881,7 +881,7 @@ export default function ProfessionalWorkspace({
                     </div>
 
                     <div className="queue-action-col">
-                      <button 
+                      <button
                         className="btn-row-action call"
                         onClick={() => {
                           // Call this specific patient directly
@@ -920,7 +920,7 @@ export default function ProfessionalWorkspace({
                         <span>Chamar</span>
                       </button>
 
-                      <button 
+                      <button
                         className="btn-row-action notify"
                         onClick={() => handleNotifyWhatsApp(patient)}
                         title="Enviar aviso para o WhatsApp do paciente"
@@ -928,7 +928,7 @@ export default function ProfessionalWorkspace({
                         <Send size={13} />
                       </button>
 
-                      <button 
+                      <button
                         className="btn-row-action delay"
                         onClick={() => handleMoveToEnd(patient)}
                         title="Mover para o fim da fila se atrasou"
@@ -936,7 +936,7 @@ export default function ProfessionalWorkspace({
                         <RefreshCw size={13} />
                       </button>
 
-                      <button 
+                      <button
                         className="btn-row-action absent"
                         onClick={() => handleMarkAbsent(patient)}
                         title="Marcar falta / Ausente"
@@ -962,7 +962,7 @@ export default function ProfessionalWorkspace({
                 <Activity size={16} color="#7c3aed" />
                 <h3 className="stats-title">Resumo do Seu Dia de Atendimento</h3>
               </div>
-              <button 
+              <button
                 className="btn-view-report"
                 onClick={() => setIsReportModalOpen(true)}
               >
@@ -1024,30 +1024,30 @@ export default function ProfessionalWorkspace({
             <form onSubmit={handleAddWalkIn} className="ff-pro-modal-form">
               <div className="form-group">
                 <label>Nome Completo do Paciente *</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={walkInName}
                   onChange={e => setWalkInName(e.target.value)}
-                  placeholder="Ex: Fernanda Vasconcelos" 
-                  required 
+                  placeholder="Ex: Fernanda Vasconcelos"
+                  required
                   autoFocus
                 />
               </div>
 
               <div className="form-group">
                 <label>Procedimento / Serviço</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={walkInService}
                   onChange={e => setWalkInService(e.target.value)}
-                  placeholder="Ex: Avaliação de Retorno ou Consulta Geral" 
+                  placeholder="Ex: Avaliação de Retorno ou Consulta Geral"
                 />
               </div>
 
               <div className="form-checkboxes">
                 <label className="checkbox-item">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={walkInPriority}
                     onChange={e => setWalkInPriority(e.target.checked)}
                   />
@@ -1055,8 +1055,8 @@ export default function ProfessionalWorkspace({
                 </label>
 
                 <label className="checkbox-item">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={walkInInsertTop}
                     onChange={e => setWalkInInsertTop(e.target.checked)}
                   />
@@ -1094,21 +1094,21 @@ export default function ProfessionalWorkspace({
 
             <div className="rx-modal-body">
               <div className="rx-doc-tabs">
-                <button 
+                <button
                   type="button"
                   className={`rx-tab ${rxDocType === 'atestado' ? 'active' : ''}`}
                   onClick={() => setRxDocType('atestado')}
                 >
                   Atestado Médico
                 </button>
-                <button 
+                <button
                   type="button"
                   className={`rx-tab ${rxDocType === 'receita' ? 'active' : ''}`}
                   onClick={() => setRxDocType('receita')}
                 >
                   Receita de Medicamentos
                 </button>
-                <button 
+                <button
                   type="button"
                   className={`rx-tab ${rxDocType === 'declaracao' ? 'active' : ''}`}
                   onClick={() => setRxDocType('declaracao')}
@@ -1140,8 +1140,8 @@ export default function ProfessionalWorkspace({
 
               <div className="form-group" style={{ marginTop: 12 }}>
                 <label>Texto da Prescrição ou Diagnóstico:</label>
-                <textarea 
-                  rows={4} 
+                <textarea
+                  rows={4}
                   value={rxDetails}
                   onChange={e => setRxDetails(e.target.value)}
                   className="rx-textarea"
@@ -1167,7 +1167,7 @@ export default function ProfessionalWorkspace({
                   </div>
                   <div className="rx-digital-seal">
                     <ShieldCheck size={13} color="#10b981" />
-                    <span>Assinado Digitalmente ICP-Brasil (Simulado FilaFlow)</span>
+                    <span>Assinado Digitalmente ICP-Brasil (Validação TemFyla)</span>
                   </div>
                 </div>
               </div>
@@ -1180,8 +1180,8 @@ export default function ProfessionalWorkspace({
                   {rxCopied ? <Check size={14} /> : <Copy size={14} />}
                   <span>{rxCopied ? 'Copiado!' : 'Copiar Texto com Hash'}</span>
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn-confirm"
                   onClick={() => {
                     showToast(`📲 Atestado digital enviado via WhatsApp para ${currentTicket?.name}!`);
@@ -1255,8 +1255,8 @@ export default function ProfessionalWorkspace({
                 <button type="button" className="btn-cancel" onClick={() => setIsReportModalOpen(false)}>
                   Fechar
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn-confirm"
                   onClick={() => {
                     showToast('🖨️ Enviando resumo do turno para a impressora / PDF...');

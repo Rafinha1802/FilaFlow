@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  User, 
-  ShieldCheck, 
-  Bell, 
-  Clock, 
+import {
+  User,
+  ShieldCheck,
+  Bell,
+  Clock,
   ChevronRight,
   Sparkles,
   MessageCircle,
@@ -17,14 +17,14 @@ import {
   FileCheck
 } from 'lucide-react';
 
-export default function MobileProfileView({ 
+export default function MobileProfileView({
   currentUser,
   isAuthenticated = true,
   onLogout,
   onOpenLogin,
   onOpenRegister,
-  onGoToLanding, 
-  onGoToCompany 
+  onGoToLanding,
+  onGoToCompany
 }) {
   const [whatsappAlerts, setWhatsappAlerts] = useState(true);
   const [pushAlerts, setPushAlerts] = useState(true);
@@ -54,7 +54,7 @@ export default function MobileProfileView({
           <div className="profile-avatar-squircle">
             <span>{avatarLetter}</span>
           </div>
-          
+
           <h3 className="profile-clean-name">{userName}</h3>
           <p className="profile-clean-email">{userEmail} • {userPhone}</p>
 
@@ -65,7 +65,7 @@ export default function MobileProfileView({
             </span>
             <span className="clean-chip-badge lavender">
               <Sparkles size={13} />
-              <span>FilaFlow VIP</span>
+              <span>TemFyla VIP</span>
             </span>
           </div>
 
@@ -91,7 +91,7 @@ export default function MobileProfileView({
           <div className="profile-avatar-squircle" style={{ background: '#e2e8f0', color: '#64748b' }}>
             <User size={24} />
           </div>
-          
+
           <h3 className="profile-clean-name">Navegando como Visitante</h3>
           <p className="profile-clean-email">Crie sua conta para salvar seu convênio e histórico.</p>
 
@@ -140,7 +140,7 @@ export default function MobileProfileView({
       <div className="clean-profile-stats-card">
         <div className="profile-stats-header">
           <Award size={16} color="#6366f1" />
-          <span>Seu Tempo Poupado com o FilaFlow</span>
+          <span>Seu Tempo Poupado com o TemFyla</span>
         </div>
 
         <div className="profile-stats-grid">
@@ -176,10 +176,10 @@ export default function MobileProfileView({
               </div>
             </div>
             <label className="clean-toggle-switch">
-              <input 
-                type="checkbox" 
-                checked={whatsappAlerts} 
-                onChange={(e) => setWhatsappAlerts(e.target.checked)} 
+              <input
+                type="checkbox"
+                checked={whatsappAlerts}
+                onChange={(e) => setWhatsappAlerts(e.target.checked)}
               />
               <span className="clean-switch-slider"></span>
             </label>
@@ -199,10 +199,10 @@ export default function MobileProfileView({
               </div>
             </div>
             <label className="clean-toggle-switch">
-              <input 
-                type="checkbox" 
-                checked={pushAlerts} 
-                onChange={(e) => setPushAlerts(e.target.checked)} 
+              <input
+                type="checkbox"
+                checked={pushAlerts}
+                onChange={(e) => setPushAlerts(e.target.checked)}
               />
               <span className="clean-switch-slider"></span>
             </label>
@@ -223,10 +223,10 @@ export default function MobileProfileView({
               </div>
             </div>
             <label className="clean-toggle-switch">
-              <input 
-                type="checkbox" 
-                checked={conflictGuard} 
-                onChange={(e) => setConflictGuard(e.target.checked)} 
+              <input
+                type="checkbox"
+                checked={conflictGuard}
+                onChange={(e) => setConflictGuard(e.target.checked)}
               />
               <span className="clean-switch-slider"></span>
             </label>
@@ -241,8 +241,8 @@ export default function MobileProfileView({
         <div className="clean-links-group">
           {isAuthenticated ? (
             <>
-              <button 
-                className="clean-link-row" 
+              <button
+                className="clean-link-row"
                 onClick={onOpenLogin}
               >
                 <div className="link-row-left">
@@ -257,8 +257,8 @@ export default function MobileProfileView({
                 <ChevronRight size={16} color="#94a3b8" />
               </button>
 
-              <button 
-                className="clean-link-row" 
+              <button
+                className="clean-link-row"
                 onClick={onLogout}
                 style={{ color: '#ef4444' }}
               >
@@ -275,8 +275,8 @@ export default function MobileProfileView({
               </button>
             </>
           ) : (
-            <button 
-              className="clean-link-row" 
+            <button
+              className="clean-link-row"
               onClick={onOpenLogin}
             >
               <div className="link-row-left">
@@ -297,7 +297,7 @@ export default function MobileProfileView({
 
       {/* Rodapé da Versão */}
       <div className="clean-profile-footer">
-        <span>FilaFlow Mobile App • v2.4 PWA</span>
+        <span>TemFyla Mobile App • v2.4 PWA</span>
         <small>Sincronizado via WebSockets • Criptografia ponta a ponta</small>
       </div>
     </div>

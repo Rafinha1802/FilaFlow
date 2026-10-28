@@ -1,11 +1,14 @@
 import React from 'react';
-import { Layers, Building2, Stethoscope } from 'lucide-react';
+import { Building2, Stethoscope } from 'lucide-react';
+import BrandLogo from '../Common/BrandLogo';
 
 export default function Navbar({
   isAuthenticated,
   currentUser,
   onGoToLanding,
   onOpenDashboard,
+  onOpenLogin,
+  onOpenSignup,
   onOpenClient,
   onOpenPricing,
   onOpenProfessional,
@@ -22,13 +25,8 @@ export default function Navbar({
     <header className="ff-header">
       <div className="ff-header-inner">
         {/* Logo */}
-        <div className="ff-logo-group" onClick={onGoToLanding} title="Página Inicial FilaFlow">
-          <div className="ff-logo-mark">
-            <Layers size={20} strokeWidth={2.4} />
-          </div>
-          <span className="ff-logo-text">
-            Fila<span>Flow</span>
-          </span>
+        <div onClick={onGoToLanding} title="Página Inicial TemFyla" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+          <BrandLogo size={38} textColor="#0f172a" />
         </div>
 
         {/* Public Landing Navigation Links */}
@@ -73,13 +71,22 @@ export default function Navbar({
             </button>
 
             <button
+              className="btn-ghost"
+              onClick={onOpenLogin || onOpenDashboard}
+              title="Entrar na conta da Empresa"
+              style={{ padding: '8px 14px', fontSize: 13, fontWeight: 700 }}
+            >
+              <span>Entrar</span>
+            </button>
+
+            <button
               className="btn-primary"
-              onClick={onOpenDashboard}
-              title="Acessar Painel da Empresa diretamente integrado ao backend"
+              onClick={onOpenSignup || onOpenDashboard}
+              title="Cadastrar sua empresa no TemFyla"
               style={{ background: '#7c3aed', padding: '8px 16px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
             >
               <Building2 size={15} />
-              <span>Painel da Empresa</span>
+              <span>Cadastrar Empresa</span>
               <span style={{ 
                 width: 8, 
                 height: 8, 

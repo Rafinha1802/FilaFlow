@@ -30,7 +30,7 @@ export default function InteractiveHeroPhone({ activeQueue }) {
         </div>
         <div className="ff-float-chip-content">
           <span className="chip-label">Alerta Automático</span>
-          <span className="chip-value">Sua vez em 5 min • Sala 04</span>
+          <span className="chip-value">{queue.chipTopText || 'Sua vez em 5 min • Sala 04'}</span>
         </div>
       </div>
 
@@ -40,7 +40,7 @@ export default function InteractiveHeroPhone({ activeQueue }) {
         </div>
         <div className="ff-float-chip-content">
           <span className="chip-label">Previsão por IA</span>
-          <span className="chip-value">Fluxo +18% mais ágil hoje</span>
+          <span className="chip-value">{queue.chipBottomText || 'Fluxo +18% mais ágil hoje'}</span>
         </div>
       </div>
 
@@ -94,7 +94,7 @@ export default function InteractiveHeroPhone({ activeQueue }) {
               <div className="ff-ticket-center">
                 <div className="ff-ticket-label">SUA SENHA ATIVA</div>
                 <div className="ff-ticket-number">#{queue.ticketNumber}</div>
-                <div className="ff-ticket-service">Consulta Oftalmologia Geral</div>
+                <div className="ff-ticket-service">{queue.service || 'Consulta Oftalmologia Geral'}</div>
               </div>
 
               <div className="ff-ticket-footer-row">
@@ -130,7 +130,7 @@ export default function InteractiveHeroPhone({ activeQueue }) {
 
               <div className="ff-forecast-footer">
                 <span className="ff-forecast-dot-pulse"></span>
-                <span>Ritmo do Dr. Carlos: ~8 min por atendimento</span>
+                <span>{queue.staffNote || 'Ritmo do Dr. Carlos: ~8 min por atendimento'}</span>
               </div>
             </div>
 

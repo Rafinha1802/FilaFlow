@@ -1,26 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import ReceptionDeskView from './ReceptionDeskView';
-import { ShieldCheck } from 'lucide-react';
-import { 
-  Building2, 
-  Layers, 
-  Users, 
-  Clock, 
-  Play, 
-  AlertTriangle, 
-  CheckCircle2, 
-  UserX, 
-  Plus, 
-  QrCode, 
-  BarChart3, 
-  Sparkles, 
-  Printer, 
-  Volume2, 
-  VolumeX, 
-  Smartphone, 
-  ChevronRight, 
-  Globe, 
-  LogOut, 
+import { ShieldCheck, Stethoscope, Trash2 } from 'lucide-react';
+import { getStoredProfessionals, saveProfessionals } from '../../services/authService';
+import {
+  Building2,
+  Layers,
+  Users,
+  Clock,
+  Play,
+  AlertTriangle,
+  CheckCircle2,
+  UserX,
+  Plus,
+  QrCode,
+  BarChart3,
+  Sparkles,
+  Printer,
+  Volume2,
+  VolumeX,
+  Smartphone,
+  ChevronRight,
+  Globe,
+  LogOut,
   User,
   Tv,
   Search,
@@ -52,14 +53,27 @@ export default function CompanyDashboard({
   onAddManualTicket,
   onOpenMobileTest,
   onGoToSite,
-  onLogout
+  onLogout,
+  onOpenProfessional
 }) {
-  const [activeTab, setActiveTab] = useState('operational'); // 'operational' | 'metrics' | 'totem'
+  const [activeTab, setActiveTab] = useState('operational'); // 'operational' | 'metrics' | 'totem' | 'team'
   const [timerSeconds, setTimerSeconds] = useState(254); // Live call timer
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showManualModal, setShowManualModal] = useState(false);
   const [showTvModal, setShowTvModal] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Team & Professionals state
+  const [teamList, setTeamList] = useState(() => getStoredProfessionals());
+  const [showAddProModal, setShowAddProModal] = useState(false);
+  const [addProName, setAddProName] = useState('');
+  const [addProEmail, setAddProEmail] = useState('');
+  const [addProSpecialty, setAddProSpecialty] = useState('');
+  const [addProRoom, setAddProRoom] = useState('');
+  const [addProMaxHours, setAddProMaxHours] = useState(8);
+  const [addProStart, setAddProStart] = useState('08:00');
+  const [addProEnd, setAddProEnd] = useState('18:00');
+  const [addProAvgMin, setAddProAvgMin] = useState(20);
 
   // Reception Notice / Broadcast state for TV and Dashboard
   const [receptionNotice, setReceptionNotice] = useState('Dra. Beatriz Santos está atendendo no Consultório 04. Por favor, aguarde sua senha.');
@@ -180,7 +194,7 @@ export default function CompanyDashboard({
 
   // Filtered Queue
   const filteredQueue = waitingQueue.filter((item) => {
-    const matchesSearch = 
+    const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.ticket.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.service && item.service.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -274,10 +288,10 @@ export default function CompanyDashboard({
       {/* Top Bar Header */}
       <header className="ff-portal-topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ 
-            width: 42, 
-            height: 42, 
-            borderRadius: 12, 
+          <div style={{
+            width: 42,
+            height: 42,
+            borderRadius: 12,
             background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
             display: 'flex',
             alignItems: 'center',
@@ -293,12 +307,12 @@ export default function CompanyDashboard({
               <h1 style={{ fontSize: 19, fontWeight: 800, color: '#0f172a', margin: 0 }}>
                 {businessData.companyName || 'Clínica Vida'}
               </h1>
-              <span style={{ 
-                background: '#ecfdf5', 
-                color: '#065f46', 
-                fontSize: 11, 
-                fontWeight: 700, 
-                padding: '2px 8px', 
+              <span style={{
+                background: '#ecfdf5',
+                color: '#065f46',
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '2px 8px',
                 borderRadius: 999,
                 border: '1px solid #a7f3d0'
               }}>
@@ -359,6 +373,28 @@ export default function CompanyDashboard({
           >
             <QrCode size={14} />
             <span>QR Code & Totem</span>
+          </button>
+
+          <button
+            className={`ff-portal-tab-btn ${activeTab === 'team' ? 'active' : ''}`}
+            onClick={() => {
+              setTeamList(getStoredProfessionals());
+              setActiveTab('team');
+            }}
+          >
+            <Users size={14} />
+            <span>Equipe & Profissionais</span>
+            <span style={{
+              background: '#7c3aed',
+              color: 'white',
+              fontSize: 10,
+              fontWeight: 800,
+              padding: '2px 7px',
+              borderRadius: 999,
+              marginLeft: 4
+            }}>
+              {teamList.length}
+            </span>
           </button>
         </nav>
 
@@ -644,7 +680,7 @@ export default function CompanyDashboard({
                   <span className="ff-attending-tag">
                     ● EM CONSULTA AGORA
                   </span>
-                  <button 
+                  <button
                     onClick={handleRecallActiveTicket}
                     className="btn-ghost"
                     style={{ fontSize: 11, padding: '3px 8px', border: '1px solid #e2e8f0', background: 'white' }}
@@ -773,20 +809,20 @@ export default function CompanyDashboard({
                 </div>
 
                 {/* AI Assistant Callout */}
-                <div style={{ 
-                  background: '#faf5ff', 
-                  border: '1px solid #e9d5ff', 
-                  borderRadius: 12, 
-                  padding: '12px 14px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <div style={{
+                  background: '#faf5ff',
+                  border: '1px solid #e9d5ff',
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
                   gap: 10,
                   fontSize: 12,
                   color: '#6b21a8'
                 }}>
                   <Sparkles size={16} style={{ flexShrink: 0 }} />
                   <span>
-                    <strong>IA Preditiva Ativa:</strong> Próximos {Math.min(waitingQueue.length, 3)} clientes já receberam aviso de aproximação 
+                    <strong>IA Preditiva Ativa:</strong> Próximos {Math.min(waitingQueue.length, 3)} clientes já receberam aviso de aproximação
                     e estão no saguão ou a caminho pelo celular.
                   </span>
                 </div>
@@ -795,21 +831,21 @@ export default function CompanyDashboard({
           </section>
 
           {/* 3. Re-organized Waiting Queue Table with Toolbar */}
-          <section style={{ 
-            background: 'white', 
-            borderRadius: 16, 
-            border: '1.5px solid #e2e8f0', 
+          <section style={{
+            background: 'white',
+            borderRadius: 16,
+            border: '1.5px solid #e2e8f0',
             padding: 24,
             boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
           }}>
             {/* Table Header & Controls */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               marginBottom: 16,
               flexWrap: 'wrap',
-              gap: 12 
+              gap: 12
             }}>
               <div>
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
@@ -913,9 +949,9 @@ export default function CompanyDashboard({
                       const isUserItem = item.isUser;
 
                       return (
-                        <tr 
-                          key={idx} 
-                          style={{ 
+                        <tr
+                          key={idx}
+                          style={{
                             borderBottom: '1px solid #f1f5f9',
                             background: isNext ? '#fefce8' : isUserItem ? '#faf5ff' : 'transparent',
                             transition: 'background 0.2s'
@@ -926,11 +962,11 @@ export default function CompanyDashboard({
                           </td>
 
                           <td style={{ padding: '12px 14px' }}>
-                            <span style={{ 
-                              fontFamily: 'Outfit', 
-                              fontSize: 16, 
-                              fontWeight: 900, 
-                              color: isUserItem ? '#7c3aed' : '#0f172a' 
+                            <span style={{
+                              fontFamily: 'Outfit',
+                              fontSize: 16,
+                              fontWeight: 900,
+                              color: isUserItem ? '#7c3aed' : '#0f172a'
                             }}>
                               {item.ticket}
                             </span>
@@ -939,14 +975,14 @@ export default function CompanyDashboard({
                           <td style={{ padding: '12px 14px', fontWeight: 600, color: '#1e293b' }}>
                             {item.name}
                             {isUserItem && (
-                              <span style={{ 
-                                marginLeft: 6, 
-                                background: '#ede9fe', 
-                                color: '#6d28d9', 
-                                fontSize: 10, 
-                                fontWeight: 800, 
-                                padding: '2px 6px', 
-                                borderRadius: 4 
+                              <span style={{
+                                marginLeft: 6,
+                                background: '#ede9fe',
+                                color: '#6d28d9',
+                                fontSize: 10,
+                                fontWeight: 800,
+                                padding: '2px 6px',
+                                borderRadius: 4
                               }}>
                                 VOCÊ (APP CELULAR)
                               </span>
@@ -963,24 +999,24 @@ export default function CompanyDashboard({
 
                           <td style={{ padding: '12px 14px' }}>
                             {item.isPriority ? (
-                              <span style={{ 
-                                background: '#fee2e2', 
-                                color: '#991b1b', 
-                                fontSize: 11, 
-                                fontWeight: 700, 
-                                padding: '3px 8px', 
-                                borderRadius: 999 
+                              <span style={{
+                                background: '#fee2e2',
+                                color: '#991b1b',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: '3px 8px',
+                                borderRadius: 999
                               }}>
                                 Prioritário Lei 10.048
                               </span>
                             ) : (
-                              <span style={{ 
-                                background: isNext ? '#fef3c7' : isUserItem ? '#ede9fe' : '#ecfdf5', 
-                                color: isNext ? '#92400e' : isUserItem ? '#6b21a8' : '#065f46', 
-                                fontSize: 11, 
-                                fontWeight: 700, 
-                                padding: '3px 8px', 
-                                borderRadius: 999 
+                              <span style={{
+                                background: isNext ? '#fef3c7' : isUserItem ? '#ede9fe' : '#ecfdf5',
+                                color: isNext ? '#92400e' : isUserItem ? '#6b21a8' : '#065f46',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: '3px 8px',
+                                borderRadius: 999
                               }}>
                                 {isNext ? 'Próximo da Vez' : isUserItem ? 'A Caminho (App)' : 'Aguardando no saguão'}
                               </span>
@@ -1142,8 +1178,8 @@ export default function CompanyDashboard({
                       <div style={{
                         width: 16,
                         height: `${heightPercent}%`,
-                        background: d.isCurrent 
-                          ? 'linear-gradient(180deg, #7c3aed 0%, #4f46e5 100%)' 
+                        background: d.isCurrent
+                          ? 'linear-gradient(180deg, #7c3aed 0%, #4f46e5 100%)'
                           : '#8b5cf6',
                         borderRadius: '4px 4px 0 0',
                         boxShadow: d.isCurrent ? '0 4px 12px rgba(124, 58, 237, 0.4)' : 'none',
@@ -1159,11 +1195,11 @@ export default function CompanyDashboard({
                       }} title={`Previsto: ${d.predicted} pacientes`} />
                     </div>
 
-                    <div style={{ 
-                      fontSize: 11, 
-                      fontWeight: d.isCurrent ? 800 : 600, 
-                      color: d.isCurrent ? '#7c3aed' : '#64748b', 
-                      marginTop: 8 
+                    <div style={{
+                      fontSize: 11,
+                      fontWeight: d.isCurrent ? 800 : 600,
+                      color: d.isCurrent ? '#7c3aed' : '#64748b',
+                      marginTop: 8
                     }}>
                       {d.hour}
                     </div>
@@ -1296,10 +1332,10 @@ export default function CompanyDashboard({
           </div>
 
           {/* Central de Calibração da IA e Parâmetros */}
-          <section style={{ 
-            background: 'white', 
-            borderRadius: 16, 
-            border: '1.5px solid #e2e8f0', 
+          <section style={{
+            background: 'white',
+            borderRadius: 16,
+            border: '1.5px solid #e2e8f0',
             padding: 24,
             boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
           }}>
@@ -1324,7 +1360,7 @@ export default function CompanyDashboard({
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-              <div 
+              <div
                 onClick={() => { setAiAlgorithmMode('smart'); showNotification('Modo IA Preditivo Equilibrado ativo.'); }}
                 style={{
                   padding: 16,
@@ -1344,7 +1380,7 @@ export default function CompanyDashboard({
                 </p>
               </div>
 
-              <div 
+              <div
                 onClick={() => { setAiAlgorithmMode('conservative'); showNotification('Modo Conservador ativado (+5m de margem).'); }}
                 style={{
                   padding: 16,
@@ -1364,7 +1400,7 @@ export default function CompanyDashboard({
                 </p>
               </div>
 
-              <div 
+              <div
                 onClick={() => { setAiAlgorithmMode('fast'); showNotification('Modo Giro Rápido ativo.'); }}
                 style={{
                   padding: 16,
@@ -1392,10 +1428,10 @@ export default function CompanyDashboard({
           TAB 3: TOTEM / QR CODE DE BALCÃO
           ============================================================ */}
       {activeTab === 'totem' && (
-        <div style={{ 
-          background: 'white', 
-          borderRadius: 20, 
-          border: '1.5px solid #e2e8f0', 
+        <div style={{
+          background: 'white',
+          borderRadius: 20,
+          border: '1.5px solid #e2e8f0',
           padding: 40,
           textAlign: 'center',
           maxWidth: 640,
@@ -1403,7 +1439,7 @@ export default function CompanyDashboard({
           boxShadow: '0 10px 35px rgba(0,0,0,0.05)'
         }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            TOTEM DE BALCÃO • FILAFLOW
+            TOTEM DE BALCÃO • TEMFYLA
           </div>
 
           <h2 style={{ fontSize: 28, fontWeight: 900, color: '#0f172a', marginTop: 6 }}>
@@ -1503,10 +1539,430 @@ export default function CompanyDashboard({
       )}
 
       {/* ============================================================
+          TAB 4: GESTÃO DA EQUIPE & PROFISSIONAIS (HORÁRIOS & E-MAILS DE LOGIN)
+          ============================================================ */}
+      {activeTab === 'team' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Header Bar */}
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: 16,
+            padding: '20px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            flexWrap: 'wrap'
+          }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#ede9fe', color: '#6d28d9', padding: '3px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 800, marginBottom: 6 }}>
+                <Users size={13} />
+                <span>EQUIPE DE ATENDIMENTO & SALAS</span>
+              </div>
+              <h2 style={{ fontSize: 20, fontWeight: 900, color: '#0f172a', margin: '0 0 4px', fontFamily: 'Outfit' }}>
+                Profissionais Cadastrados na Empresa
+              </h2>
+              <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+                Configure os e-mails de login para cada profissional e gerencie os limites máximos de atendimento diário.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowAddProModal(true)}
+              className="btn-primary"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                boxShadow: '0 4px 14px rgba(124, 58, 237, 0.35)',
+                padding: '10px 18px',
+                fontSize: 13,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8
+              }}
+            >
+              <Plus size={16} />
+              <span>Novo Profissional</span>
+            </button>
+          </div>
+
+          {/* Cards Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+            gap: 18
+          }}>
+            {teamList.map((pro) => (
+              <div
+                key={pro.id}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 16,
+                  padding: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                  boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
+                  transition: 'all 0.2s ease',
+                  position: 'relative'
+                }}
+              >
+                {/* Top Row: Avatar, Name, Specialty */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 14,
+                      background: '#f5f3ff',
+                      border: '1.5px solid #ddd6fe',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 24
+                    }}>
+                      {pro.avatar || '👨‍⚕️'}
+                    </div>
+
+                    <div>
+                      <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 2px' }}>
+                        {pro.name}
+                      </h3>
+                      <span style={{ fontSize: 12.5, color: '#7c3aed', fontWeight: 600 }}>
+                        {pro.specialty || pro.role || 'Profissional'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: '#059669',
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
+                    padding: '3px 8px',
+                    borderRadius: 999
+                  }}>
+                    {pro.room || 'Consultório'}
+                  </span>
+                </div>
+
+                {/* Email Tag (highlighted for login) */}
+                <div style={{
+                  background: '#f0f9ff',
+                  border: '1px solid #bae6fd',
+                  borderRadius: 10,
+                  padding: '10px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+                    <Mail size={15} color="#0284c7" style={{ flexShrink: 0 }} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: '#0369a1', textTransform: 'uppercase' }}>
+                        E-mail de Login Corporativo
+                      </span>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0c4a6e', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                        {pro.email}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(pro.email);
+                      showNotification(`E-mail ${pro.email} copiado!`);
+                    }}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #bae6fd',
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: '#0369a1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                    title="Copiar e-mail de login"
+                  >
+                    <Copy size={12} />
+                    <span>Copiar</span>
+                  </button>
+                </div>
+
+                {/* Limits & Schedules Chips */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={{ background: '#faf5ff', border: '1px solid #f3e8ff', borderRadius: 8, padding: '8px 10px' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#6b21a8', display: 'block' }}>
+                      LIMITE EM ATENDIMENTO
+                    </span>
+                    <strong style={{ fontSize: 13, color: '#581c87' }}>
+                      Máx: {pro.maxDailyHours || 8} horas/dia
+                    </strong>
+                  </div>
+
+                  <div style={{ background: '#faf5ff', border: '1px solid #f3e8ff', borderRadius: 8, padding: '8px 10px' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#6b21a8', display: 'block' }}>
+                      TURNO DE TRABALHO
+                    </span>
+                    <strong style={{ fontSize: 13, color: '#581c87' }}>
+                      {pro.workHoursStart || '08:00'} às {pro.workHoursEnd || '18:00'}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Action: Open Professional Workspace */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                  <button
+                    onClick={() => {
+                      if (onOpenProfessional) {
+                        onOpenProfessional(pro);
+                      }
+                    }}
+                    className="btn-primary"
+                    style={{
+                      flex: 1,
+                      justifyContent: 'center',
+                      padding: '9px 12px',
+                      fontSize: 12.5,
+                      background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                      gap: 6
+                    }}
+                    title="Abrir o consultório digital deste profissional com fila e cronômetro"
+                  >
+                    <Stethoscope size={14} />
+                    <span>Acessar Consultório Deste Profissional</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Deseja remover ${pro.name} da equipe?`)) {
+                        const updated = teamList.filter(p => p.id !== pro.id);
+                        setTeamList(updated);
+                        saveProfessionals(updated);
+                        showNotification(`Profissional ${pro.name} removido da equipe.`);
+                      }
+                    }}
+                    style={{
+                      background: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      color: '#dc2626',
+                      borderRadius: 8,
+                      padding: '8px 10px',
+                      cursor: 'pointer'
+                    }}
+                    title="Remover profissional"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Modal para adicionar novo profissional na empresa */}
+          {showAddProModal && (
+            <div style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px'
+            }}>
+              <div style={{
+                background: '#ffffff',
+                borderRadius: 20,
+                width: '100%',
+                maxWidth: 540,
+                padding: '28px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                color: '#0f172a'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div>
+                    <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', margin: 0, fontFamily: 'Outfit' }}>
+                      Adicionar Profissional à Empresa
+                    </h3>
+                    <p style={{ fontSize: 12.5, color: '#64748b', margin: '3px 0 0' }}>
+                      Defina o e-mail de login e os limites máximos de atendimento.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowAddProModal(false)}
+                    style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!addProName || !addProEmail) {
+                    alert('Preencha os campos obrigatórios.');
+                    return;
+                  }
+                  const newPro = {
+                    id: 'pro-' + Date.now(),
+                    name: addProName.trim(),
+                    email: addProEmail.trim().toLowerCase(),
+                    password: '123',
+                    role: addProSpecialty || 'Profissional',
+                    specialty: addProSpecialty || 'Atendimento Geral',
+                    category: businessData.category || 'Clínica',
+                    companyName: businessData.companyName || 'Clínica Vida',
+                    unitName: businessData.unitName || 'Unidade Centro',
+                    room: addProRoom || 'Consultório 01',
+                    avatar: addProName.toLowerCase().includes('dra') ? '👩‍⚕️' : '👨‍⚕️',
+                    crm: 'Registro Ativo',
+                    maxDailyHours: Number(addProMaxHours) || 8,
+                    workHoursStart: addProStart,
+                    workHoursEnd: addProEnd,
+                    targetConsultationMinutes: Number(addProAvgMin) || 20,
+                    currentTicket: null,
+                    waitingList: [],
+                    historyToday: []
+                  };
+                  const updated = [...teamList, newPro];
+                  setTeamList(updated);
+                  saveProfessionals(updated);
+                  setShowAddProModal(false);
+                  setAddProName('');
+                  setAddProEmail('');
+                  setAddProSpecialty('');
+                  setAddProRoom('');
+                  showNotification(`Profissional ${newPro.name} cadastrado com sucesso! E-mail de login: ${newPro.email}`);
+                }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div className="ff-form-group">
+                    <label className="ff-form-label">Nome Completo *</label>
+                    <input
+                      type="text"
+                      className="ff-input"
+                      value={addProName}
+                      onChange={(e) => setAddProName(e.target.value)}
+                      placeholder="Ex: Dra. Larissa Alencar"
+                      required
+                    />
+                  </div>
+
+                  <div className="ff-form-group">
+                    <label className="ff-form-label">E-mail Corporativo (Usado para o Login) *</label>
+                    <input
+                      type="email"
+                      className="ff-input"
+                      value={addProEmail}
+                      onChange={(e) => setAddProEmail(e.target.value)}
+                      placeholder="larissa@suaempresa.com.br"
+                      required
+                    />
+                    <span style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>
+                      O profissional usará este e-mail para abrir seu consultório no TemFyla.
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="ff-form-group">
+                      <label className="ff-form-label">Especialidade / Função</label>
+                      <input
+                        type="text"
+                        className="ff-input"
+                        value={addProSpecialty}
+                        onChange={(e) => setAddProSpecialty(e.target.value)}
+                        placeholder="Ex: Pediatria"
+                      />
+                    </div>
+                    <div className="ff-form-group">
+                      <label className="ff-form-label">Sala / Consultório</label>
+                      <input
+                        type="text"
+                        className="ff-input"
+                        value={addProRoom}
+                        onChange={(e) => setAddProRoom(e.target.value)}
+                        placeholder="Ex: Consultório 05"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Limites de Horário */}
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
+                      <span style={{ fontWeight: 700, color: '#475569' }}>Carga Máxima de Atendimento:</span>
+                      <strong style={{ color: '#7c3aed' }}>{addProMaxHours} horas / dia</strong>
+                    </div>
+                    <input
+                      type="range"
+                      min="2"
+                      max="12"
+                      value={addProMaxHours}
+                      onChange={(e) => setAddProMaxHours(Number(e.target.value))}
+                      style={{ width: '100%', accentColor: '#7c3aed', marginBottom: 10 }}
+                    />
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Início do Turno</label>
+                        <input
+                          type="time"
+                          className="ff-input"
+                          value={addProStart}
+                          onChange={(e) => setAddProStart(e.target.value)}
+                          style={{ padding: '6px 10px', fontSize: 12 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Término do Turno</label>
+                        <input
+                          type="time"
+                          className="ff-input"
+                          value={addProEnd}
+                          onChange={(e) => setAddProEnd(e.target.value)}
+                          style={{ padding: '6px 10px', fontSize: 12 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddProModal(false)}
+                      className="btn-ghost"
+                      style={{ border: '1px solid #cbd5e1' }}
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      style={{ background: '#7c3aed' }}
+                    >
+                      <Plus size={16} />
+                      <span>Cadastrar Profissional</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ============================================================
           MODAL: MODO TELÃO / TV DA RECEPÇÃO EM ALTA RESOLUÇÃO
           ============================================================ */}
       {showTvModal && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             inset: 0,
@@ -1598,11 +2054,11 @@ export default function CompanyDashboard({
             textAlign: 'center',
             padding: '40px 0'
           }}>
-            <span style={{ 
-              fontSize: 16, 
-              fontWeight: 800, 
-              color: '#34d399', 
-              letterSpacing: '0.15em', 
+            <span style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: '#34d399',
+              letterSpacing: '0.15em',
               textTransform: 'uppercase',
               background: 'rgba(16, 185, 129, 0.15)',
               padding: '8px 24px',
@@ -1775,8 +2231,8 @@ export default function CompanyDashboard({
                   <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>Exibido no topo do painel e no Telão TV da sala de espera</p>
                 </div>
               </div>
-              <button 
-                onClick={() => setShowNoticeModal(false)} 
+              <button
+                onClick={() => setShowNoticeModal(false)}
                 style={{ color: '#64748b', cursor: 'pointer', background: 'none', border: 'none', fontSize: 18 }}
               >
                 ✕

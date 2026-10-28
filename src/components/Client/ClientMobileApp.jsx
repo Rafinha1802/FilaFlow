@@ -169,7 +169,7 @@ export default function ClientMobileApp({
 
           <div className="ff-ext-nav-brand-badge">
             <span className="live-dot" />
-            <span>FilaFlow Mobile</span>
+            <span>TemFyla Mobile</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -247,7 +247,7 @@ export default function ClientMobileApp({
             {/* Dynamic Island with Live Queue Indicator */}
             <div
               className={`ff-phone-dynamic-island ${urgentQueue ? 'has-activity' : ''}`}
-              title={urgentQueue ? `Fila Ativa: #${urgentQueue.ticketNumber} - ${urgentQueue.companyName}` : 'FilaFlow Live Activity'}
+              title={urgentQueue ? `Fila Ativa: #${urgentQueue.ticketNumber} - ${urgentQueue.companyName}` : 'TemFyla Live Activity'}
             >
               <div className="ff-island-sensor-group">
                 <div className="ff-island-camera"></div>

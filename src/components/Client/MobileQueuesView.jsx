@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  Clock, 
-  Navigation, 
-  Trash2, 
-  CheckCircle2, 
-  Star, 
-  QrCode, 
-  MapPin, 
+import {
+  Clock,
+  Navigation,
+  Trash2,
+  CheckCircle2,
+  Star,
+  QrCode,
+  MapPin,
   Sparkles,
   Calendar,
   ChevronRight,
@@ -69,9 +69,9 @@ export default function MobileQueuesView({
           <span className="view-pretitle">Gerenciamento</span>
           <h2 className="view-maintitle">Suas Senhas</h2>
         </div>
-        <button 
-          className="btn-icon-soft" 
-          onClick={onOpenQrScanner} 
+        <button
+          className="btn-icon-soft"
+          onClick={onOpenQrScanner}
           title="Escanear QR Totem"
         >
           <QrCode size={18} />
@@ -80,14 +80,14 @@ export default function MobileQueuesView({
 
       {/* Segmented Pill Tabs estilo Screen 2 */}
       <div className="clean-segmented-pills">
-        <button 
+        <button
           className={`segmented-pill-btn ${subTab === 'active' ? 'active' : ''}`}
           onClick={() => setSubTab('active')}
         >
           <span>Filas Ativas</span>
           <span className="clean-count-badge">{activeQueues.length}</span>
         </button>
-        <button 
+        <button
           className={`segmented-pill-btn ${subTab === 'history' ? 'active' : ''}`}
           onClick={() => setSubTab('history')}
         >
@@ -103,8 +103,8 @@ export default function MobileQueuesView({
               const isReception = q.status === 'reception_waiting';
               const isUrgent = q.position <= 2;
               return (
-                <div 
-                  key={q.id} 
+                <div
+                  key={q.id}
                   className={`clean-ticket-card ${isReception ? 'reception-theme' : isUrgent ? 'urgent' : ''}`}
                 >
                   <div className="ticket-card-top">
@@ -148,7 +148,7 @@ export default function MobileQueuesView({
                   {/* Ações em Botões Pílula (Só pode pedir +5 min quando já estiver na fila do médico) */}
                   <div className="ticket-card-actions">
                     {q.isCheckedInWithSecretary && (
-                      <button 
+                      <button
                         className="clean-pill-btn soft"
                         onClick={() => onClientAskMoreTime(q.id)}
                         title="Pedir tolerância de +5 min"
@@ -159,7 +159,7 @@ export default function MobileQueuesView({
                       </button>
                     )}
 
-                    <button 
+                    <button
                       className="btn-icon-soft"
                       title="Exibir QR Code para o balcão"
                       onClick={() => setShowPersonalQr(showPersonalQr === q.id ? null : q.id)}
@@ -167,7 +167,7 @@ export default function MobileQueuesView({
                       <QrCode size={16} />
                     </button>
 
-                    <button 
+                    <button
                       className="btn-icon-soft danger"
                       title="Desistir da fila"
                       onClick={() => onRemoveQueue(q.id)}
@@ -246,11 +246,11 @@ export default function MobileQueuesView({
 
                 <div className="history-stars-row">
                   {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      size={13} 
-                      fill={i < item.rating ? '#f59e0b' : 'none'} 
-                      color={i < item.rating ? '#f59e0b' : '#cbd5e1'} 
+                    <Star
+                      key={i}
+                      size={13}
+                      fill={i < item.rating ? '#f59e0b' : 'none'}
+                      color={i < item.rating ? '#f59e0b' : '#cbd5e1'}
                     />
                   ))}
                 </div>
@@ -264,7 +264,7 @@ export default function MobileQueuesView({
               <Sparkles size={18} />
             </div>
             <div className="impact-banner-text">
-              <strong>Economia com o FilaFlow: 64% de tempo poupado</strong>
+              <strong>Economia com o TemFyla: 64% de tempo poupado</strong>
               <p>A IA evitou mais de 45 minutos de permanência em salas de espera este mês.</p>
             </div>
           </div>
