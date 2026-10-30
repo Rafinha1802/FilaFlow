@@ -4,8 +4,10 @@ import Navbar from './components/LandingPage/Navbar';
 import LandingPage from './components/LandingPage/LandingPage';
 import CompanyDashboard from './components/Company/CompanyDashboard';
 import CompanyAuth from './components/Company/CompanyAuth';
+import CompanyProfileView from './components/Company/CompanyProfileView';
 import ProfessionalWorkspace from './components/Professional/ProfessionalWorkspace';
 import ProfessionalAuth from './components/Professional/ProfessionalAuth';
+import ProfessionalProfileView from './components/Professional/ProfessionalProfileView';
 import ClientMobileApp from './components/Client/ClientMobileApp';
 import QrScannerModal from './components/Client/QrScannerModal';
 import PreCheckinModal from './components/Client/PreCheckinModal';
@@ -90,7 +92,7 @@ export default function App() {
   // Client / Patient User for Mobile App (Público em geral, NÃO médico!)
   const [mobileClientUser, setMobileClientUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('filaflow_client_user');
+      const saved = localStorage.getItem('temfyla_client_user') || localStorage.getItem('filaflow_client_user');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (!parsed.name?.includes('Dr.') && !parsed.name?.includes('Médic')) {
@@ -175,7 +177,7 @@ export default function App() {
   useEffect(() => {
     // 1. Garante autenticação em segundo plano com o backend (JWT)
     ensureAuthToken().catch((err) => {
-      console.log('[FilaFlow] Backend não detectado ou inicializando:', err);
+      console.log('[TemFyla] Backend não detectado ou inicializando:', err);
     });
 
     // 2. Busca filas reais do backend FastAPI
@@ -183,7 +185,7 @@ export default function App() {
       try {
         const queues = await fetchQueues();
         if (Array.isArray(queues) && queues.length > 0) {
-          console.log('[FilaFlow] Filas sincronizadas com o backend:', queues);
+          console.log('[TemFyla] Filas sincronizadas com o backend:', queues);
           const vidaQueue = queues.find((q) => q.id === 'clinica-vida') || queues[0];
           if (vidaQueue) {
             setBusinessData((prev) => ({
@@ -209,7 +211,7 @@ export default function App() {
           }
         }
       } catch (err) {
-        console.warn('[FilaFlow] Rodando com dados locais:', err);
+        console.warn('[TemFyla] Rodando com dados locais:', err);
       }
     }
 
@@ -217,7 +219,7 @@ export default function App() {
 
     // 3. Conexão WebSocket para receber chamadas de senha e recálculos da IA em tempo real
     const ws = setupQueueWebSocket((event) => {
-      console.log('[FilaFlow WS Recebido]', event);
+      console.log('[TemFyla WS Recebido]', event);
       if (event.type === 'TICKET_CALLED') {
         playChime();
         const ticketNum = event.ticketNumber || event.ticket?.ticket_number || '#--';
@@ -678,10 +680,21 @@ export default function App() {
         />
       )}
 
-      {/* ROTA 3: /empresa (Painel Operacional da Empresa ou Telas de Login/Cadastro) */}
+      {/* ROTA 3: /empresa (Painel Operacional da Empresa ou Telas de Login/Cadastro/Perfil) */}
       {isCompanyRoute && (
         <>
-          {currentPath === '/empresa/cadastro' ? (
+          {currentPath === '/empresa/perfil' ? (
+            <div style={{ background: '#f8fafc', minHeight: '100vh', padding: '20px 0' }}>
+              <CompanyProfileView
+                businessData={businessData}
+                onUpdateBusinessData={(newData) => {
+                  if (newData) setBusinessData(newData);
+                }}
+                onGoBack={() => navigate('/empresa')}
+                showToast={showToast}
+              />
+            </div>
+          ) : currentPath === '/empresa/cadastro' ? (
             <CompanyAuth
               initialTab="register"
               onLoginSuccess={handleCompanyLoginSuccess}
@@ -727,10 +740,24 @@ export default function App() {
         </>
       )}
 
-      {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital ou Login) */}
+      {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital ou Perfil/Login) */}
       {isProfessionalRoute && (
         <>
-          {currentPath === '/profissional/login' || currentPath === '/profissional/cadastro' ? (
+          {currentPath === '/profissional/perfil' ? (
+            <div style={{ background: '#f8fafc', minHeight: '100vh', padding: '20px 0' }}>
+              <ProfessionalProfileView
+                professional={professionalUser || activeProfessional}
+                onUpdateProfessional={(updatedPro) => {
+                  if (updatedPro) {
+                    setProfessionalUser(updatedPro);
+                    setActiveProfessional(updatedPro);
+                  }
+                }}
+                onGoBack={() => navigate('/profissional')}
+                showToast={showToast}
+              />
+            </div>
+          ) : currentPath === '/profissional/login' || currentPath === '/profissional/cadastro' ? (
             <ProfessionalAuth
               onLoginSuccess={handleProfessionalLoginSuccess}
               onBackToSite={() => navigate('/')}

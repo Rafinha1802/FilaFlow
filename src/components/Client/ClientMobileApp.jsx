@@ -71,7 +71,7 @@ export default function ClientMobileApp({
   // Internal Client Authentication State (Self-contained + Props-aware)
   const [clientUser, setClientUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('filaflow_client_user');
+      const saved = localStorage.getItem('temfyla_client_user') || localStorage.getItem('filaflow_client_user');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.name && !parsed.name.includes('Dr.') && !parsed.email?.includes('clinicavida')) {
@@ -83,7 +83,7 @@ export default function ClientMobileApp({
   });
 
   const [clientIsAuth, setClientIsAuth] = useState(() => {
-    const saved = localStorage.getItem('filaflow_client_is_auth');
+    const saved = localStorage.getItem('temfyla_client_is_auth') || localStorage.getItem('filaflow_client_is_auth');
     if (saved !== null) return saved === 'true';
     return isAuthenticated !== undefined ? isAuthenticated : true;
   });
@@ -108,7 +108,9 @@ export default function ClientMobileApp({
   // Real client logout handler: clears session and immediately opens the Reference Login screen!
   const handleClientLogout = () => {
     try {
+      localStorage.removeItem('temfyla_client_user');
       localStorage.removeItem('filaflow_client_user');
+      localStorage.setItem('temfyla_client_is_auth', 'false');
       localStorage.setItem('filaflow_client_is_auth', 'false');
     } catch (e) {}
     setClientUser(null);
@@ -122,8 +124,8 @@ export default function ClientMobileApp({
   const handleClientAuthSuccess = (user) => {
     const cleanUser = sanitizeClientUser(user);
     try {
-      localStorage.setItem('filaflow_client_is_auth', 'true');
-      localStorage.setItem('filaflow_client_user', JSON.stringify(cleanUser));
+      localStorage.setItem('temfyla_client_is_auth', 'true');
+      localStorage.setItem('temfyla_client_user', JSON.stringify(cleanUser));
     } catch (e) {}
     setClientUser(cleanUser);
     setClientIsAuth(true);
@@ -295,6 +297,7 @@ export default function ClientMobileApp({
                     hasConflict={hasConflict}
                     onDismissConflict={onDismissConflict}
                     onNavigateTab={(tab) => setActiveTab(tab)}
+                    onPlayChime={onPlayChime}
                   />
                 )}
 
@@ -310,6 +313,7 @@ export default function ClientMobileApp({
                     onApproveReceptionCheckin={onApproveReceptionCheckin}
                     onOpenSearch={onOpenSearch}
                     onOpenQrScanner={onOpenQrScanner}
+                    onPlayChime={onPlayChime}
                   />
                 )}
 

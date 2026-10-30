@@ -48,7 +48,7 @@ export default function MobileProfileView({
         </div>
       </div>
 
-      {/* Hero Card Perfil estilo FilaFlow */}
+      {/* Hero Card Perfil estilo TemFyla */}
       {isAuthenticated ? (
         <div className="clean-profile-hero-card">
           <div className="profile-avatar-squircle">

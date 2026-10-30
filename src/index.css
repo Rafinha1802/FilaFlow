@@ -310,6 +310,22 @@ textarea {
   -webkit-text-fill-color: transparent;
 }
 
+/* TemFyla Brand Logo Badge with Purple Contour */
+.temfyla-brand-logo {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.temfyla-brand-logo:hover .temfyla-logo-badge {
+  border-color: #a855f7 !important;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.45) !important;
+  transform: translateY(-1px) scale(1.04);
+}
+
+.temfyla-brand-logo:active .temfyla-logo-badge {
+  transform: scale(0.97);
+}
+
+
 /* Navigation Links */
 .ff-nav-links {
   display: flex;
@@ -12804,4 +12820,4 @@ textarea {
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #b91c1c;
-}
+}

@@ -4,6 +4,8 @@ import BrandLogo from '../Common/BrandLogo';
 
 export default function Navbar({
   isAuthenticated,
+  isProfessionalAuthenticated,
+  activeProfessional,
   currentUser,
   onGoToLanding,
   onOpenDashboard,
@@ -63,11 +65,35 @@ export default function Navbar({
             <button
               className="btn-ghost"
               onClick={onOpenProfessional}
-              title="Acessar Área do Profissional / Consultório"
-              style={{ padding: '8px 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
+              title={isProfessionalAuthenticated ? `Conectado como ${activeProfessional?.name || 'Profissional'}` : "Acessar Área do Profissional / Consultório"}
+              style={{ 
+                padding: '8px 14px', 
+                fontSize: 13, 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 6, 
+                fontWeight: 600,
+                border: isProfessionalAuthenticated ? '1.5px solid #c4b5fd' : '1px solid transparent',
+                background: isProfessionalAuthenticated ? '#faf5ff' : 'transparent',
+                color: isProfessionalAuthenticated ? '#6d28d9' : '#475569'
+              }}
             >
-              <Stethoscope size={16} />
-              <span className="hidden-mobile">Área do Profissional</span>
+              <Stethoscope size={16} color={isProfessionalAuthenticated ? '#7c3aed' : 'currentColor'} />
+              <span className="hidden-mobile">
+                {isProfessionalAuthenticated 
+                  ? `Consultório (${activeProfessional?.name?.split(' ')[0] || 'Ativo'})` 
+                  : 'Área do Profissional'}
+              </span>
+              {isProfessionalAuthenticated && (
+                <span style={{ 
+                  width: 8, 
+                  height: 8, 
+                  borderRadius: '50%', 
+                  background: '#10b981', 
+                  display: 'inline-block', 
+                  boxShadow: '0 0 8px #10b981' 
+                }} />
+              )}
             </button>
 
             <button
@@ -81,12 +107,12 @@ export default function Navbar({
 
             <button
               className="btn-primary"
-              onClick={onOpenSignup || onOpenDashboard}
-              title="Cadastrar sua empresa no TemFyla"
+              onClick={isAuthenticated ? onOpenDashboard : (onOpenSignup || onOpenDashboard)}
+              title={isAuthenticated ? `Painel Ativo: ${currentUser?.companyName || 'Empresa'}` : "Cadastrar sua empresa no TemFyla"}
               style={{ background: '#7c3aed', padding: '8px 16px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
             >
               <Building2 size={15} />
-              <span>Cadastrar Empresa</span>
+              <span>{isAuthenticated ? 'Painel da Empresa' : 'Cadastrar Empresa'}</span>
               <span style={{ 
                 width: 8, 
                 height: 8, 

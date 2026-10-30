@@ -2,26 +2,9 @@ import React, { useState } from 'react';
 import { 
   Building2, 
   Layers, 
-  Mail, 
-  Lock, 
-  ArrowRight, 
-  ArrowLeft, 
-  Sparkles, 
-  User, 
-  Phone, 
-  CheckCircle2, 
-  Clock, 
-  Smartphone,
-  ShieldCheck,
-  Plus,
-  Trash2,
-  AlertCircle,
-  CreditCard,
-  Users,
-  Stethoscope,
-  Briefcase
 } from 'lucide-react';
-import { loginCompany, setPendingCompanyRegistration } from '../../services/authService';
+import { loginCompany, setPendingCompanyRegistration, getStoredProfessionals } from '../../services/authService';
+import { REGISTERED_PROFESSIONALS } from '../../data/mockData';
 import BrandLogo from '../Common/BrandLogo';
 
 export default function CompanyAuth({
@@ -179,6 +162,11 @@ export default function CompanyAuth({
     }
   };
 
+  const storedPros = getStoredProfessionals();
+  const allAvailableDemoPros = storedPros && storedPros.length > 0
+    ? storedPros
+    : REGISTERED_PROFESSIONALS;
+
   return (
     <div className="ff-auth-layout">
       {/* Top Bar */}
@@ -209,7 +197,7 @@ export default function CompanyAuth({
 
       {/* Main Container */}
       <main className="ff-auth-main-container">
-        <div className="ff-auth-card">
+        <div className="ff-auth-card" style={{ maxWidth: activeTab === 'register' ? 620 : 520 }}>
           {/* Tabs: Entrar vs Cadastrar */}
           <div className="ff-auth-tabs">
             <button
@@ -333,11 +321,12 @@ export default function CompanyAuth({
           {/* TAB 2: CADASTRO COMPLETO DA EMPRESA (COM PROFISSIONAIS & PAGAMENTO) */}
           {activeTab === 'register' && (
             <div className="ff-auth-content-pane">
-              {/* Stepper Header */}
+              {/* Stepper Header (4 Etapas) */}
               <div className="ff-register-stepper">
                 <div 
                   className={`ff-reg-step ${registerStep >= 1 ? 'active' : ''}`}
                   onClick={() => setRegisterStep(1)}
+                  title="Etapa 1: Conta do Administrador"
                 >
                   <span className="step-num">1</span>
                   <span className="step-label">Empresa</span>
@@ -346,6 +335,7 @@ export default function CompanyAuth({
                 <div 
                   className={`ff-reg-step ${registerStep >= 2 ? 'active' : ''}`}
                   onClick={() => setRegisterStep(2)}
+                  title="Etapa 2: Dados da Empresa"
                 >
                   <span className="step-num">2</span>
                   <span className="step-label">Profissionais & Horários</span>
@@ -354,6 +344,7 @@ export default function CompanyAuth({
                 <div 
                   className={`ff-reg-step ${registerStep >= 3 ? 'active' : ''}`}
                   onClick={() => setRegisterStep(3)}
+                  title="Etapa 3: Equipe & Profissionais"
                 >
                   <span className="step-num">3</span>
                   <span className="step-label">Planos & Pagamento</span>
@@ -673,40 +664,93 @@ export default function CompanyAuth({
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                           <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, marginBottom: 4 }}>
-                              <span style={{ color: '#475569' }}>Carga Máxima de Atendimento:</span>
-                              <strong style={{ color: '#7c3aed' }}>{newProMaxHours} horas / dia</strong>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, marginBottom: 6 }}>
+                              <span style={{ color: '#475569', fontWeight: 700 }}>Carga Máxima:</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setNewProMaxHours((prev) => Math.max(2, prev - 1))}
+                                  style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  -
+                                </button>
+                                <strong style={{ color: '#7c3aed', minWidth: 50, textAlign: 'center' }}>{newProMaxHours}h/dia</strong>
+                                <button
+                                  type="button"
+                                  onClick={() => setNewProMaxHours((prev) => Math.min(14, prev + 1))}
+                                  style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  +
+                                </button>
+                              </div>
                             </div>
-                            <input
-                              type="range"
-                              min="2"
-                              max="12"
-                              value={newProMaxHours}
-                              onChange={(e) => setNewProMaxHours(Number(e.target.value))}
-                              style={{ width: '100%', accentColor: '#7c3aed' }}
-                            />
-                            <span style={{ fontSize: 10.5, color: '#64748b' }}>
-                              A IA recalcula o limite de senhas para evitar estresse e sobrecarga.
-                            </span>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              {[4, 6, 8, 10, 12].map((h) => (
+                                <button
+                                  key={h}
+                                  type="button"
+                                  onClick={() => setNewProMaxHours(h)}
+                                  style={{
+                                    flex: 1,
+                                    padding: '5px 2px',
+                                    borderRadius: 6,
+                                    border: newProMaxHours === h ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
+                                    background: newProMaxHours === h ? '#7c3aed' : '#f8fafc',
+                                    color: newProMaxHours === h ? '#fff' : '#475569',
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {h}h
+                                </button>
+                              ))}
+                            </div>
                           </div>
 
                           <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, marginBottom: 4 }}>
-                              <span style={{ color: '#475569' }}>Tempo Médio por Consulta:</span>
-                              <strong style={{ color: '#7c3aed' }}>{newProAvgMinutes} min</strong>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11.5, marginBottom: 6 }}>
+                              <span style={{ color: '#475569', fontWeight: 700 }}>Tempo Médio:</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setNewProAvgMinutes((prev) => Math.max(5, prev - 5))}
+                                  style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  -
+                                </button>
+                                <strong style={{ color: '#7c3aed', minWidth: 50, textAlign: 'center' }}>{newProAvgMinutes} min</strong>
+                                <button
+                                  type="button"
+                                  onClick={() => setNewProAvgMinutes((prev) => Math.min(120, prev + 5))}
+                                  style={{ width: 22, height: 22, borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  +
+                                </button>
+                              </div>
                             </div>
-                            <input
-                              type="range"
-                              min="5"
-                              max="60"
-                              step="5"
-                              value={newProAvgMinutes}
-                              onChange={(e) => setNewProAvgMinutes(Number(e.target.value))}
-                              style={{ width: '100%', accentColor: '#7c3aed' }}
-                            />
-                            <span style={{ fontSize: 10.5, color: '#64748b' }}>
-                              Janela prevista por atendimento.
-                            </span>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              {[10, 15, 20, 30, 45].map((m) => (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => setNewProAvgMinutes(m)}
+                                  style={{
+                                    flex: 1,
+                                    padding: '5px 2px',
+                                    borderRadius: 6,
+                                    border: newProAvgMinutes === m ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
+                                    background: newProAvgMinutes === m ? '#7c3aed' : '#f8fafc',
+                                    color: newProAvgMinutes === m ? '#fff' : '#475569',
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {m}m
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
 

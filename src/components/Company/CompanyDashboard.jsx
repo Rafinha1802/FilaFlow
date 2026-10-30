@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReceptionDeskView from './ReceptionDeskView';
+import CompanyProfileView from './CompanyProfileView';
 import { ShieldCheck, Stethoscope, Trash2 } from 'lucide-react';
 import { getStoredProfessionals, saveProfessionals } from '../../services/authService';
 import {
@@ -395,6 +396,14 @@ export default function CompanyDashboard({
             }}>
               {teamList.length}
             </span>
+          </button>
+
+          <button
+            className={`ff-portal-tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+          >
+            <Building2 size={14} />
+            <span>Perfil da Empresa</span>
           </button>
         </nav>
 
@@ -1956,6 +1965,22 @@ export default function CompanyDashboard({
             </div>
           )}
         </div>
+      )}
+
+      {/* ============================================================
+          TAB 5: PERFIL DA EMPRESA (CONFIGURAÇÕES CORPORATIVAS)
+          ============================================================ */}
+      {activeTab === 'profile' && (
+        <CompanyProfileView
+          businessData={businessData}
+          onUpdateBusinessData={(newData) => {
+            if (newData) {
+              setBusinessData && setBusinessData(newData);
+            }
+          }}
+          onGoBack={() => setActiveTab('operational')}
+          showToast={showNotification}
+        />
       )}
 
       {/* ============================================================

@@ -81,7 +81,35 @@ export default function CompanyLogin({
           </button>
         </form>
 
-        <div style={{ marginTop: 24, fontSize: 13, color: '#64748b', textAlign: 'center' }}>
+        <div className="ff-login-divider"></div>
+
+        {/* Demo Fast Login */}
+        <button
+          type="button"
+          className="ff-login-alt-btn"
+          onClick={handleDemoLogin}
+          style={{
+            borderColor: '#ddd6fe',
+            color: '#6d28d9',
+            background: '#faf5ff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            width: '100%',
+            padding: '10px 14px',
+            borderRadius: 10,
+            border: '1.5px solid #ddd6fe',
+            cursor: 'pointer',
+            fontSize: 13,
+            fontWeight: 700
+          }}
+        >
+          <Sparkles size={16} />
+          <span>Acesso Rápido Demo: Clínica Vida</span>
+        </button>
+
+        <div style={{ marginTop: 20, fontSize: 13, color: '#64748b', textAlign: 'center' }}>
           Sua empresa ainda não usa o TemFyla?{' '}
           <button
             onClick={onGoToSignup}

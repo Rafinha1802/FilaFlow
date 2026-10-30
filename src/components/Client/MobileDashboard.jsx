@@ -18,11 +18,16 @@ import {
   SlidersHorizontal,
   Stethoscope,
   FlaskConical,
-  Store
+  Store,
+  MessageCircle,
+  Share2,
+  Layers,
+  Volume2,
+  Smartphone
 } from 'lucide-react';
 
 export default function MobileDashboard({
-  activeQueues,
+  activeQueues = [],
   selectedQueueId,
   onSelectQueue,
   onOpenQrScanner,
@@ -34,7 +39,8 @@ export default function MobileDashboard({
   onApproveReceptionCheckin,
   hasConflict,
   onDismissConflict,
-  onNavigateTab
+  onNavigateTab,
+  onPlayChime
 }) {
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -62,8 +68,79 @@ export default function MobileDashboard({
   };
 
   const handleAskMoreTime = (id) => {
-    onClientAskMoreTime(id || displayQueue?.id);
+    if (onClientAskMoreTime) onClientAskMoreTime(id || displayQueue?.id);
     showToast('⏱️ Previsão recalculada: +5 min concedidos pela IA.');
+  };
+
+  // WhatsApp Integration: abre compartilhamento formatado com os dados da fila
+  const handleOpenWhatsApp = (queue) => {
+    const q = queue || displayQueue;
+    if (!q) return;
+
+    const text = `🔔 *TemFyla - Status da Fila em Tempo Real*\n\n` +
+      `🏥 *Local:* ${q.companyName || 'Estabelecimento'}\n` +
+      `🩺 *Serviço:* ${q.serviceName || 'Atendimento'}\n` +
+      `🎟️ *Sua Senha:* #${q.ticketNumber || '00'}\n` +
+      `📍 *Posição:* ${q.position === 1 ? 'Sua Vez Agora!' : `${q.position}º lugar na fila`}\n` +
+      `⏱️ *Previsão de Atendimento:* ${q.estimatedWaitText || '15 min'}\n` +
+      `👨‍⚕️ *Profissional:* ${q.attendantName || 'Equipe de Plantão'}\n\n` +
+      `Acompanhe ao vivo pelo TemFyla: https://temfyla.com/fila/${q.id || 'clinica-vida'}`;
+
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+
+    showToast({
+      title: 'WhatsApp Conectado 💬',
+      message: 'Status da senha preparado para acompanhar e compartilhar pelo WhatsApp!'
+    });
+  };
+
+  // Push Notification Trigger: toca som e dispara notificação web nativa + toast
+  const handleTriggerPushNotification = () => {
+    if (onPlayChime) {
+      onPlayChime();
+    } else {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+      } catch (e) {}
+    }
+
+    if ('Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then((perm) => {
+          if (perm === 'granted') {
+            try {
+              new Notification('TemFyla: Atenção!', {
+                body: `Sua senha #${displayQueue?.ticketNumber || '47'} está próxima de ser chamada!`,
+                icon: '/favicon.ico'
+              });
+            } catch (e) {}
+          }
+        });
+      } else if (Notification.permission === 'granted') {
+        try {
+          new Notification('TemFyla: Atenção!', {
+            body: `Sua senha #${displayQueue?.ticketNumber || '47'} na ${displayQueue?.companyName || 'Clínica Vida'} está próxima!`,
+            icon: '/favicon.ico'
+          });
+        } catch (e) {}
+      }
+    }
+
+    showToast({
+      title: '🔔 Notificação Push Enviada',
+      message: `Alerta sonoro e push disparados: Senha #${displayQueue?.ticketNumber || '47'} na frente da fila!`
+    });
   };
 
   // Disparo de notificação normal ao chegar/carregar fila em espera
@@ -155,6 +232,85 @@ export default function MobileDashboard({
         </div>
       )}
 
+      {/* 2.5 Gerenciador de Múltiplas Filas Ativas */}
+      {activeQueues.length > 1 && (
+        <div
+          className="clean-multi-queue-widget"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,250,252,0.98))',
+            borderRadius: '18px',
+            padding: '12px 14px',
+            marginBottom: '16px',
+            border: '1px solid rgba(226,232,240,0.8)',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.03)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Layers size={14} color="#6366f1" />
+              <span style={{ fontSize: '11px', fontWeight: 800, color: '#4338ca', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                Suas Filas Simultâneas ({activeQueues.length})
+              </span>
+            </div>
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+              Toque para alternar
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+            {activeQueues.map((q) => {
+              const isSelected = displayQueue?.id === q.id;
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => onSelectQueue && onSelectQueue(q.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 12px',
+                    borderRadius: '14px',
+                    border: isSelected ? '1.5px solid #6366f1' : '1px solid #e2e8f0',
+                    background: isSelected ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : '#ffffff',
+                    color: isSelected ? '#ffffff' : '#334155',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    boxShadow: isSelected ? '0 4px 12px rgba(99,102,241,0.3)' : 'none',
+                    transform: isSelected ? 'scale(1.02)' : 'none'
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: q.position === 1 ? '#34d399' : (isSelected ? '#a5b4fc' : '#94a3b8'),
+                      boxShadow: q.position === 1 ? '0 0 6px #34d399' : 'none'
+                    }}
+                  />
+                  <span>#{q.ticketNumber} • {q.companyName?.split(' ')[0]}</span>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      borderRadius: '8px',
+                      background: isSelected ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
+                      color: isSelected ? '#ffffff' : '#64748b',
+                      fontWeight: 800
+                    }}
+                  >
+                    {q.position === 1 ? '🟢 Sua Vez' : `${q.position}º`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* 3. Hero Card: O Próprio Lugar na Fila do Usuário */}
       {displayQueue ? (
         displayQueue.status === 'reception_waiting' ? (
@@ -198,6 +354,46 @@ export default function MobileDashboard({
                 <span className="step-point active">● Recepção</span>
                 <span className="step-arrow">➔</span>
                 <span className="step-point pending">○ Médico</span>
+              </div>
+
+              {/* Ações na Recepção: WhatsApp e Push */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
+                <button
+                  className="clean-pill-btn"
+                  onClick={() => handleOpenWhatsApp(displayQueue)}
+                  title="Acompanhar no WhatsApp"
+                  style={{
+                    fontSize: 11,
+                    padding: '8px 10px',
+                    justifyContent: 'center',
+                    background: '#10b981',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 12,
+                    fontWeight: 700
+                  }}
+                >
+                  <MessageCircle size={14} />
+                  <span>WhatsApp</span>
+                </button>
+                <button
+                  className="clean-pill-btn translucent"
+                  onClick={handleTriggerPushNotification}
+                  title="Testar Notificação Push"
+                  style={{
+                    fontSize: 11,
+                    padding: '8px 10px',
+                    justifyContent: 'center',
+                    background: '#f1f5f9',
+                    color: '#334155',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 12,
+                    fontWeight: 700
+                  }}
+                >
+                  <Bell size={14} />
+                  <span>Testar Push</span>
+                </button>
               </div>
             </div>
           </div>
@@ -279,20 +475,66 @@ export default function MobileDashboard({
               </div>
             </div>
 
-            {/* Ações: Só pode pedir +5 min quando já estiver na fila do médico */}
-            {displayQueue.isCheckedInWithSecretary && (
-              <div className="hero-card-actions single-action">
+            {/* Ações: Pedir +5 min, WhatsApp e Notificação Push */}
+            <div
+              className="hero-card-actions"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: displayQueue.isCheckedInWithSecretary ? '1fr 1fr 1fr' : '1fr 1fr',
+                gap: 8,
+                marginTop: 14,
+                padding: '0 16px 16px 16px'
+              }}
+            >
+              {displayQueue.isCheckedInWithSecretary && (
                 <button
                   className="clean-pill-btn translucent"
-                  style={{ width: '100%' }}
                   onClick={() => handleAskMoreTime(displayQueue.id)}
                   title="Solicitar tolerância de 5 min na previsão"
+                  style={{ fontSize: 11, padding: '9px 8px', justifyContent: 'center' }}
                 >
-                  <Clock size={15} />
-                  <span>Pedir +5 min</span>
+                  <Clock size={14} />
+                  <span>+5 min</span>
                 </button>
-              </div>
-            )}
+              )}
+
+              <button
+                className="clean-pill-btn"
+                onClick={() => handleOpenWhatsApp(displayQueue)}
+                title="Acompanhar e compartilhar senha no WhatsApp"
+                style={{
+                  fontSize: 11,
+                  padding: '9px 8px',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: '#fff',
+                  border: 'none',
+                  boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
+                  cursor: 'pointer'
+                }}
+              >
+                <MessageCircle size={14} />
+                <span>WhatsApp</span>
+              </button>
+
+              <button
+                className="clean-pill-btn translucent"
+                onClick={handleTriggerPushNotification}
+                title="Disparar teste de Notificação Push com som"
+                style={{
+                  fontSize: 11,
+                  padding: '9px 8px',
+                  justifyContent: 'center',
+                  background: 'rgba(255,255,255,0.12)',
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  cursor: 'pointer'
+                }}
+              >
+                <Bell size={14} />
+                <span>Push</span>
+              </button>
+            </div>
           </div>
         )
       ) : (

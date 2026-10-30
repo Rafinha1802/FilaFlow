@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 /**
- * Custom lightweight history-based router for FilaFlow
+ * Custom lightweight history-based router for TemFyla
  * Supports seamless navigation between:
  * - / (Institutional Site / Landing Page)
  * - /app (Mobile App Experience)
@@ -52,9 +52,11 @@ export function useAppRouter() {
   const isCompanyLogin = currentPath === '/empresa/login';
   const isCompanyRegister = currentPath === '/empresa/cadastro';
   const isCompanyDashboard = currentPath === '/empresa/dashboard';
+  const isCompanyProfile = currentPath === '/empresa/perfil';
 
   const isProfessionalLogin = currentPath === '/profissional/login';
   const isProfessionalRegister = currentPath === '/profissional/cadastro';
+  const isProfessionalProfile = currentPath === '/profissional/perfil';
 
   return {
     currentPath,
@@ -67,7 +69,9 @@ export function useAppRouter() {
     isCompanyLogin,
     isCompanyRegister,
     isCompanyDashboard,
+    isCompanyProfile,
     isProfessionalLogin,
-    isProfessionalRegister
+    isProfessionalRegister,
+    isProfessionalProfile
   };
 }

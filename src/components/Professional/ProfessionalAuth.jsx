@@ -37,8 +37,32 @@ export default function ProfessionalAuth({
   const [autoPassword, setAutoPassword] = useState('');
   const [autoSpecialty, setAutoSpecialty] = useState('Clínica Geral & Diagnóstico');
   const [autoRoom, setAutoRoom] = useState('Consultório Particular 01');
-  const [autoMaxHours, setAutoMaxHours] = useState(6);
+  const [autoMaxHours, setAutoMaxHours] = useState(8);
   const [autoAvgMinutes, setAutoAvgMinutes] = useState(20);
+  const [autoShiftPreset, setAutoShiftPreset] = useState('integral'); // 'manha' | 'tarde' | 'integral' | 'plantao' | 'custom'
+  const [autoWorkStart, setAutoWorkStart] = useState('08:00');
+  const [autoWorkEnd, setAutoWorkEnd] = useState('18:00');
+
+  const handleSelectShiftPreset = (preset) => {
+    setAutoShiftPreset(preset);
+    if (preset === 'manha') {
+      setAutoWorkStart('08:00');
+      setAutoWorkEnd('12:00');
+      setAutoMaxHours(4);
+    } else if (preset === 'tarde') {
+      setAutoWorkStart('13:00');
+      setAutoWorkEnd('18:00');
+      setAutoMaxHours(5);
+    } else if (preset === 'integral') {
+      setAutoWorkStart('08:00');
+      setAutoWorkEnd('18:00');
+      setAutoMaxHours(8);
+    } else if (preset === 'plantao') {
+      setAutoWorkStart('07:00');
+      setAutoWorkEnd('19:00');
+      setAutoMaxHours(12);
+    }
+  };
 
   // Load all registered professionals (both mock and created dynamically by companies)
   const registeredPros = getStoredProfessionals();
@@ -77,10 +101,9 @@ export default function ProfessionalAuth({
       unitName: 'Unidade Própria',
       room: autoRoom || 'Consultório 01',
       avatar: autoName.toLowerCase().includes('dra') ? '👩‍⚕️' : '👨‍⚕️',
-      crm: 'Registro Ativo',
-      maxDailyHours: Number(autoMaxHours) || 6,
-      workHoursStart: '08:00',
-      workHoursEnd: '18:00',
+      maxDailyHours: Number(autoMaxHours) || 8,
+      workHoursStart: autoWorkStart || '08:00',
+      workHoursEnd: autoWorkEnd || '18:00',
       targetConsultationMinutes: Number(autoAvgMinutes) || 20,
       currentTicket: {
         ticket: '#01',
@@ -372,46 +395,307 @@ export default function ProfessionalAuth({
                     </div>
                   </div>
 
-                  {/* Schedule & Limits */}
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '14px', marginTop: 4 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                      <Clock size={16} color="#7c3aed" />
-                      <span style={{ fontSize: 13, fontWeight: 800, color: '#334155' }}>
-                        Limites de Atendimento & Horários
-                      </span>
+                  {/* Schedule & Limits - Novo Design Moderno Sem Sliders */}
+                  <div
+                    style={{
+                      background: '#ffffff',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: 16,
+                      padding: '16px',
+                      marginTop: 6,
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.03)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: 8,
+                            background: '#ede9fe',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Clock size={16} color="#7c3aed" />
+                        </div>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: '#1e293b' }}>
+                            Jornada & Duração de Atendimento
+                          </h4>
+                          <span style={{ fontSize: 11, color: '#64748b' }}>
+                            Horários de trabalho e tempo médio por paciente
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {/* 1. SELEÇÃO DE TURNO RÁPIDO */}
+                    <div style={{ marginBottom: 12 }}>
+                      <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+                        Turno de Atendimento:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                        {[
+                          { id: 'manha', label: 'Manhã', time: '08h - 12h', hours: 4 },
+                          { id: 'tarde', label: 'Tarde', time: '13h - 18h', hours: 5 },
+                          { id: 'integral', label: 'Integral', time: '08h - 18h', hours: 8 },
+                          { id: 'plantao', label: 'Plantão', time: '07h - 19h', hours: 12 }
+                        ].map((preset) => {
+                          const isSelected = autoShiftPreset === preset.id;
+                          return (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => handleSelectShiftPreset(preset.id)}
+                              style={{
+                                padding: '8px 4px',
+                                borderRadius: 10,
+                                border: isSelected ? '2px solid #7c3aed' : '1px solid #e2e8f0',
+                                background: isSelected ? 'linear-gradient(135deg, #f5f3ff, #ede9fe)' : '#f8fafc',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: 2,
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <span style={{ fontSize: 12, fontWeight: isSelected ? 800 : 700, color: isSelected ? '#6d28d9' : '#334155' }}>
+                                {preset.label}
+                              </span>
+                              <span style={{ fontSize: 9.5, color: isSelected ? '#7c3aed' : '#64748b', fontWeight: 600 }}>
+                                {preset.time}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 2. HORÁRIO DE INÍCIO & TÉRMINO + CARGA HORÁRIA */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                          <span style={{ color: '#64748b' }}>Máximo Diário em Atendimento:</span>
-                          <strong style={{ color: '#7c3aed' }}>{autoMaxHours} horas/dia</strong>
-                        </div>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>
+                          Início
+                        </label>
                         <input
-                          type="range"
-                          min="2"
-                          max="12"
-                          value={autoMaxHours}
-                          onChange={(e) => setAutoMaxHours(Number(e.target.value))}
-                          style={{ width: '100%', accentColor: '#7c3aed' }}
+                          type="time"
+                          value={autoWorkStart}
+                          onChange={(e) => {
+                            setAutoWorkStart(e.target.value);
+                            setAutoShiftPreset('custom');
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '8px 10px',
+                            borderRadius: 8,
+                            border: '1.5px solid #cbd5e1',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            background: '#fff'
+                          }}
                         />
                       </div>
 
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                          <span style={{ color: '#64748b' }}>Duração Média Prevista:</span>
-                          <strong style={{ color: '#7c3aed' }}>{autoAvgMinutes} minutos</strong>
-                        </div>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>
+                          Término
+                        </label>
                         <input
-                          type="range"
-                          min="5"
-                          max="60"
-                          step="5"
-                          value={autoAvgMinutes}
-                          onChange={(e) => setAutoAvgMinutes(Number(e.target.value))}
-                          style={{ width: '100%', accentColor: '#7c3aed' }}
+                          type="time"
+                          value={autoWorkEnd}
+                          onChange={(e) => {
+                            setAutoWorkEnd(e.target.value);
+                            setAutoShiftPreset('custom');
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '8px 10px',
+                            borderRadius: 8,
+                            border: '1.5px solid #cbd5e1',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            background: '#fff'
+                          }}
                         />
                       </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>
+                          Carga Diária
+                        </label>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            height: 38,
+                            background: '#f1f5f9',
+                            borderRadius: 8,
+                            border: '1.5px solid #cbd5e1',
+                            padding: '0 4px',
+                            justifyContent: 'space-between'
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAutoMaxHours((prev) => Math.max(2, prev - 1));
+                              setAutoShiftPreset('custom');
+                            }}
+                            style={{
+                              width: 26,
+                              height: 26,
+                              borderRadius: 6,
+                              border: 'none',
+                              background: '#fff',
+                              cursor: 'pointer',
+                              fontWeight: 800,
+                              fontSize: 13,
+                              color: '#475569',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            -
+                          </button>
+                          <strong style={{ fontSize: 12.5, color: '#6d28d9', fontWeight: 800 }}>
+                            {autoMaxHours}h/dia
+                          </strong>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAutoMaxHours((prev) => Math.min(14, prev + 1));
+                              setAutoShiftPreset('custom');
+                            }}
+                            style={{
+                              width: 26,
+                              height: 26,
+                              borderRadius: 6,
+                              border: 'none',
+                              background: '#fff',
+                              cursor: 'pointer',
+                              fontWeight: 800,
+                              fontSize: 13,
+                              color: '#475569',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. DURAÇÃO MÉDIA POR PACIENTE (CHIPS + STEPPER) */}
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569' }}>
+                          Duração Média por Consulta:
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <button
+                            type="button"
+                            onClick={() => setAutoAvgMinutes((prev) => Math.max(5, prev - 5))}
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: 6,
+                              border: '1px solid #cbd5e1',
+                              background: '#fff',
+                              cursor: 'pointer',
+                              fontWeight: 800,
+                              fontSize: 12,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            -
+                          </button>
+                          <span style={{ fontSize: 13, fontWeight: 900, color: '#7c3aed', minWidth: 55, textAlign: 'center' }}>
+                            {autoAvgMinutes} min
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setAutoAvgMinutes((prev) => Math.min(120, prev + 5))}
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: 6,
+                              border: '1px solid #cbd5e1',
+                              background: '#fff',
+                              cursor: 'pointer',
+                              fontWeight: 800,
+                              fontSize: 12,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Pílulas rápidas de minutos */}
+                      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+                        {[10, 15, 20, 30, 45, 60].map((min) => {
+                          const isSelected = autoAvgMinutes === min;
+                          return (
+                            <button
+                              key={min}
+                              type="button"
+                              onClick={() => setAutoAvgMinutes(min)}
+                              style={{
+                                flex: 1,
+                                padding: '6px 4px',
+                                borderRadius: 8,
+                                border: isSelected ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
+                                background: isSelected ? '#7c3aed' : '#f8fafc',
+                                color: isSelected ? '#ffffff' : '#475569',
+                                fontSize: 11.5,
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {min}m
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 4. CARD RESUMO INTELIGENTE IA */}
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)',
+                        border: '1px solid #a7f3d0',
+                        borderRadius: 10,
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: 11.5
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#065f46' }}>
+                        <Sparkles size={14} color="#059669" />
+                        <span>
+                          Capacidade Estimada: <strong>~{Math.floor((autoMaxHours * 60) / autoAvgMinutes)} atendimentos/dia</strong>
+                        </span>
+                      </div>
+                      <span style={{ color: '#047857', fontWeight: 700, fontSize: 10.5 }}>
+                        Tolerância IA: 5m
+                      </span>
                     </div>
                   </div>
 

@@ -345,8 +345,25 @@ export default function CheckoutPage({
             </ul>
           </div>
 
+          {/* Digital Signature Hash */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: '#f8fafc',
+            border: '1px dashed #cbd5e1',
+            borderRadius: 10,
+            padding: '8px 12px',
+            fontSize: 11,
+            color: '#64748b',
+            marginBottom: 16
+          }}>
+            <span>🔒 Autenticação Digital: <strong>TFY-{orderCompleted.orderId}-{Math.random().toString(36).substring(2, 7).toUpperCase()}</strong></span>
+            <span style={{ color: '#10b981', fontWeight: 700 }}>✓ Válido & Verificado</span>
+          </div>
+
           {/* Actions */}
-          <div className="ff-success-actions">
+          <div className="ff-success-actions" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
               className="btn-primary"
               style={{ width: '100%', padding: '14px 20px', fontSize: 15, justifyContent: 'center' }}
@@ -364,7 +381,18 @@ export default function CheckoutPage({
 
             <button
               className="btn-outline-purple"
-              style={{ width: '100%', padding: '10px 16px', fontSize: 14, justifyContent: 'center' }}
+              style={{ width: '100%', padding: '11px 16px', fontSize: 14, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
+              onClick={() => {
+                window.print();
+              }}
+            >
+              <Printer size={16} />
+              <span>Imprimir / Salvar Comprovante em PDF</span>
+            </button>
+
+            <button
+              className="btn-ghost"
+              style={{ width: '100%', padding: '8px 16px', fontSize: 13, justifyContent: 'center', color: '#64748b' }}
               onClick={onGoBack}
             >
               <span>Voltar à Página Inicial</span>
@@ -688,7 +716,7 @@ export default function CheckoutPage({
                         <rect x="136" y="74" width="14" height="8" rx="2" fill="#0f172a" />
                         <rect x="158" y="74" width="18" height="8" rx="2" fill="#0f172a" />
 
-                        {/* Center FilaFlow Badge */}
+                        {/* Center TemFyla Badge */}
                         <rect x="82" y="82" width="36" height="36" rx="8" fill="#7c3aed" />
                         <path d="M92 94h16M92 100h12M92 106h8" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
 

@@ -332,7 +332,7 @@ export default function LandingPage({
               <span className="comp-badge-icon">✕</span>
               <span>A Fila Tradicional (O Jeito Ultrapassado)</span>
             </div>
-            
+
             <h3 className="comp-card-title">Salas cheias, tensão e clientes perdendo a paciência</h3>
             <p className="comp-card-desc">
               Sistemas analógicos com papéis descartáveis tratam pessoas como números e deixam sua recepção vulnerável ao caos.
@@ -817,7 +817,7 @@ export default function LandingPage({
       <footer className="ff-footer">
         <div className="ff-footer-inner">
           <div className="ff-footer-brand">
-            <BrandLogo size={34} textColor="#0f172a" />
+            <BrandLogo size={36} textColor="#ffffff" />
           </div>
 
           <div className="ff-footer-nav">

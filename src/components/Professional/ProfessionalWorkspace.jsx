@@ -36,8 +36,15 @@ import {
   UserPlus,
   FileCheck,
   RefreshCw,
-  Award
+  Award,
+  BarChart2,
+  TrendingUp,
+  PieChart,
+  DollarSign,
+  Star,
+  Share2
 } from 'lucide-react';
+import ProfessionalProfileView from './ProfessionalProfileView';
 
 export default function ProfessionalWorkspace({
   professional,
@@ -124,6 +131,16 @@ export default function ProfessionalWorkspace({
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isSwitchMenuOpen, setIsSwitchMenuOpen] = useState(false);
+
+  // Modais de Atraso e Finalização de Atendimento
+  const [isDelayModalOpen, setIsDelayModalOpen] = useState(false);
+  const [delayMinutes, setDelayMinutes] = useState(10);
+  const [delayReason, setDelayReason] = useState('Procedimento clínico mais complexo que o previsto');
+
+  const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
+  const [finishOutcome, setFinishOutcome] = useState('Consulta Concluída com Sucesso');
+  const [kpiMetricMode, setKpiMetricMode] = useState('punctuality'); // 'punctuality' | 'productive_time'
+  const [activeView, setActiveView] = useState('workspace'); // 'workspace' | 'profile'
 
   // Sync state if external professional prop changes
   useEffect(() => {
@@ -276,8 +293,34 @@ export default function ProfessionalWorkspace({
     showToast(`📢 Re-chamando ${currentTicket.name} (Senha ${currentTicket.ticket})! Notificação reforçada no celular.`);
   };
 
-  // Finish current consultation
-  const handleFinishConsultation = () => {
+  // Reportar Atraso com Notificação IA para a Fila
+  const handleConfirmReportDelay = () => {
+    setTargetMinutes(prev => prev + delayMinutes);
+    // Recalcula previsão de espera de todos os pacientes da fila
+    setWaitingList(prev => prev.map(p => {
+      const waitMatch = p.time.match(/\d+/);
+      const curWait = waitMatch ? parseInt(waitMatch[0], 10) : 15;
+      return {
+        ...p,
+        time: `~${curWait + delayMinutes} min`,
+        statusDetail: `⚠️ Previsão ajustada: +${delayMinutes} min de atraso reportado`
+      };
+    }));
+    setIsDelayModalOpen(false);
+    showToast(`⚠️ Atraso de +${delayMinutes} min reportado! A IA recalculou a previsão dos ${waitingList.length} pacientes e enviou notificações push e WhatsApp.`);
+  };
+
+  // Abrir Modal de Finalização do Atendimento
+  const handleOpenFinishModal = () => {
+    if (!currentTicket) {
+      showToast('⚠️ Não há paciente em atendimento no momento.');
+      return;
+    }
+    setIsFinishModalOpen(true);
+  };
+
+  // Confirmar Finalização da Consulta Atual
+  const handleConfirmFinishConsultation = (shouldCallNextImmediately = false) => {
     if (!currentTicket) return;
 
     const completedItem = {
@@ -285,14 +328,59 @@ export default function ProfessionalWorkspace({
       name: currentTicket.name,
       service: currentTicket.service,
       duration: formatTime(timerSeconds),
-      completedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      completedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      outcome: finishOutcome,
+      notes: notes.trim() || 'Atendimento realizado conforme protocolo.'
     };
 
     setHistoryList(prev => [completedItem, ...prev]);
-    setCurrentTicket(null);
-    setIsTimerRunning(false);
-    setConsultationStatus('ready');
-    showToast(`✅ Consulta de ${completedItem.name} finalizada (${completedItem.duration}). Consultório pronto para o próximo!`);
+    setIsFinishModalOpen(false);
+
+    if (shouldCallNextImmediately && waitingList.length > 0) {
+      const nextPatient = waitingList[0];
+      const updatedWaiting = waitingList.slice(1);
+
+      setCurrentTicket({
+        ticket: nextPatient.ticket,
+        name: nextPatient.name,
+        service: nextPatient.service,
+        age: nextPatient.priorityReason ? 'Atendimento Prioritário' : 'Consulta Agendada',
+        convenio: 'Unimed / Particular',
+        timeJoined: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        room: pro.room,
+        status: 'attending',
+        clientOnWay: false,
+        notes: ''
+      });
+
+      setWaitingList(updatedWaiting);
+      setTimerSeconds(0);
+      setIsTimerRunning(true);
+      setConsultationStatus('attending');
+      setNotes('');
+
+      playAnnouncementSound(nextPatient.ticket, nextPatient.name, pro.room);
+      showToast(`✅ Consulta de ${completedItem.name} finalizada! 🔔 Chamando Próximo: Senha ${nextPatient.ticket} (${nextPatient.name}) para o ${pro.room}!`);
+    } else {
+      setCurrentTicket(null);
+      setIsTimerRunning(false);
+      setConsultationStatus('ready');
+      if (waitingList.length === 0) {
+        showToast(`🎉 Parabéns! Todos os pacientes do dia foram atendidos com sucesso!`);
+      } else {
+        showToast(`✅ Consulta de ${completedItem.name} finalizada (${completedItem.duration}). Consultório pronto para o próximo!`);
+      }
+    }
+  };
+
+  // Recarregar novos pacientes para teste contínuo
+  const handleReloadMockPatients = () => {
+    setWaitingList([
+      { ticket: '#52', name: 'Juliana Paes', service: 'Consulta Oftalmologia Geral', time: '~10 min', isPriority: false, status: 'saguao', phone: '(11) 98111-2233' },
+      { ticket: '#53', name: 'Thiago Martins', service: 'Exame de Fundo de Olho', time: '~25 min', isPriority: false, status: 'a_caminho', phone: '(11) 97222-3344' },
+      { ticket: '#54', name: 'Dona Helena (82a)', service: 'Avaliação de Catarata', time: '~35 min', isPriority: true, status: 'saguao', priorityReason: 'Prioridade Lei 10.048 (Idoso)', phone: '(11) 96333-4455' }
+    ]);
+    showToast('🔄 Nova fila de pacientes carregada para continuar a demonstração!');
   };
 
   // Save clinical notes
@@ -376,7 +464,7 @@ export default function ProfessionalWorkspace({
 
   // Copy Digital Rx
   const handleCopyRx = () => {
-    const text = `--- TEMFYLA HEALTH ---\nDOCUMENTO CLÍNICO DIGITAL\nProfissional: ${pro.name} (${pro.crm})\nLocal: ${pro.companyName} - ${pro.room}\nPaciente: ${currentTicket?.name || 'Paciente'}\nData: ${new Date().toLocaleDateString('pt-BR')}\n\nTipo: ${rxDocType.toUpperCase()}\nPrescrição / Justificativa:\n${rxDetails}\n\nCódigo de Validação Digital: TFL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const text = `--- TEMFYLA HEALTH ---\nDOCUMENTO CLÍNICO DIGITAL\nProfissional: ${pro.name} (${pro.crm})\nLocal: ${pro.companyName} - ${pro.room}\nPaciente: ${currentTicket?.name || 'Paciente'}\nData: ${new Date().toLocaleDateString('pt-BR')}\n\nTipo: ${rxDocType.toUpperCase()}\nPrescrição / Justificativa:\n${rxDetails}\n\nCódigo de Validação Digital: TFY-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     navigator.clipboard?.writeText(text);
     setRxCopied(true);
     setTimeout(() => setRxCopied(false), 2500);
@@ -490,6 +578,17 @@ export default function ProfessionalWorkspace({
             <span>{consultationStatus === 'break' ? 'Retomar Consultório' : 'Intervalo'}</span>
           </button>
 
+          {/* Report Delay Button */}
+          <button
+            className="ff-pro-btn-tool"
+            onClick={() => setIsDelayModalOpen(true)}
+            style={{ color: '#d97706', borderColor: '#fde68a', background: '#fffbeb' }}
+            title="Reportar atraso no consultório para a IA recalibrar a fila"
+          >
+            <AlertTriangle size={16} />
+            <span>Reportar Atraso</span>
+          </button>
+
           {/* End of Shift / Report */}
           <button
             className="ff-pro-btn-tool"
@@ -498,6 +597,17 @@ export default function ProfessionalWorkspace({
           >
             <Activity size={16} />
             <span className="hidden-sm">Relatório Turno</span>
+          </button>
+
+          {/* Meu Perfil */}
+          <button
+            className={`ff-pro-btn-tool ${activeView === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveView((prev) => prev === 'profile' ? 'workspace' : 'profile')}
+            title={activeView === 'profile' ? 'Voltar ao Consultório' : 'Visualizar e editar meu perfil profissional'}
+            style={activeView === 'profile' ? { background: '#f5f3ff', borderColor: '#7c3aed', color: '#6d28d9', fontWeight: 800 } : {}}
+          >
+            <User size={16} />
+            <span className="hidden-sm">{activeView === 'profile' ? 'Consultório' : 'Meu Perfil'}</span>
           </button>
 
           {/* Logout */}
@@ -512,8 +622,19 @@ export default function ProfessionalWorkspace({
         </div>
       </header>
 
-      {/* 2. Grid Principal Operacional */}
-      <main className="ff-pro-main-grid">
+      {/* 2. Conteúdo Principal: Perfil do Profissional ou Grid Operacional */}
+      {activeView === 'profile' ? (
+        <ProfessionalProfileView
+          professional={pro}
+          onUpdateProfessional={(updatedPro) => {
+            if (onSwitchProfessional) onSwitchProfessional(updatedPro);
+            showToast('✓ Perfil profissional atualizado com sucesso!');
+          }}
+          onGoBack={() => setActiveView('workspace')}
+          showToast={showToast}
+        />
+      ) : (
+        <main className="ff-pro-main-grid">
         {/* COLUNA ESQUERDA: Cronômetro da Consulta + Paciente Atual + Prontuário Express */}
         <div className="ff-pro-left-col">
           {/* CARD 1: Cronômetro Central da Consulta */}
@@ -624,15 +745,12 @@ export default function ProfessionalWorkspace({
                 </button>
                 <button
                   className="btn-add-time custom"
-                  onClick={() => {
-                    const customMin = prompt('Quantos minutos extras deseja adicionar à consulta atual?', '20');
-                    if (customMin && !isNaN(customMin)) {
-                      handleAddMinutes(parseInt(customMin, 10));
-                    }
-                  }}
-                  title="Definir tempo personalizado"
+                  onClick={() => setIsDelayModalOpen(true)}
+                  style={{ background: '#fffbeb', borderColor: '#fde68a', color: '#b45309', fontWeight: 700 }}
+                  title="Reportar atraso formal à fila"
                 >
-                  <span>Outro tempo...</span>
+                  <AlertTriangle size={13} />
+                  <span>Reportar Atraso...</span>
                 </button>
               </div>
             </div>
@@ -705,11 +823,11 @@ export default function ProfessionalWorkspace({
 
                   <button
                     className="btn-pro-action finish"
-                    onClick={handleFinishConsultation}
-                    title="Finalizar esta consulta e liberar consultório"
+                    onClick={handleOpenFinishModal}
+                    title="Finalizar este atendimento e registrar desfecho"
                   >
                     <CheckCircle2 size={16} />
-                    <span>Finalizar Consulta</span>
+                    <span>Finalizar Atendimento</span>
                   </button>
                 </div>
 
@@ -948,9 +1066,34 @@ export default function ProfessionalWorkspace({
                 ))}
               </div>
             ) : (
-              <div className="queue-empty-box">
-                <CheckCircle2 size={32} color="#10b981" />
-                <p>Todos os pacientes da fila foram atendidos com sucesso!</p>
+              <div className="queue-empty-box" style={{ padding: '24px 18px', textAlign: 'center', background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', border: '1.5px solid #a7f3d0', borderRadius: 16 }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                  <Award size={32} color="#059669" />
+                </div>
+                <h4 style={{ fontSize: 16, fontWeight: 800, color: '#065f46', marginBottom: 4 }}>
+                  Turno Concluído com 100% de Atendimento!
+                </h4>
+                <p style={{ fontSize: 13, color: '#047857', maxWidth: 380, margin: '0 auto 16px', lineHeight: 1.45 }}>
+                  Todos os pacientes da sua escala foram atendidos. Veja o desempenho completo no gráfico detalhado do dia.
+                </p>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    className="btn-primary"
+                    onClick={() => setIsReportModalOpen(true)}
+                    style={{ padding: '9px 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <BarChart2 size={15} />
+                    <span>Ver Gráfico do Turno</span>
+                  </button>
+                  <button
+                    className="btn-outline-purple"
+                    onClick={handleReloadMockPatients}
+                    style={{ padding: '9px 16px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <RefreshCw size={14} />
+                    <span>Carregar Mais Pacientes</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1006,6 +1149,7 @@ export default function ProfessionalWorkspace({
           </div>
         </div>
       </main>
+      )}
 
       {/* MODAL 1: Encaixe Rápido de Paciente */}
       {isWalkInModalOpen && (
@@ -1197,73 +1341,618 @@ export default function ProfessionalWorkspace({
         </div>
       )}
 
-      {/* MODAL 3: Relatório do Turno */}
+      {/* MODAL 3: Reportar Atraso no Consultório */}
+      {isDelayModalOpen && (
+        <div className="ff-pro-modal-overlay" onClick={() => setIsDelayModalOpen(false)}>
+          <div className="ff-pro-modal-card" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+            <div className="ff-pro-modal-header" style={{ borderBottom: '1.5px solid #fde68a', background: '#fffbeb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={20} color="#d97706" />
+                <h3 style={{ color: '#92400e' }}>Reportar Atraso no Consultório</h3>
+              </div>
+              <button className="btn-modal-close" onClick={() => setIsDelayModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="ff-pro-modal-form" style={{ padding: '20px' }}>
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 8 }}>
+                  Selecione o Tempo Adicional Estimado:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+                  {[5, 10, 15, 20, 30].map((mins) => (
+                    <button
+                      key={mins}
+                      type="button"
+                      onClick={() => setDelayMinutes(mins)}
+                      style={{
+                        padding: '12px 6px',
+                        borderRadius: 12,
+                        border: delayMinutes === mins ? '2px solid #d97706' : '1.5px solid #e2e8f0',
+                        background: delayMinutes === mins ? '#fef3c7' : '#ffffff',
+                        color: delayMinutes === mins ? '#92400e' : '#475569',
+                        fontWeight: 800,
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      +{mins} min
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 8 }}>
+                  Motivo Operacional do Atraso:
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {[
+                    'Procedimento clínico mais complexo que o previsto',
+                    'Atendimento de urgência médica imprevisto',
+                    'Aguardando liberação de laudo ou dilatação de pupila',
+                    'Sobrecarga na recepção / triagem de convênio',
+                    'Pausa técnica emergencial no equipamento'
+                  ].map((reason) => (
+                    <label
+                      key={reason}
+                      onClick={() => setDelayReason(reason)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '9px 12px',
+                        borderRadius: 10,
+                        border: delayReason === reason ? '1.5px solid #f59e0b' : '1px solid #e2e8f0',
+                        background: delayReason === reason ? '#fffbeb' : '#fafafa',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        color: '#1e293b'
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="delay-reason"
+                        checked={delayReason === reason}
+                        onChange={() => setDelayReason(reason)}
+                        style={{ accentColor: '#d97706' }}
+                      />
+                      <span>{reason}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* AI Impact Notice */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                border: '1px solid #a7f3d0',
+                borderRadius: 12,
+                padding: '12px 14px',
+                fontSize: 12.5,
+                color: '#065f46',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 8,
+                marginBottom: 20
+              }}>
+                <Sparkles size={16} color="#059669" style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>
+                  <strong>Ajuste Inteligente com IA:</strong> Ao confirmar, o TemFyla recalculará a previsão de espera de todos os {waitingList.length} pacientes na fila e enviará avisos push e WhatsApp aos celulares para evitar espera na recepção.
+                </span>
+              </div>
+
+              <div className="modal-actions" style={{ display: 'flex', gap: 10 }}>
+                <button type="button" className="btn-cancel" onClick={() => setIsDelayModalOpen(false)} style={{ flex: 1 }}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn-confirm"
+                  onClick={handleConfirmReportDelay}
+                  style={{ flex: 2, background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)', color: 'white' }}
+                >
+                  <AlertTriangle size={15} />
+                  <span>Confirmar Atraso (+{delayMinutes} min)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: Finalizar Atendimento Atual */}
+      {isFinishModalOpen && currentTicket && (
+        <div className="ff-pro-modal-overlay" onClick={() => setIsFinishModalOpen(false)}>
+          <div className="ff-pro-modal-card" style={{ maxWidth: 540 }} onClick={e => e.stopPropagation()}>
+            <div className="ff-pro-modal-header" style={{ borderBottom: '1.5px solid #a7f3d0', background: '#ecfdf5' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <CheckCircle2 size={20} color="#059669" />
+                <h3 style={{ color: '#065f46' }}>Finalizar Atendimento • Senha {currentTicket.ticket}</h3>
+              </div>
+              <button className="btn-modal-close" onClick={() => setIsFinishModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '20px' }}>
+              {/* Patient Brief Header */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: 14,
+                padding: '14px 16px',
+                marginBottom: 16
+              }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>{currentTicket.name}</h4>
+                  <span style={{ fontSize: 13, color: '#64748b' }}>{currentTicket.service} • {currentTicket.convenio}</span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: '#7c3aed' }}>{formatTime(timerSeconds)}</div>
+                  <span style={{ fontSize: 11, color: timerSeconds > targetMinutes * 60 ? '#dc2626' : '#059669', fontWeight: 700 }}>
+                    {timerSeconds > targetMinutes * 60 ? `+${formatTime(timerSeconds - targetMinutes * 60)} acima da meta` : '✓ Dentro da meta prevista'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Fast Clinical Outcome Selection */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 8 }}>
+                  Desfecho Clínico da Consulta:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                  {[
+                    'Consulta Concluída com Sucesso',
+                    'Retorno Agendado em 15 dias',
+                    'Receituário e Óculos Prescritos',
+                    'Encaminhamento Cirúrgico Indicado'
+                  ].map((outcome) => (
+                    <button
+                      key={outcome}
+                      type="button"
+                      onClick={() => setFinishOutcome(outcome)}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        border: finishOutcome === outcome ? '2px solid #7c3aed' : '1px solid #e2e8f0',
+                        background: finishOutcome === outcome ? '#f5f3ff' : '#ffffff',
+                        color: finishOutcome === outcome ? '#6d28d9' : '#334155',
+                        fontWeight: finishOutcome === outcome ? 700 : 500,
+                        fontSize: 12.5,
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {finishOutcome === outcome ? '✓ ' : ''}{outcome}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Clinical Notes Summary */}
+              {notes && (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: '#475569', marginBottom: 20 }}>
+                  <strong style={{ color: '#0f172a', display: 'block', marginBottom: 4 }}>Anotações registradas:</strong>
+                  <p style={{ margin: 0, fontStyle: 'italic', whiteSpace: 'pre-line' }}>"{notes}"</p>
+                </div>
+              )}
+
+              {/* Dual Action Options */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {waitingList.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => handleConfirmFinishConsultation(true)}
+                    style={{ width: '100%', padding: '13px 18px', fontSize: 14, justifyContent: 'center', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)' }}
+                  >
+                    <Play size={16} />
+                    <span>Finalizar & Chamar Próximo Imediatamente ({waitingList[0]?.ticket} - {waitingList[0]?.name})</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => handleConfirmFinishConsultation(false)}
+                  style={{ width: '100%', padding: '12px 18px', fontSize: 14, justifyContent: 'center' }}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>Finalizar Consulta & Liberar Consultório</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={() => setIsFinishModalOpen(false)}
+                  style={{ width: '100%', padding: '9px 14px', fontSize: 13, justifyContent: 'center' }}
+                >
+                  Voltar à Consulta
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: Relatório Completo & Gráficos Detalhados do Turno do Dia */}
       {isReportModalOpen && (
         <div className="ff-pro-modal-overlay" onClick={() => setIsReportModalOpen(false)}>
-          <div className="ff-pro-modal-card" onClick={e => e.stopPropagation()}>
-            <div className="ff-pro-modal-header">
+          <div className="ff-pro-modal-card" style={{ maxWidth: 840, width: '94%', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div className="ff-pro-modal-header" style={{ position: 'sticky', top: 0, background: 'white', zIndex: 10, borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Activity size={18} color="#7c3aed" />
-                <h3>Relatório do Turno de Atendimento</h3>
+                <Activity size={20} color="#7c3aed" />
+                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0f172a' }}>
+                  Desempenho & Gráficos do Turno • {pro.name}
+                </h3>
               </div>
               <button className="btn-modal-close" onClick={() => setIsReportModalOpen(false)}>
                 <X size={18} />
               </button>
             </div>
 
-            <div className="report-modal-body">
-              <div className="report-badge-hero">
-                <span className="badge-title">{pro.name}</span>
-                <span className="badge-sub">{pro.specialty} • {pro.companyName} ({pro.room})</span>
+            <div className="report-modal-body" style={{ padding: '24px 20px' }}>
+              {/* Celebration Hero Badge */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                border: '1.5px solid #c4b5fd',
+                borderRadius: 16,
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 16,
+                marginBottom: 24
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: '#7c3aed', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
+                    🏆
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#4c1d95' }}>
+                      Excelente Turno Concluído!
+                    </h4>
+                    <span style={{ fontSize: 13, color: '#6d28d9' }}>
+                      {pro.specialty} • {pro.companyName} ({pro.room}) • {new Date().toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ background: '#10b981', color: 'white', padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 800 }}>
+                    100% Atendidos
+                  </span>
+                  <span style={{ background: '#7c3aed', color: 'white', padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 800 }}>
+                    Acurácia IA 98.2%
+                  </span>
+                </div>
               </div>
 
-              <div className="report-stats-grid">
-                <div className="report-stat-item">
-                  <span className="stat-num">{historyList.length}</span>
-                  <span className="stat-lbl">Consultas Realizadas</span>
+              {/* 4 Main KPI Cards Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 24 }}>
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '14px 16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>Pacientes Atendidos</span>
+                    <Users size={16} color="#7c3aed" />
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: '#0f172a' }}>{Math.max(historyList.length, 12)}</div>
+                  <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700 }}>✓ 100% da escala diária</span>
                 </div>
-                <div className="report-stat-item">
-                  <span className="stat-num">17m</span>
-                  <span className="stat-lbl">Tempo Médio / Paciente</span>
+
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '14px 16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>Tempo Médio / Consulta</span>
+                    <Clock size={16} color="#3b82f6" />
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: '#0f172a' }}>16m 45s</div>
+                  <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700 }}>Meta: {targetMinutes} min (Dentro do prazo)</span>
                 </div>
-                <div className="report-stat-item">
-                  <span className="stat-num">{waitingList.length}</span>
-                  <span className="stat-lbl">Pacientes Aguardando</span>
+
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 14,
+                    padding: '14px 16px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setKpiMetricMode((prev) => prev === 'punctuality' ? 'productive_time' : 'punctuality')}
+                  title="Clique para alternar entre Pontualidade e Tempo Produtivo"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>
+                      {kpiMetricMode === 'punctuality' ? 'Pontualidade & Eficiência' : 'Tempo Produtivo em Sala'}
+                    </span>
+                    <Award size={16} color="#059669" />
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: '#0f172a' }}>
+                    {kpiMetricMode === 'punctuality' ? '98.4%' : '3h 21m'}
+                  </div>
+                  <span style={{ fontSize: 11, color: '#059669', fontWeight: 700 }}>
+                    {kpiMetricMode === 'punctuality'
+                      ? '✓ 11 de 12 no prazo • Zero No-shows'
+                      : '✓ 94% de ocupação produtiva da sala'}
+                  </span>
                 </div>
-                <div className="report-stat-item">
-                  <span className="stat-num text-emerald">96%</span>
-                  <span className="stat-lbl">Acurácia da IA</span>
+
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '14px 16px', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>Avaliação dos Pacientes</span>
+                    <Star size={16} color="#f59e0b" fill="#f59e0b" />
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: '#0f172a' }}>4.96 <small style={{ fontSize: 13, color: '#64748b' }}>/ 5.0</small></div>
+                  <span style={{ fontSize: 11, color: '#059669', fontWeight: 700 }}>⭐ 100% de satisfação registrada</span>
                 </div>
               </div>
 
-              <div className="report-history-table-box">
-                <h4>Histórico dos Pacientes Atendidos Hoje:</h4>
-                <div className="report-table-scroll">
+              {/* GRÁFICO 1: Atendimentos por Faixa Horária (Timeline 08h às 18h) */}
+              <div style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 16,
+                padding: '20px',
+                marginBottom: 20,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <BarChart2 size={16} color="#7c3aed" />
+                      <span>Distribuição dos Atendimentos por Hora (Timeline)</span>
+                    </h4>
+                    <span style={{ fontSize: 12, color: '#64748b' }}>Ritmo de consultas ao longo do expediente</span>
+                  </div>
+                  <span style={{ background: '#fef3c7', color: '#92400e', fontSize: 11.5, fontWeight: 800, padding: '4px 10px', borderRadius: 999 }}>
+                    🔥 Picos: 10h & 14h
+                  </span>
+                </div>
+
+                {/* SVG Hourly Bar Chart */}
+                <div style={{ width: '100%', overflowX: 'auto' }}>
+                  <svg viewBox="0 0 700 160" style={{ width: '100%', minWidth: 540, height: 160 }}>
+                    <defs>
+                      <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#7c3aed" />
+                        <stop offset="100%" stopColor="#4f46e5" />
+                      </linearGradient>
+                      <linearGradient id="barGradPeak" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" />
+                        <stop offset="100%" stopColor="#059669" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Horizontal Guide Lines */}
+                    <line x1="30" y1="30" x2="680" y2="30" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                    <line x1="30" y1="70" x2="680" y2="70" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                    <line x1="30" y1="110" x2="680" y2="110" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                    <line x1="30" y1="135" x2="680" y2="135" stroke="#cbd5e1" strokeWidth="1.5" />
+
+                    {/* Bars for Each Hour */}
+                    {[
+                      { hour: '08h', count: 1, y: 100, isPeak: false },
+                      { hour: '09h', count: 2, y: 65, isPeak: false },
+                      { hour: '10h', count: 3, y: 30, isPeak: true },
+                      { hour: '11h', count: 2, y: 65, isPeak: false },
+                      { hour: '12h', count: 0, y: 135, isPeak: false, isBreak: true },
+                      { hour: '13h', count: 1, y: 100, isPeak: false },
+                      { hour: '14h', count: 3, y: 30, isPeak: true },
+                      { hour: '15h', count: 2, y: 65, isPeak: false },
+                      { hour: '16h', count: 1, y: 100, isPeak: false },
+                      { hour: '17h', count: 1, y: 100, isPeak: false }
+                    ].map((item, index) => {
+                      const x = 55 + index * 62;
+                      const height = 135 - item.y;
+                      return (
+                        <g key={item.hour}>
+                          {item.count > 0 && (
+                            <rect
+                              x={x}
+                              y={item.y}
+                              width={34}
+                              height={height}
+                              rx={6}
+                              fill={item.isPeak ? 'url(#barGradPeak)' : 'url(#barGrad)'}
+                            />
+                          )}
+                          {item.count > 0 && (
+                            <text
+                              x={x + 17}
+                              y={item.y - 7}
+                              textAnchor="middle"
+                              fill="#0f172a"
+                              fontSize="11"
+                              fontWeight="800"
+                            >
+                              {item.count}
+                            </text>
+                          )}
+                          {item.isBreak && (
+                            <text
+                              x={x + 17}
+                              y={128}
+                              textAnchor="middle"
+                              fill="#94a3b8"
+                              fontSize="10"
+                              fontWeight="600"
+                            >
+                              Almoço
+                            </text>
+                          )}
+                          <text
+                            x={x + 17}
+                            y={150}
+                            textAnchor="middle"
+                            fill="#64748b"
+                            fontSize="11"
+                            fontWeight="700"
+                          >
+                            {item.hour}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+              </div>
+
+              {/* DUAL CHARTS ROW: Tempo vs Meta + Donut de Procedimentos */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 24 }}>
+                {/* GRÁFICO 2: Tempo Real vs Meta por Paciente */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <h4 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <TrendingUp size={16} color="#059669" />
+                      <span>Duração Real vs Meta (20 min)</span>
+                    </h4>
+                    <span style={{ fontSize: 11, color: '#059669', fontWeight: 700 }}>88% no Prazo Ideal</span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {[
+                      { patient: '#43 Maria Silva', duration: 18, text: '18 min', within: true },
+                      { patient: '#44 João Santos', duration: 15, text: '15 min', within: true },
+                      { patient: '#45 Ana Costa', duration: 12, text: '12 min', within: true },
+                      { patient: '#46 Pedro Lima', duration: 22, text: '22 min', within: false },
+                      { patient: '#47 Rafael Silva', duration: 16, text: '16 min', within: true },
+                      { patient: '#48 Mariana Alencar', duration: 19, text: '19 min', within: true }
+                    ].map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5 }}>
+                        <span style={{ width: 130, color: '#334155', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {item.patient}
+                        </span>
+                        <div style={{ flex: 1, height: 12, background: '#f1f5f9', borderRadius: 999, overflow: 'hidden', position: 'relative' }}>
+                          <div
+                            style={{
+                              width: `${Math.min(100, (item.duration / 25) * 100)}%`,
+                              height: '100%',
+                              background: item.within ? 'linear-gradient(90deg, #10b981, #059669)' : 'linear-gradient(90deg, #f59e0b, #d97706)',
+                              borderRadius: 999
+                            }}
+                          />
+                        </div>
+                        <span style={{ width: 48, fontWeight: 700, color: item.within ? '#059669' : '#d97706', textAlign: 'right' }}>
+                          {item.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b' }}>
+                    <span>Linha da meta de consulta: <strong>{targetMinutes} minutos</strong></span>
+                    <span style={{ color: '#059669', fontWeight: 700 }}>✓ Eficiência Padrão Ouro</span>
+                  </div>
+                </div>
+
+                {/* GRÁFICO 3: Donut de Procedimentos */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <h4 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <PieChart size={16} color="#3b82f6" />
+                      <span>Procedimentos Realizados</span>
+                    </h4>
+                    <span style={{ fontSize: 11, color: '#64748b' }}>12 atendimentos</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+                      <circle cx="60" cy="60" r="48" fill="none" stroke="#f1f5f9" strokeWidth="20" />
+                      {/* Segment 1: Consultas Gerais (42%) */}
+                      <circle cx="60" cy="60" r="48" fill="none" stroke="#7c3aed" strokeWidth="20" strokeDasharray="126 301" strokeDashoffset="0" />
+                      {/* Segment 2: Fundo de Olho (25%) */}
+                      <circle cx="60" cy="60" r="48" fill="none" stroke="#3b82f6" strokeWidth="20" strokeDasharray="75 301" strokeDashoffset="-126" />
+                      {/* Segment 3: Retornos (20%) */}
+                      <circle cx="60" cy="60" r="48" fill="none" stroke="#10b981" strokeWidth="20" strokeDasharray="60 301" strokeDashoffset="-201" />
+                      {/* Segment 4: Urgências (13%) */}
+                      <circle cx="60" cy="60" r="48" fill="none" stroke="#f59e0b" strokeWidth="20" strokeDasharray="40 301" strokeDashoffset="-261" />
+                    </svg>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, fontSize: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 2, background: '#7c3aed' }} />
+                        <span style={{ color: '#334155' }}>Consulta Oftalmologia (42%)</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 2, background: '#3b82f6' }} />
+                        <span style={{ color: '#334155' }}>Exame Fundo de Olho (25%)</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 2, background: '#10b981' }} />
+                        <span style={{ color: '#334155' }}>Retornos Clínicos (20%)</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 2, background: '#f59e0b' }} />
+                        <span style={{ color: '#334155' }}>Urgência / Encaixe (13%)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabela de Histórico de Pacientes */}
+              <div className="report-history-table-box" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 14, padding: '16px', marginBottom: 24 }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
+                  Detalhamento dos Atendimentos Concluídos Hoje:
+                </h4>
+                <div className="report-table-scroll" style={{ maxHeight: 220, overflowY: 'auto' }}>
                   {historyList.map((item, idx) => (
-                    <div key={idx} className="report-table-row">
-                      <span className="row-t">{item.ticket}</span>
-                      <span className="row-n">{item.name}</span>
-                      <span className="row-s">{item.service}</span>
-                      <span className="row-d">{item.duration}</span>
-                      <span className="row-c">{item.completedAt}</span>
+                    <div key={idx} className="report-table-row" style={{ display: 'grid', gridTemplateColumns: '70px 1.5fr 1.5fr 80px 80px', padding: '8px 10px', fontSize: 12.5, borderBottom: '1px solid #f1f5f9' }}>
+                      <span className="row-t" style={{ fontWeight: 800, color: '#7c3aed' }}>{item.ticket}</span>
+                      <span className="row-n" style={{ fontWeight: 600, color: '#0f172a' }}>{item.name}</span>
+                      <span className="row-s" style={{ color: '#64748b' }}>{item.service}</span>
+                      <span className="row-d" style={{ color: '#059669', fontWeight: 700 }}>{item.duration}</span>
+                      <span className="row-c" style={{ color: '#94a3b8' }}>{item.completedAt}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="modal-actions" style={{ marginTop: 18 }}>
+              {/* Actions Footer */}
+              <div className="modal-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button type="button" className="btn-cancel" onClick={() => setIsReportModalOpen(false)}>
                   Fechar
                 </button>
+
+                <button
+                  type="button"
+                  className="btn-outline-purple"
+                  onClick={handleReloadMockPatients}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <RefreshCw size={14} />
+                  <span>Carregar Novos Pacientes (Testar)</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-outline-purple"
+                  onClick={() => {
+                    window.open(`https://api.whatsapp.com/send?text=Resumo%20do%20Turno%20TemFyla%20-%20${encodeURIComponent(pro.name)}:%20${historyList.length}%20atendimentos%20concluídos%20com%20sucesso.%20Pontualidade%20IA:%2098.2%.`, '_blank');
+                    showToast('📲 Relatório formatado compartilhado no WhatsApp da administração!');
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }}
+                >
+                  <Share2 size={14} />
+                  <span>Compartilhar via WhatsApp</span>
+                </button>
+
                 <button
                   type="button"
                   className="btn-confirm"
                   onClick={() => {
-                    showToast('🖨️ Enviando resumo do turno para a impressora / PDF...');
+                    window.print();
+                    showToast('🖨️ Enviando resumo do turno para impressão/PDF...');
                   }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                   <Printer size={15} />
-                  <span>Imprimir Resumo do Turno</span>
+                  <span>Imprimir / Salvar PDF</span>
                 </button>
               </div>
             </div>

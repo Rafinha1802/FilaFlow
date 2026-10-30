@@ -8,11 +8,21 @@ import {
   Navigation,
   Sparkles,
   Trash2,
-  Zap
+  Zap,
+  MessageCircle,
+  Smartphone,
+  Volume2
 } from 'lucide-react';
 
 export default function MobileNotificationsView({ onPlayChime }) {
-  const [filter, setFilter] = useState('all'); // 'all' | 'calls' | 'alerts'
+  const [filter, setFilter] = useState('all'); // 'all' | 'calls' | 'alerts' | 'channels'
+  const [pushStatus, setPushStatus] = useState(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission === 'granted' ? 'active' : 'idle';
+    }
+    return 'idle';
+  });
+
   const [notifications, setNotifications] = useState([
     {
       id: 'n0',
@@ -22,6 +32,15 @@ export default function MobileNotificationsView({ onPlayChime }) {
       time: 'Agora mesmo',
       isUnread: true,
       tag: 'Recepção'
+    },
+    {
+      id: 'n_wa_sample',
+      type: 'whatsapp',
+      title: 'WhatsApp Sincronizado',
+      message: 'Notificações ativadas para o número (11) 98765-4321. Você receberá chamadas e previsão recalculada diretamente no Whats.',
+      time: 'Há 2 min',
+      isUnread: true,
+      tag: 'WhatsApp'
     },
     {
       id: 'n1',
@@ -64,6 +83,7 @@ export default function MobileNotificationsView({ onPlayChime }) {
   const filtered = notifications.filter((n) => {
     if (filter === 'calls') return n.type === 'call';
     if (filter === 'alerts') return n.type === 'alert';
+    if (filter === 'channels') return n.type === 'whatsapp' || n.tag?.toLowerCase().includes('push') || n.tag?.toLowerCase().includes('whats');
     return true;
   });
 
@@ -75,11 +95,99 @@ export default function MobileNotificationsView({ onPlayChime }) {
     setNotifications([]);
   };
 
+  // Simular Notificação Push com som e API nativa
+  const handleSimulatePush = () => {
+    if (onPlayChime) {
+      onPlayChime();
+    } else {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+      } catch (e) {}
+    }
+
+    if ('Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then((perm) => {
+          if (perm === 'granted') {
+            setPushStatus('active');
+            try {
+              new Notification('🔔 TemFyla: Atenção!', {
+                body: 'Sua vez está muito próxima! Falta 1 pessoa à sua frente.',
+                icon: '/favicon.ico'
+              });
+            } catch (e) {}
+          }
+        });
+      } else if (Notification.permission === 'granted') {
+        setPushStatus('active');
+        try {
+          new Notification('🔔 TemFyla: Atenção!', {
+            body: 'Sua vez está muito próxima! Falta 1 pessoa à sua frente na Clínica Vida.',
+            icon: '/favicon.ico'
+          });
+        } catch (e) {}
+      }
+    }
+
+    const newPushNotif = {
+      id: `push_${Date.now()}`,
+      type: 'call',
+      title: '🔔 Push: Chamada Iminente!',
+      message: 'Sua senha #47 é a próxima no Dr. Carlos Mendes (Consultório 04). Dirija-se à sala de atendimento.',
+      time: 'Agora mesmo',
+      isUnread: true,
+      tag: 'Push Notif'
+    };
+
+    setNotifications((prev) => [newPushNotif, ...prev]);
+  };
+
+  // Enviar / Testar integração com WhatsApp
+  const handleTestWhatsApp = () => {
+    const text = `🔔 *TemFyla Notificações*\n\n` +
+      `Sua senha *#47* foi atualizada:\n` +
+      `🏥 Local: Clínica Vida - Sala 04\n` +
+      `⏱️ Previsão: 2 minutos restantes\n` +
+      `👨‍⚕️ Atendente: Dr. Carlos Mendes\n\n` +
+      `Acompanhe em tempo real pelo TemFyla: https://temfyla.com/app`;
+
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+
+    const newWaNotif = {
+      id: `wa_${Date.now()}`,
+      type: 'whatsapp',
+      title: '💬 Alerta WhatsApp Disparado',
+      message: 'Mensagem com o status da senha #47 enviada para acompanhamento no WhatsApp.',
+      time: 'Agora mesmo',
+      isUnread: true,
+      tag: 'WhatsApp'
+    };
+
+    setNotifications((prev) => [newWaNotif, ...prev]);
+  };
+
   const getNotificationIcon = (type) => {
     if (type === 'call') {
       return (
         <div className="icon-squircle mint">
           <Bell size={18} />
+        </div>
+      );
+    }
+    if (type === 'whatsapp') {
+      return (
+        <div className="icon-squircle" style={{ background: '#dcfce7', color: '#16a34a' }}>
+          <MessageCircle size={18} />
         </div>
       );
     }
@@ -124,8 +232,84 @@ export default function MobileNotificationsView({ onPlayChime }) {
         </div>
       </div>
 
+      {/* Widget Interativo de Canais: Push & WhatsApp */}
+      <div style={{
+        background: 'linear-gradient(135deg, #f8fafc, #edf2f7)',
+        borderRadius: 16,
+        padding: '12px 14px',
+        marginBottom: 14,
+        border: '1px solid #e2e8f0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Canais de Comunicação
+          </span>
+          <span style={{
+            fontSize: 10,
+            padding: '2px 8px',
+            borderRadius: 10,
+            background: '#dcfce7',
+            color: '#15803d',
+            fontWeight: 700
+          }}>
+            100% Sincronizado
+          </span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <button
+            onClick={handleSimulatePush}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '9px 10px',
+              borderRadius: 12,
+              background: '#4f46e5',
+              color: '#ffffff',
+              fontSize: 11,
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(79,70,229,0.25)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Bell size={13} />
+            <span>Testar Push</span>
+          </button>
+
+          <button
+            onClick={handleTestWhatsApp}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '9px 10px',
+              borderRadius: 12,
+              background: '#10b981',
+              color: '#ffffff',
+              fontSize: 11,
+              fontWeight: 700,
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(16,185,129,0.25)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <MessageCircle size={13} />
+            <span>Whats Notif</span>
+          </button>
+        </div>
+      </div>
+
       {/* Segmented Filter Pills */}
-      <div className="clean-segmented-pills three-tabs">
+      <div className="clean-segmented-pills three-tabs" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         <button 
           className={`segmented-pill-btn ${filter === 'all' ? 'active' : ''}`}
           onClick={() => setFilter('all')}
@@ -143,7 +327,13 @@ export default function MobileNotificationsView({ onPlayChime }) {
           className={`segmented-pill-btn ${filter === 'alerts' ? 'active' : ''}`}
           onClick={() => setFilter('alerts')}
         >
-          <span>Alertas IA</span>
+          <span>Alertas</span>
+        </button>
+        <button 
+          className={`segmented-pill-btn ${filter === 'channels' ? 'active' : ''}`}
+          onClick={() => setFilter('channels')}
+        >
+          <span>Whats/Push</span>
         </button>
       </div>
 
@@ -157,7 +347,11 @@ export default function MobileNotificationsView({ onPlayChime }) {
 
             <div className="notif-card-content">
               <div className="notif-card-top-row">
-                <span className={`clean-chip-badge mini ${item.type === 'call' ? 'mint' : item.type === 'alert' ? 'peach' : 'sky'}`}>
+                <span className={`clean-chip-badge mini ${
+                  item.type === 'call' ? 'mint' : 
+                  item.type === 'whatsapp' ? 'mint' : 
+                  item.type === 'alert' ? 'peach' : 'sky'
+                }`}>
                   {item.tag}
                 </span>
                 <div className="notif-time-row">
