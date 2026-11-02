@@ -886,6 +886,8 @@ textarea {
   align-items: center;
   position: relative;
   perspective: 1200px;
+  padding: 28px;
+  margin: -28px;
 }
 
 .ff-phone-glow {
@@ -1014,12 +1016,13 @@ textarea {
 .ff-phone-device {
   position: relative;
   z-index: 2;
-  width: 390px;
-  height: 800px;
-  max-height: calc(100vh - 65px);
+  width: 393px;
+  height: 852px;
+  aspect-ratio: 393 / 852;
+  flex-shrink: 0;
   background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
-  border-radius: 48px;
-  padding: 12px;
+  border-radius: 50px;
+  padding: 11px;
   box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.12), inset 0 0 0 2px rgba(255, 255, 255, 0.05);
   border: 4px solid #334155;
   transition: transform 0.4s ease;
@@ -1027,7 +1030,7 @@ textarea {
 }
 
 .ff-phone-device:hover {
-  transform: translateY(-6px) rotateX(2deg) rotateY(-2deg);
+  transform: none;
 }
 
 .ff-phone-bezel-reflection {
@@ -1046,7 +1049,10 @@ textarea {
   width: 100%;
   height: 100%;
   background: #ffffff;
-  border-radius: 36px;
+  border-radius: 39px;
+  clip-path: inset(0 round 39px);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  isolation: isolate;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1827,7 +1833,8 @@ textarea {
 }
 
 .ff-phone-home-indicator {
-  height: 18px;
+  height: 22px;
+  padding-bottom: 4px;
   background: #ffffff;
   display: flex;
   align-items: center;
@@ -3859,7 +3866,7 @@ textarea {
 
 @media (max-width: 768px) {
   .ff-hero-title {
-    font-size: 38px;
+    font-size: 42px;
   }
 
   .ff-section-title {
@@ -4389,6 +4396,9 @@ textarea {
   -ms-overflow-style: none;
 }
 
+.ff-phone-static-preview { user-select: none !important; will-change: transform; }
+.ff-hero-static-screen, .ff-hero-static-nav { pointer-events: none !important; user-select: none !important; }
+.ff-hero-static-screen { overflow: hidden !important; }
 .ff-phone-screen-clean::-webkit-scrollbar {
   display: none;
   width: 0;
@@ -4988,6 +4998,9 @@ textarea {
   -ms-overflow-style: none;
 }
 
+.ff-phone-static-preview { user-select: none !important; will-change: transform; }
+.ff-hero-static-screen, .ff-hero-static-nav { pointer-events: none !important; user-select: none !important; }
+.ff-hero-static-screen { overflow: hidden !important; }
 .ff-phone-screen-clean::-webkit-scrollbar {
   display: none;
   width: 0;
@@ -5031,7 +5044,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 4px 14px 24px 14px;
+  padding: 10px 16px 24px 16px;
 }
 
 /* Floating Toast */
@@ -5315,7 +5328,7 @@ textarea {
 .ff-digital-ticket-card {
   background: linear-gradient(145deg, #181c30 0%, #1e1b4b 55%, #312e81 100%);
   border-radius: 20px;
-  padding: 12px 14px 14px;
+  padding: 15px 16px 16px;
   color: #ffffff;
   position: relative;
   overflow: hidden;
@@ -5424,7 +5437,7 @@ textarea {
 
 .ticket-number-display {
   font-family: var(--font-title);
-  font-size: 38px;
+  font-size: 42px;
   font-weight: 900;
   line-height: 1;
   color: #ffffff;
@@ -5458,7 +5471,7 @@ textarea {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   padding: 6px 12px;
-  margin: 3px 0 8px 0;
+  margin: 6px 0 10px 0;
   position: relative;
   z-index: 2;
 }
@@ -5540,7 +5553,7 @@ textarea {
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 11px;
-  padding: 5px 7px;
+  padding: 9px 10px;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -5581,7 +5594,7 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding: 7px 8px;
+  padding: 9px 10px;
   border-radius: 10px;
   font-size: 11px;
   font-weight: 700;
@@ -8179,15 +8192,13 @@ textarea {
 
 /* Native Bottom Navigation Bar */
 .ff-mob-bottom-nav {
-  height: 60px;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  height: 58px;
+  background: #ffffff;
   border-top: 1px solid rgba(226, 232, 240, 0.9);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   align-items: center;
-  padding: 0 8px;
+  padding: 0 14px;
   z-index: 40;
   flex-shrink: 0;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.03);
@@ -9724,6 +9735,8 @@ textarea {
 
   .ff-phone-inner {
     border-radius: 0;
+    clip-path: none;
+    -webkit-mask-image: none;
     height: 100%;
   }
 
