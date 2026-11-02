@@ -912,29 +912,63 @@ textarea {
 /* Floating SaaS Micro-Chips around Phone */
 .ff-float-chip {
   position: absolute;
-  z-index: 10;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 14px;
-  padding: 10px 14px;
-  box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  z-index: 25;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 8px 14px;
+  box-shadow: 0 14px 32px -4px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
   gap: 10px;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .ff-float-chip-top {
   top: 100px;
-  left: -48px;
-  animation: floatSlow 5s ease-in-out infinite;
+  left: -28px;
+  animation: floatSlowLeft 5s ease-in-out infinite;
 }
 
 .ff-float-chip-bottom {
-  bottom: 90px;
-  right: -42px;
-  animation: floatReverse 6s ease-in-out infinite;
+  bottom: 80px;
+  right: -28px;
+  animation: floatReverseRight 6s ease-in-out infinite;
+}
+
+@keyframes floatSlowLeft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes floatReverseRight {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+@media (max-width: 980px) {
+  .ff-float-chip {
+    display: none !important;
+  }
+}
+
+.ff-phone-device:hover, .ff-mobile-view-wrapper .ff-phone-device:hover {
+  transform: none;
 }
 
 .ff-float-chip-icon {
@@ -980,13 +1014,14 @@ textarea {
 .ff-phone-device {
   position: relative;
   z-index: 2;
-  width: 345px;
-  height: 690px;
+  width: 390px;
+  height: 800px;
+  max-height: calc(100vh - 65px);
   background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
-  border-radius: var(--radius-phone);
+  border-radius: 48px;
   padding: 12px;
-  box-shadow: var(--shadow-phone);
-  border: 3.5px solid #334155;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.12), inset 0 0 0 2px rgba(255, 255, 255, 0.05);
+  border: 4px solid #334155;
   transition: transform 0.4s ease;
   overflow: hidden;
 }
@@ -1167,14 +1202,43 @@ textarea {
 
 /* Ticket Hero Card inside Phone */
 .ff-ticket-hero-card {
-  margin: 14px 14px 10px;
-  background: var(--grad-card-purple);
-  border-radius: var(--radius-lg);
-  padding: 18px 16px;
+  margin: 10px 14px 12px 14px;
+  background: linear-gradient(145deg, #181c30 0%, #1e1b4b 55%, #312e81 100%);
+  border-radius: 20px;
+  padding: 16px 16px;
   color: white;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 12px 28px -6px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 14px 32px -6px rgba(30, 27, 75, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.ff-ticket-hero-card::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -60%;
+  width: 240%;
+  height: 240%;
+  background: linear-gradient(105deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.12) 44%,
+      rgba(255, 255, 255, 0.38) 50%,
+      rgba(255, 255, 255, 0.12) 56%,
+      transparent 65%);
+  transform: rotate(25deg);
+  animation: ticketShimmerSweep 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ticketShimmerSweep {
+  0% {
+    transform: translateX(-120%) rotate(25deg);
+  }
+
+  35%,
+  100% {
+    transform: translateX(120%) rotate(25deg);
+  }
 }
 
 .ff-ticket-card-reflection {
@@ -1183,7 +1247,7 @@ textarea {
   left: 0;
   right: 0;
   height: 60%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, transparent 100%);
   pointer-events: none;
 }
 
@@ -1192,6 +1256,8 @@ textarea {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  position: relative;
+  z-index: 2;
 }
 
 .ff-ticket-category-tag {
@@ -1214,6 +1280,8 @@ textarea {
 .ff-ticket-center {
   text-align: center;
   padding: 4px 0 10px;
+  position: relative;
+  z-index: 2;
 }
 
 .ff-ticket-label {
@@ -1226,12 +1294,28 @@ textarea {
 
 .ff-ticket-number {
   font-family: var(--font-title);
-  font-size: 50px;
+  font-size: 42px;
   font-weight: 900;
   line-height: 1;
   color: #ffffff;
-  margin: 4px 0;
-  text-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  margin: 3px 0;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  letter-spacing: -0.01em;
+  animation: ticketPulse 3.5s ease-in-out infinite;
+}
+
+@keyframes ticketPulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    text-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  }
+
+  50% {
+    transform: scale(1.02);
+    text-shadow: 0 4px 22px rgba(196, 181, 253, 0.6);
+  }
 }
 
 .ff-ticket-service {
@@ -1412,6 +1496,138 @@ textarea {
   border-radius: 999px;
 }
 
+/* Personal Position Card (Seu Lugar na Fila) */
+.ff-personal-pos-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pos-card-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pos-badge-highlight {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border-radius: 14px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.pos-big-num {
+  font-family: var(--font-title);
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.pos-big-label {
+  font-size: 8.5px;
+  color: #e0e7ff;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+.pos-details-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pos-details-col strong {
+  font-size: 13.5px;
+  color: #0f172a;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.pos-details-col span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.pos-steps-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pos-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.pos-step .step-dot {
+  font-size: 10px;
+  font-weight: 800;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.pos-step.done .step-dot {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.pos-step.active .step-dot {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.45);
+}
+
+.pos-step.pending .step-dot {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.pos-step .step-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.pos-step.active .step-lbl,
+.pos-step.done .step-lbl {
+  color: #0f172a;
+}
+
+.pos-step-line {
+  flex: 1;
+  height: 2px;
+  background: #e2e8f0;
+  margin: 0 8px;
+  margin-bottom: 14px;
+}
+
+.pos-step-line.done {
+  background: #10b981;
+}
+
 .ff-queue-list-compact {
   display: flex;
   flex-direction: column;
@@ -1482,15 +1698,128 @@ textarea {
 
 .ff-phone-live-footer {
   margin-top: auto;
-  padding: 8px;
+  padding: 12px 8px;
   text-align: center;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--primary-purple);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
+}
+
+/* Multi Queue Compact Bar inside Phone */
+.ff-multi-queue-compact-bar {
+  padding: 8px 14px 6px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.multi-queue-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.multi-queue-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.multi-queue-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.multi-queue-chip.active {
+  background: #7c3aed;
+  color: #ffffff;
+  border-color: #6d28d9;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+.chip-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.chip-pos-tag {
+  font-size: 9.5px;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.multi-queue-chip.active .chip-pos-tag {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Action Buttons Toolbar */
+.ff-ticket-actions-bar {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.9fr;
+  gap: 8px;
+  margin: 0 14px 12px;
+}
+
+.ff-ticket-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ff-ticket-btn.zap {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.ff-ticket-btn.zap:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.ff-ticket-btn.push {
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
+.ff-ticket-btn.push:hover {
+  background: #ddd6fe;
+}
+
+.ff-ticket-btn.delay {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.ff-ticket-btn.delay:hover {
+  background: #fef3c7;
 }
 
 .sparkle-spin {
@@ -2431,6 +2760,7 @@ textarea {
   .ff-comparison-grid {
     grid-template-columns: 1fr;
   }
+
   .ff-testimonials-grid {
     grid-template-columns: 1fr;
   }
@@ -3975,13 +4305,14 @@ textarea {
    ============================================================ */
 .ff-mobile-view-wrapper {
   min-height: 100vh;
-  background: #090d16;
+  background: radial-gradient(circle at 50% 25%, #1e1b4b 0%, #090d16 65%, #050811 100%);
   padding: 24px 16px 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow-x: hidden;
 }
 
 .ff-mobile-external-nav {
@@ -4053,7 +4384,7 @@ textarea {
   display: flex;
   flex-direction: column;
   position: relative;
-  padding: 0 14px 14px;
+  padding: 0 16px 20px;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -4648,17 +4979,19 @@ textarea {
   flex-grow: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #ffffff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   position: relative;
-  padding: 14px 18px 76px;
+  padding: 0 0 16px 0;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
 .ff-phone-screen-clean::-webkit-scrollbar {
   display: none;
+  width: 0;
+  height: 0;
 }
 
 /* ============================================================
@@ -4690,223 +5023,183 @@ textarea {
   animation: slide-in-down 0.25s ease;
 }
 
-/* 1. Clean Header (Screen 3 style) */
-.ff-mob-clean-header {
+/* ============================================================
+   TemFyla Mobile 2.0 
+   ============================================================ */
+
+.ff-mob-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  padding: 4px 14px 24px 14px;
 }
 
-.header-user-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-greeting-col {
-  display: flex;
-  flex-direction: column;
-}
-
-.greeting-sub {
-  font-size: 13px;
-  font-weight: 500;
-  color: #94a3b8;
-  letter-spacing: -0.01em;
-}
-
-.greeting-name {
-  font-size: 19px;
-  font-weight: 800;
-  color: #0f172a;
-  font-family: var(--font-title);
-  letter-spacing: -0.02em;
-}
-
-.header-avatar-group {
+/* Floating Toast */
+.ff-mob-floating-toast {
+  position: sticky;
+  top: 8px;
+  z-index: 100;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  animation: slideInDown 0.25s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.btn-icon-soft {
-  width: 38px;
-  height: 38px;
+.toast-icon-pulse {
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: #f8fafc;
+  background: rgba(99, 102, 241, 0.25);
+  color: #818cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast-text {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.toast-dismiss-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+}
+
+/* 1. Header do Usuário */
+.ff-mob-top-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 0 2px 0;
+}
+
+.ff-mob-top-header .ff-mob-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ff-mob-status-sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #059669;
+}
+
+.live-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: pulse-dot 1.8s infinite;
+}
+
+.ff-mob-user-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0;
+  font-family: var(--font-title);
+  line-height: 1.2;
+}
+
+.ff-mob-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ff-mob-action-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
   color: #475569;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
   cursor: pointer;
-  transition: var(--transition);
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
 }
 
-.btn-icon-soft:hover {
-  background: #ede9fe;
-  color: #7c3aed;
-  border-color: #ddd6fe;
+.ff-mob-action-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
 }
 
-.btn-icon-soft .dot-badge {
+.ff-mob-user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 14px;
+  font-family: var(--font-title);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 3px 8px rgba(99, 102, 241, 0.3);
+  transition: transform 0.2s;
+}
+
+.ff-mob-user-avatar:hover {
+  transform: scale(1.05);
+}
+
+.avatar-online-dot {
   position: absolute;
-  top: 3px;
-  right: 3px;
+  bottom: -1px;
+  right: -1px;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ef4444;
-  border: 2px solid #ffffff;
+  background: #10b981;
+  border: 1.5px solid #ffffff;
 }
 
-.clean-avatar-circle {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
-  color: white;
-  font-weight: 800;
-  font-size: 17px;
-  font-family: var(--font-title);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-}
-
-/* Big Headline */
-.header-headline-row {
-  margin-top: 2px;
-}
-
-.header-headline {
-  font-size: 27px;
-  font-weight: 900;
-  color: #0f172a;
-  line-height: 1.18;
-  letter-spacing: -0.03em;
-  font-family: var(--font-title);
-}
-
-.headline-highlight {
-  color: #6366f1;
-}
-
-.header-headline-sub {
-  font-size: 13px;
-  color: #64748b;
-  margin-top: 5px;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-/* Category Filter Tabs: Somente Minha Senha & Fila ao Vivo */
-.clean-category-tabs {
+/* 2. Banner de Choque de Horários */
+.ff-mob-conflict-card {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
-}
-
-.clean-category-tabs.two-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  background: #f1f5f9;
-  padding: 5px;
-  border-radius: 999px;
-  border: 1px solid #e2e8f0;
-}
-
-.clean-category-tabs.two-tabs .category-tab-btn {
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: transparent;
-  color: #64748b;
-  font-size: 13.5px;
-  font-weight: 800;
-  border: none;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.clean-category-tabs.two-tabs .category-tab-btn:hover {
-  color: #0f172a;
-}
-
-.clean-category-tabs.two-tabs .category-tab-btn.active {
-  background: #6366f1;
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-  transform: scale(1.02);
-}
-
-.clean-empty-live-queue {
-  background: #ffffff;
-  border: 1.5px dashed #cbd5e1;
-  border-radius: 24px;
-  padding: 30px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 8px;
-}
-
-.clean-empty-live-queue .empty-squircle {
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 6px;
-}
-
-.clean-empty-live-queue .empty-squircle.mint {
-  background: #e6fcf5;
-  color: #10b981;
-}
-
-.clean-empty-live-queue h4 {
-  font-size: 16px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0;
-  font-family: var(--font-title);
-}
-
-.clean-empty-live-queue p {
-  font-size: 12.5px;
-  color: #64748b;
-  margin: 0 0 10px;
-  max-width: 280px;
-  line-height: 1.4;
-}
-
-/* Conflict Banner */
-.clean-conflict-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   background: #fffbeb;
   border: 1px solid #fde68a;
-  border-radius: 18px;
-  padding: 10px 14px;
-  font-size: 12px;
-  color: #92400e;
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-size: 11px;
 }
 
-.conflict-banner-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+.conflict-card-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
   background: #fef3c7;
   color: #d97706;
   display: flex;
@@ -4915,25 +5208,706 @@ textarea {
   flex-shrink: 0;
 }
 
-.conflict-banner-body {
-  flex-grow: 1;
+.conflict-card-text {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  line-height: 1.25;
+}
+
+.conflict-card-text strong {
+  color: #92400e;
+  font-weight: 800;
+}
+
+.conflict-card-text span {
+  color: #b45309;
+}
+
+.conflict-card-close {
+  background: transparent;
+  border: none;
+  color: #b45309;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+/* 3. Seletor de Filas Ativas */
+.ff-mob-queue-pills-bar {
+  display: flex;
+  flex-direction: column;
+}
+
+.queue-pills-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 1px 0;
+  scrollbar-width: none;
+}
+
+.queue-pills-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.queue-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 11px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.queue-pill-btn.active {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+}
+
+.pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.queue-pill-btn.active .pill-dot {
+  background: #a5b4fc;
+}
+
+.pill-dot.urgent {
+  background: #34d399 !important;
+  box-shadow: 0 0 6px #34d399;
+}
+
+.pill-name {
+  font-weight: 700;
+}
+
+.pill-pos {
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-weight: 800;
+}
+
+.queue-pill-btn.active .pill-pos {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+/* 4. Cartão Principal da Senha Digital (Digital Queue Ticket) */
+.ff-digital-ticket-card {
+  background: linear-gradient(145deg, #181c30 0%, #1e1b4b 55%, #312e81 100%);
+  border-radius: 20px;
+  padding: 12px 14px 14px;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 14px 30px -10px rgba(30, 27, 75, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.ff-digital-ticket-card::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -40px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.35) 0%, transparent 70%);
+  filter: blur(30px);
+  pointer-events: none;
+}
+
+.ticket-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.ticket-place-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #c7d2fe;
+}
+
+.ticket-place-name {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.ticket-place-separator {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.ticket-room-pill {
+  font-size: 10px;
+  color: #a5b4fc;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 6px;
+  border-radius: 5px;
+}
+
+.ticket-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  color: #e0e7ff;
+}
+
+.ticket-live-badge.is-now {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+}
+
+.pulse-indicator {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px #34d399;
+  animation: pulse-dot 1.8s infinite;
+}
+
+.ticket-live-badge.is-now .pulse-indicator {
+  background: #ffffff;
+  box-shadow: 0 0 6px #ffffff;
+}
+
+/* Ticket Core / Number display */
+.ticket-core-box {
+  text-align: center;
+  padding: 2px 0 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.ticket-caption {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #a5b4fc;
+  display: block;
+  margin-bottom: 1px;
+}
+
+.ticket-number-display {
+  font-family: var(--font-title);
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px 0;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.ticket-service-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e0e7ff;
+  margin: 0 0 3px 0;
+  line-height: 1.2;
+}
+
+.ticket-doctor-tag {
+  font-size: 10.5px;
+  color: #c7d2fe;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1.5px 8px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+/* Stepper Track */
+.ticket-stepper-track {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 6px 12px;
+  margin: 3px 0 8px 0;
+  position: relative;
+  z-index: 2;
+}
+
+.ticket-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  z-index: 2;
+}
+
+.step-circle {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+}
+
+.ticket-step.done .step-circle {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.ticket-step.active .step-circle {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 0 8px #6366f1;
+}
+
+.ticket-step.urgent .step-circle {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse-dot 1.8s infinite;
+}
+
+.step-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.ticket-step.active .step-label,
+.ticket-step.done .step-label {
+  color: #ffffff;
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 5px;
+  margin-bottom: 12px;
+}
+
+.step-line.active {
+  background: #6366f1;
+}
+
+/* Metrics Grid */
+.ticket-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.ff-digital-ticket-card .metric-box {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 11px;
+  padding: 5px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ff-digital-ticket-card .metric-label {
+  font-size: 8.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #a5b4fc;
+  letter-spacing: 0.03em;
+}
+
+.ff-digital-ticket-card .metric-value {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #ffffff !important;
+}
+
+.ff-digital-ticket-card .metric-value.metric-pos-highlight {
+  color: #34d399 !important;
+}
+
+/* Actions Row */
+.ticket-actions-row {
+  display: flex;
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.ticket-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ticket-btn.zap {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.35);
+}
+
+.ticket-btn.zap:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(16, 185, 129, 0.45);
+}
+
+.ticket-btn.push {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.ticket-btn.push:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.ticket-btn.secondary {
+  flex: 0.8;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ticket-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Empty Ticket Card */
+.ff-empty-ticket-card {
+  background: #ffffff;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 24px;
+  padding: 28px 18px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-ticket-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: #ede9fe;
+  color: #6366f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.ff-empty-ticket-card h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  font-family: var(--font-title);
+}
+
+.ff-empty-ticket-card p {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0 0 12px 0;
+  max-width: 270px;
+  line-height: 1.4;
+}
+
+.empty-ticket-btns {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.ff-primary-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #6366f1;
+  color: #ffffff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ff-secondary-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* 5. Acesso Rápido Grid */
+.ff-mob-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-head-clean {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.section-title-clean {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  font-family: var(--font-title);
+}
+
+.section-badge-clean {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6366f1;
+  background: #ede9fe;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.ff-quick-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.quick-action-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 14px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.quick-action-card:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+}
+
+.action-card-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.action-card-icon-box.purple {
+  background: #ede9fe;
+  color: #6366f1;
+}
+
+.action-card-icon-box.emerald {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.action-card-icon-box.blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.action-card-icon-box.amber {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.action-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.action-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.action-sub {
+  font-size: 10.5px;
+  color: #64748b;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 6. Perk Banner Card */
+.ff-perk-banner-card {
+  background: #ffffff;
+  border: 1px solid #fde68a;
+  border-radius: 18px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.05);
+}
+
+.perk-logo-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: #fef3c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.perk-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.conflict-banner-body strong {
-  color: #78350f;
+.perk-title {
+  font-size: 13.5px;
   font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  font-family: var(--font-title);
 }
 
-.conflict-banner-close {
-  border: none;
-  background: transparent;
+.perk-desc {
+  font-size: 11px;
+  color: #78350f;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.perk-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.perk-stars {
+  color: #f59e0b;
+  font-size: 11px;
+}
+
+.perk-score {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.perk-claim-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
   color: #b45309;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  padding: 4px;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.perk-claim-btn:hover {
+  background: #fde68a;
+  transform: translateX(2px);
+}
+
+/* Dashboard Forecast and Spacing Overrides */
+.ff-mob-dashboard .ff-forecast-card {
+  margin: 0;
+  width: 100%;
+  border-radius: 20px;
+  box-sizing: border-box;
+}
+
+.ff-mob-dashboard .ff-phone-live-footer {
+  margin-top: 4px;
+  padding: 8px 4px 18px;
+  color: #6366f1;
 }
 
 /* 3. Hero Card em Destaque (Estilo Screen 3) */
@@ -6153,7 +7127,7 @@ textarea {
 }
 
 /* Fallback legacy dashboard rules */
-.ff-mob-dashboard {
+.ff-mob-dashboard-legacy {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -6360,7 +7334,7 @@ textarea {
   color: #2563eb;
 }
 
-.metric-label {
+.ff-mob-metric-card .metric-label {
   font-size: 10px;
   font-weight: 700;
   color: #64748b;
@@ -6368,7 +7342,7 @@ textarea {
   letter-spacing: 0.02em;
 }
 
-.metric-value {
+.ff-mob-metric-card .metric-value {
   font-size: 17px;
   font-weight: 900;
   color: #0f172a;
@@ -7205,21 +8179,18 @@ textarea {
 
 /* Native Bottom Navigation Bar */
 .ff-mob-bottom-nav {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  background: rgba(255, 255, 255, 0.94);
+  height: 60px;
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   align-items: center;
-  padding: 0 10px;
-  z-index: 400;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03);
+  padding: 0 8px;
+  z-index: 40;
+  flex-shrink: 0;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.03);
 }
 
 .mob-nav-tab {
@@ -7227,13 +8198,13 @@ textarea {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   background: transparent;
   border: none;
   color: #94a3b8;
   cursor: pointer;
-  padding: 6px 0;
-  font-size: 10.5px;
+  padding: 4px 0;
+  font-size: 10px;
   font-weight: 700;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -7284,8 +8255,8 @@ textarea {
 .ff-mob-clean-view {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding-top: 4px;
+  gap: 13px;
+  padding: 16px 14px 28px 14px;
 }
 
 /* 1. Header Padrão das Telas Internas */
@@ -7382,6 +8353,229 @@ textarea {
 .segmented-pill-btn.active .clean-count-badge {
   background: #ede9fe;
   color: #6366f1;
+}
+
+/* High-End Modern Segmented Control for Mobile Notifications (Zero clipping, perfectly fitted) */
+.notif-segmented-control {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.notif-segmented-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 2px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.notif-segmented-btn:hover {
+  color: #0f172a;
+}
+
+.notif-segmented-btn.active {
+  background: #ffffff;
+  color: #4f46e5;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.notif-segmented-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  line-height: 1.2;
+}
+
+.notif-segmented-btn.active .notif-segmented-badge {
+  background: #ede9fe;
+  color: #6366f1;
+}
+
+/* High-End Mobile Notifications Filter Bar */
+.notif-filter-pills-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 10px 2px;
+  margin-bottom: 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.notif-filter-pills-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.notif-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.notif-filter-pill:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.notif-filter-pill.active {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transform: translateY(-1px);
+}
+
+.notif-pill-count {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 5px;
+  min-width: 16px;
+  text-align: center;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.notif-filter-pill.active .notif-pill-count {
+  background: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+}
+
+/* Notifications Channels Widget */
+/* Slim Communication Sync Status Bar */
+.notif-sync-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 8px 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.sync-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sync-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.sync-action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sync-action-chip.push {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.sync-action-chip.push:hover {
+  background: #ddd6fe;
+}
+
+.sync-action-chip.zap {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.sync-action-chip.zap:hover {
+  background: #bbf7d0;
+}
+
+/* Tip Card in Notifications */
+.notif-info-tip-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-top: 4px;
+}
+
+.notif-info-tip-card .tip-icon-squircle {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #dcfce7;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notif-info-tip-card .tip-content strong {
+  font-size: 12px;
+  font-weight: 800;
+  color: #166534;
+  display: block;
+}
+
+.notif-info-tip-card .tip-content p {
+  font-size: 11px;
+  color: #15803d;
+  margin: 2px 0 0;
+  line-height: 1.35;
 }
 
 /* 3. Chip Badges Pastéis */
@@ -12331,6 +13525,7 @@ textarea {
     opacity: 0;
     transform: translateY(18px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -12386,6 +13581,7 @@ textarea {
   .ff-auth-content-pane {
     padding: 24px 20px;
   }
+
   .ff-auth-topbar {
     padding: 14px 16px;
   }

@@ -1,9 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
-  Layers, 
+  Layers,
+  ArrowLeft,
+  ArrowRight,
+  Stethoscope,
+  Briefcase,
+  AlertCircle,
+  CheckCircle2,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  Users,
+  Clock,
+  Trash2,
+  Plus,
+  ShieldCheck,
+  CreditCard
 } from 'lucide-react';
-import { loginCompany, setPendingCompanyRegistration, getStoredProfessionals } from '../../services/authService';
+import { loginCompany, setPendingCompanyRegistration, getStoredProfessionals, getStoredCompanies } from '../../services/authService';
 import { REGISTERED_PROFESSIONALS } from '../../data/mockData';
 import BrandLogo from '../Common/BrandLogo';
 
@@ -18,9 +34,15 @@ export default function CompanyAuth({
   const [activeTab, setActiveTab] = useState(initialTab); // 'login' | 'register'
   const [registerStep, setRegisterStep] = useState(1); // 1: Empresa & Admin, 2: Profissionais & Horários, 3: Resumo & Pagamento
 
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
   // Login State
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+  const [loginEmail, setLoginEmail] = useState('atendimento@clinicavida.com.br');
+  const [loginPassword, setLoginPassword] = useState('123456');
   const [rememberMe, setRememberMe] = useState(true);
   const [loginError, setLoginError] = useState('');
   const [loginSuccess, setLoginSuccess] = useState('');
@@ -246,6 +268,106 @@ export default function CompanyAuth({
               )}
 
               {/* Standard Login Form */}
+              {/* Conta Demonstrativa Já Conectada (1-Clique) */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                  border: '1.5px solid #c4b5fd',
+                  borderRadius: 16,
+                  padding: '14px 16px',
+                  marginBottom: 18,
+                  boxShadow: '0 6px 20px rgba(124, 58, 237, 0.08)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: '#10b981',
+                        display: 'inline-block',
+                        boxShadow: '0 0 8px #10b981'
+                      }}
+                    />
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Conta Conectada • Pronta para Demonstração
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, background: '#10b981', color: '#fff', padding: '2px 8px', borderRadius: 999 }}>
+                    Sessão Ativa
+                  </span>
+                </div>
+
+                {(getStoredCompanies() || []).map((comp) => (
+                  <div
+                    key={comp.id || comp.email}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      background: '#ffffff',
+                      border: '1px solid #ddd6fe',
+                      borderRadius: 12,
+                      padding: '10px 12px',
+                      marginBottom: 8
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 10,
+                          background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}
+                      >
+                        <Building2 size={18} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {comp.companyName} <span style={{ fontWeight: 600, color: '#64748b', fontSize: 12 }}>({comp.unitName || 'Unidade Centro'})</span>
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#6d28d9', fontWeight: 600 }}>
+                          {comp.email} • Plano {comp.plan || 'Profissional'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const res = loginCompany(comp.email, comp.password || '123456');
+                        if (res.success) {
+                          setLoginSuccess(`Bem-vindo ao Painel da ${res.company.companyName}!`);
+                          setTimeout(() => onLoginSuccess(res.company), 250);
+                        }
+                      }}
+                      className="btn-primary"
+                      style={{
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        padding: '8px 14px',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        borderRadius: 10,
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                      }}
+                    >
+                      <span>Entrar Direto</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
               <form onSubmit={handleLoginSubmit} className="ff-form" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div className="ff-form-group">
                   <label className="ff-form-label">E-mail Corporativo do Administrador</label>

@@ -31,6 +31,25 @@ import { CATEGORIES_LIST } from '../../data/mockData';
 
 export default function LandingPage({
   activeQueue,
+  activeQueues,
+  selectedQueueId,
+  onSelectQueue,
+  onOpenQrScanner,
+  onOpenSearch,
+  onRemoveQueue,
+  onSecretaryCheckin,
+  onClientImOnMyWay,
+  onClientAskMoreTime,
+  hasConflict,
+  onDismissConflict,
+  onGoToLanding,
+  onGoToCompany,
+  onSelectBusiness,
+  onPlayChime,
+  currentUser,
+  isAuthenticated,
+  onLogout,
+  onAuthSuccess,
   onOpenSignup,
   onOpenLogin,
   onOpenPricing
@@ -266,35 +285,50 @@ export default function LandingPage({
               <button
                 type="button"
                 className={`ff-category-pill ${selectedCategory === 'clinic' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('clinic')}
+                onClick={() => {
+                  setSelectedCategory('clinic');
+                  if (onSelectQueue) onSelectQueue('clinica-vida');
+                }}
               >
                 🏥 Clínicas & Saúde
               </button>
               <button
                 type="button"
                 className={`ff-category-pill ${selectedCategory === 'restaurant' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('restaurant')}
+                onClick={() => {
+                  setSelectedCategory('restaurant');
+                  if (onSelectQueue) onSelectQueue('bistro');
+                }}
               >
                 🍽️ Gastronomia & Bares
               </button>
               <button
                 type="button"
                 className={`ff-category-pill ${selectedCategory === 'beauty' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('beauty')}
+                onClick={() => {
+                  setSelectedCategory('beauty');
+                  if (onSelectQueue) onSelectQueue('beauty');
+                }}
               >
                 ✂️ Estética & Barbearias
               </button>
               <button
                 type="button"
                 className={`ff-category-pill ${selectedCategory === 'lab' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('lab')}
+                onClick={() => {
+                  setSelectedCategory('lab');
+                  if (onSelectQueue) onSelectQueue('examelab');
+                }}
               >
                 🧪 Laboratórios & Exames
               </button>
               <button
                 type="button"
                 className={`ff-category-pill ${selectedCategory === 'public' ? 'active' : ''}`}
-                onClick={() => setSelectedCategory('public')}
+                onClick={() => {
+                  setSelectedCategory('public');
+                  if (onSelectQueue) onSelectQueue('public');
+                }}
               >
                 🏛️ Cartórios & Serviços
               </button>
@@ -306,6 +340,25 @@ export default function LandingPage({
         <div className="ff-hero-phone-col">
           <InteractiveHeroPhone
             activeQueue={demoQueues[selectedCategory] || activeQueue}
+            activeQueues={activeQueues}
+            selectedQueueId={selectedQueueId}
+            onSelectQueue={onSelectQueue}
+            onOpenQrScanner={onOpenQrScanner}
+            onOpenSearch={onOpenSearch}
+            onRemoveQueue={onRemoveQueue}
+            onSecretaryCheckin={onSecretaryCheckin}
+            onClientImOnMyWay={onClientImOnMyWay}
+            onClientAskMoreTime={onClientAskMoreTime}
+            hasConflict={hasConflict}
+            onDismissConflict={onDismissConflict}
+            onGoToLanding={onGoToLanding}
+            onGoToCompany={onGoToCompany}
+            onSelectBusiness={onSelectBusiness}
+            onPlayChime={onPlayChime}
+            currentUser={currentUser}
+            isAuthenticated={isAuthenticated}
+            onLogout={onLogout}
+            onAuthSuccess={onAuthSuccess}
           />
         </div>
       </section>

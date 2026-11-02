@@ -175,20 +175,19 @@ export default function ClientMobileApp({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {/* Botão Direto para Abrir / Testar Login & Cadastro */}
-            <button
-              onClick={() => {
-                handleSetAuthMode('login');
-                handleSetAuthOpen(true);
-              }}
-              className="ff-ext-nav-btn purple"
-              title="Abrir Tela de Login & Cadastro estilo Referência"
-            >
-              <LogIn size={13} />
-              <span>Entrar / Cadastrar</span>
-            </button>
-
-            {clientIsAuth && (
+            {!clientIsAuth ? (
+              <button
+                onClick={() => {
+                  handleSetAuthMode('login');
+                  handleSetAuthOpen(true);
+                }}
+                className="ff-ext-nav-btn purple"
+                title="Entrar na sua conta"
+              >
+                <LogIn size={13} />
+                <span>Entrar</span>
+              </button>
+            ) : (
               <button
                 onClick={() => setActiveTab('profile')}
                 className="ff-ext-nav-btn"
@@ -239,12 +238,22 @@ export default function ClientMobileApp({
         </button>
       )}
 
-      {/* Device Frame */}
-      <div className={isFullScreen ? 'ff-phone-device-fullscreen' : 'ff-phone-device'}>
-        <div className="ff-phone-inner">
-          {/* Status Bar */}
-          <div className={`ff-phone-status-bar ${effectiveAuthOpen ? 'auth-mode' : ''}`}>
-            <span className="ff-status-clock">{currentTime}</span>
+      {/* Phone Wrapper with Ambient Glows */}
+      <div className="ff-phone-wrapper">
+        {!isFullScreen && (
+          <>
+            <div className="ff-phone-glow"></div>
+            <div className="ff-phone-glow-secondary"></div>
+          </>
+        )}
+
+        {/* Device Frame */}
+        <div className={isFullScreen ? 'ff-phone-device-fullscreen' : 'ff-phone-device'}>
+          <div className="ff-phone-bezel-reflection" />
+          <div className="ff-phone-inner">
+            {/* Status Bar */}
+            <div className={`ff-phone-status-bar ${effectiveAuthOpen ? 'auth-mode' : ''}`}>
+              <span className="ff-status-clock">{currentTime}</span>
 
             {/* Dynamic Island with Live Queue Indicator */}
             <div
@@ -284,6 +293,7 @@ export default function ClientMobileApp({
               <>
                 {activeTab === 'dashboard' && (
                   <MobileDashboard
+                    currentUser={clientUser}
                     activeQueues={activeQueues}
                     selectedQueueId={selectedQueueId}
                     onSelectQueue={onSelectQueue}
@@ -411,5 +421,6 @@ export default function ClientMobileApp({
         </div>
       </div>
     </div>
+  </div>
   );
 }

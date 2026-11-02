@@ -20,6 +20,7 @@ import {
   Check,
   Smartphone
 } from 'lucide-react';
+import { PRICING_PLANS } from '../../data/mockData';
 
 export default function CompanyProfileView({
   businessData = {},
@@ -716,8 +717,58 @@ export default function CompanyProfileView({
                 </div>
                 <div>
                   <span style={{ color: '#64748b', display: 'block' }}>Módulos Inclusos:</span>
-                  <strong>Totem QR, Painel TV, IA Preditiva & WhatsApp</strong>
+                  <strong>Recepção B2B, Telão TV c/ Voz, IA Preditiva & WhatsApp</strong>
                 </div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 22 }}>
+              <h4 style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>
+                Comparativo de Planos e Recursos da Plataforma
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+                {PRICING_PLANS.map((plan) => {
+                  const isCurrent = formData.planName.toLowerCase().includes(plan.name.toLowerCase());
+                  return (
+                    <div
+                      key={plan.name}
+                      onClick={() => handleChange('planName', plan.name === 'Profissional' ? 'Profissional I.A.' : plan.name)}
+                      style={{
+                        padding: 16,
+                        borderRadius: 12,
+                        border: isCurrent ? '2px solid #7c3aed' : '1px solid #e2e8f0',
+                        background: isCurrent ? '#faf5ff' : '#ffffff',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: 10.5, fontWeight: 800, color: isCurrent ? '#7c3aed' : '#64748b', textTransform: 'uppercase' }}>
+                          {plan.badge}
+                        </span>
+                        {isCurrent && (
+                          <span style={{ background: '#7c3aed', color: '#fff', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 999 }}>
+                            Selecionado
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <strong style={{ fontSize: 16, color: '#0f172a' }}>{plan.name}</strong>
+                        <span style={{ fontSize: 15, fontWeight: 900, color: '#0f172a' }}>
+                          {plan.annualPrice}<small style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>/mês</small>
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {plan.features.map((feat, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 11.5, color: '#334155' }}>
+                            <Check size={13} color={isCurrent ? '#7c3aed' : '#10b981'} strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 2 }} />
+                            <span>{feat}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

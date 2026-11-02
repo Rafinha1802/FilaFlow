@@ -20,14 +20,15 @@ import { getStoredProfessionals, loginProfessional } from '../../services/authSe
 import BrandLogo from '../Common/BrandLogo';
 
 export default function ProfessionalAuth({
+  initialTab = 'login',
   onLoginSuccess,
   onBackToSite,
   onGoToCompanyLogin,
   onGoToClient
 }) {
-  const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register_autonomous'
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [activeTab, setActiveTab] = useState(initialTab); // 'login' | 'register_autonomous'
+  const [email, setEmail] = useState('dr.carlos@clinicavida.com.br');
+  const [password, setPassword] = useState('123456');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -230,6 +231,108 @@ export default function ProfessionalAuth({
                     <span>{successMessage}</span>
                   </div>
                 )}
+
+                {/* Conta Demonstrativa Já Conectada (1-Clique) */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                    border: '1.5px solid #c4b5fd',
+                    borderRadius: 16,
+                    padding: '14px 16px',
+                    marginBottom: 18,
+                    boxShadow: '0 6px 20px rgba(124, 58, 237, 0.08)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: '#10b981',
+                          display: 'inline-block',
+                          boxShadow: '0 0 8px #10b981'
+                        }}
+                      />
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Conta Conectada • Pronta para Demonstração
+                      </span>
+                    </div>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, background: '#10b981', color: '#fff', padding: '2px 8px', borderRadius: 999 }}>
+                      Sessão Ativa
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {(registeredPros || []).map((pro, idx) => (
+                      <div
+                        key={pro.id || pro.email || idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                          background: idx === 0 ? '#ffffff' : 'rgba(255, 255, 255, 0.75)',
+                          border: idx === 0 ? '1.5px solid #a78bfa' : '1px solid #ddd6fe',
+                          borderRadius: 12,
+                          padding: '10px 12px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 10,
+                              background: idx === 0 ? 'linear-gradient(135deg, #7c3aed, #4f46e5)' : '#f3e8ff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 19,
+                              flexShrink: 0
+                            }}
+                          >
+                            {pro.avatar || '👨‍⚕️'}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {pro.name} <span style={{ fontWeight: 600, color: '#64748b', fontSize: 11.5 }}>• {pro.room || 'Consultório'}</span>
+                            </div>
+                            <div style={{ fontSize: 11.5, color: '#6d28d9', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {pro.email} • {pro.companyName || 'Clínica Vida'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const result = loginProfessional(pro.email, pro.password || '123456');
+                            if (result.success) {
+                              setSuccessMessage(`Bem-vindo(a) de volta, ${result.professional.name}!`);
+                              setTimeout(() => onLoginSuccess(result.professional), 250);
+                            }
+                          }}
+                          className="btn-primary"
+                          style={{
+                            background: idx === 0 ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#7c3aed',
+                            padding: '8px 14px',
+                            fontSize: 12,
+                            fontWeight: 800,
+                            borderRadius: 10,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                            boxShadow: idx === 0 ? '0 4px 12px rgba(16, 185, 129, 0.3)' : 'none'
+                          }}
+                        >
+                          <span>{idx === 0 ? 'Entrar Direto' : 'Acessar'}</span>
+                          <ArrowRight size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 <form onSubmit={handleLoginSubmit} className="ff-form" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div className="ff-form-group">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReceptionDeskView from './ReceptionDeskView';
 import CompanyProfileView from './CompanyProfileView';
-import { ShieldCheck, Stethoscope, Trash2 } from 'lucide-react';
+import { ShieldCheck, Stethoscope, Trash2, Mail, ArrowLeft } from 'lucide-react';
 import { getStoredProfessionals, saveProfessionals } from '../../services/authService';
 import {
   Building2,
@@ -55,9 +55,25 @@ export default function CompanyDashboard({
   onOpenMobileTest,
   onGoToSite,
   onLogout,
-  onOpenProfessional
+  onOpenProfessional,
+  onUpdateBusinessData,
+  initialTab = 'operational',
+  onTabChange
 }) {
-  const [activeTab, setActiveTab] = useState('operational'); // 'operational' | 'metrics' | 'totem' | 'team'
+  const [activeTab, setActiveTab] = useState(initialTab || 'operational'); // 'reception' | 'operational' | 'metrics' | 'totem' | 'team' | 'profile'
+
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  const handleSelectTab = (tabName) => {
+    setActiveTab(tabName);
+    if (onTabChange) {
+      onTabChange(tabName);
+    }
+  };
   const [timerSeconds, setTimerSeconds] = useState(254); // Live call timer
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showManualModal, setShowManualModal] = useState(false);
@@ -332,7 +348,7 @@ export default function CompanyDashboard({
         <nav className="ff-portal-tabs">
           <button
             className={`ff-portal-tab-btn ${activeTab === 'reception' ? 'active' : ''}`}
-            onClick={() => setActiveTab('reception')}
+            onClick={() => handleSelectTab('reception')}
           >
             <ShieldCheck size={14} />
             <span>Recepção & Convênios</span>
@@ -354,7 +370,7 @@ export default function CompanyDashboard({
 
           <button
             className={`ff-portal-tab-btn ${activeTab === 'operational' ? 'active' : ''}`}
-            onClick={() => setActiveTab('operational')}
+            onClick={() => handleSelectTab('operational')}
           >
             <Play size={14} fill={activeTab === 'operational' ? '#5b21b6' : 'none'} />
             <span>Fila Operacional</span>
@@ -362,7 +378,7 @@ export default function CompanyDashboard({
 
           <button
             className={`ff-portal-tab-btn ${activeTab === 'metrics' ? 'active' : ''}`}
-            onClick={() => setActiveTab('metrics')}
+            onClick={() => handleSelectTab('metrics')}
           >
             <BarChart3 size={14} />
             <span>Métricas & IA</span>
@@ -370,7 +386,7 @@ export default function CompanyDashboard({
 
           <button
             className={`ff-portal-tab-btn ${activeTab === 'totem' ? 'active' : ''}`}
-            onClick={() => setActiveTab('totem')}
+            onClick={() => handleSelectTab('totem')}
           >
             <QrCode size={14} />
             <span>QR Code & Totem</span>
@@ -380,7 +396,7 @@ export default function CompanyDashboard({
             className={`ff-portal-tab-btn ${activeTab === 'team' ? 'active' : ''}`}
             onClick={() => {
               setTeamList(getStoredProfessionals());
-              setActiveTab('team');
+              handleSelectTab('team');
             }}
           >
             <Users size={14} />
@@ -400,7 +416,7 @@ export default function CompanyDashboard({
 
           <button
             className={`ff-portal-tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
+            onClick={() => handleSelectTab('profile')}
           >
             <Building2 size={14} />
             <span>Perfil da Empresa</span>
@@ -479,6 +495,49 @@ export default function CompanyDashboard({
             {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
             <span className="hidden-mobile">{soundEnabled ? 'Som Ativo' : 'Mudo'}</span>
           </button>
+
+          {/* Voltar ao Site & App Cliente */}
+          {onGoToSite && (
+            <button
+              onClick={onGoToSite}
+              className="btn-ghost"
+              title="Voltar ao Site Institucional"
+              style={{
+                padding: '7px 12px',
+                fontSize: 12,
+                border: '1px solid #e2e8f0',
+                color: '#475569',
+                background: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <Globe size={14} color="#7c3aed" />
+              <span className="hidden-mobile">Site</span>
+            </button>
+          )}
+
+          {onOpenMobileTest && (
+            <button
+              onClick={onOpenMobileTest}
+              className="btn-ghost"
+              title="Abrir App Mobile do Cliente"
+              style={{
+                padding: '7px 12px',
+                fontSize: 12,
+                border: '1px solid #e2e8f0',
+                color: '#475569',
+                background: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <Smartphone size={14} color="#10b981" />
+              <span className="hidden-mobile">App Cliente</span>
+            </button>
+          )}
 
           {/* Sair */}
           <button
@@ -581,7 +640,8 @@ export default function CompanyDashboard({
           onStatusChange={onUpdateReceptionStatus}
           onRemovePatient={onRemoveReceptionPatient}
           onAddPatient={onAddReceptionPatient}
-          onSwitchToOperational={() => setActiveTab('operational')}
+            onSendToDoctorQueue={onAddManualTicket}
+            onSwitchToOperational={() => handleSelectTab('operational')}
           showToast={showNotification}
         />
       )}
@@ -1975,7 +2035,7 @@ export default function CompanyDashboard({
           businessData={businessData}
           onUpdateBusinessData={(newData) => {
             if (newData) {
-              setBusinessData && setBusinessData(newData);
+              onUpdateBusinessData && onUpdateBusinessData(newData);
             }
           }}
           onGoBack={() => setActiveTab('operational')}

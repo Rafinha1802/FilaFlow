@@ -44,7 +44,7 @@ export function useAppRouter() {
 
   const isCheckoutRoute = currentPath === '/checkout' || currentPath === '/pagamento';
   const isAppRoute = currentPath === '/app' || currentPath.startsWith('/app/');
-  const isCompanyRoute = currentPath === '/empresa' || currentPath.startsWith('/empresa');
+  const isCompanyRoute = currentPath === '/empresa' || currentPath.startsWith('/empresa') || currentPath === '/cadastro' || currentPath === '/login';
   const isProfessionalRoute = currentPath === '/profissional' || currentPath.startsWith('/profissional');
   const isSiteRoute = !isAppRoute && !isCompanyRoute && !isCheckoutRoute && !isProfessionalRoute;
 

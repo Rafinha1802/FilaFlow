@@ -11,7 +11,7 @@ export default function PricingModal({ isOpen, onClose, onSelectPlan }) {
     <div className="ff-modal-overlay" onClick={onClose}>
       <div 
         className="ff-modal-dialog" 
-        style={{ maxWidth: 840, width: '95%' }}
+        style={{ maxWidth: 960, width: '95%' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="ff-modal-header">

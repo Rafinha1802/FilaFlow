@@ -220,18 +220,18 @@ export const CATEGORIES_LIST = [
 export const PRICING_PLANS = [
   {
     name: 'Starter',
-    badge: 'Para Pequenos Negócios',
+    badge: 'Para Consultórios & Autônomos',
     monthlyPrice: 'R$ 89',
     annualPrice: 'R$ 69',
     period: '/mês',
-    desc: 'Ideal para consultórios, barbearias e cafeterias iniciando no fluxo digital.',
+    desc: 'Ideal para consultórios individuais, barbearias e pequenos negócios iniciando no atendimento digital.',
     features: [
-      'Até 2 filas ativas simultâneas',
-      'Até 500 senhas mensais',
-      'QR Code de balcão personalizável',
-      'Painel de chamada web simplificado',
-      'Notificações de espera em tempo real',
-      'Conformidade total com LGPD'
+      'Consultório Digital para até 2 profissionais (controle de turno e cronômetro)',
+      'Cartaz QR Code de balcão pronto para impressão e check-in rápido',
+      'App Mobile do Cliente com pré-check-in ("Estou a caminho" / "Pedir mais tempo")',
+      'Fila de atendimento Normal e Prioridade Legal (Lei 10.048)',
+      'Emissão de Atestado, Receituário e Declaração Digital Express',
+      'Sigilo de dados em conformidade com a LGPD (exibição de 1º nome e senha)'
     ],
     popular: false,
     cta: 'Começar Teste Grátis'
@@ -242,33 +242,33 @@ export const PRICING_PLANS = [
     monthlyPrice: 'R$ 189',
     annualPrice: 'R$ 149',
     period: '/mês',
-    desc: 'Para clínicas, restaurantes movimentados e centros de atendimento com múltiplos guichês.',
+    desc: 'Para clínicas médicas, restaurantes e operações com recepção, convênios e múltiplos especialistas.',
     features: [
-      'Filas ilimitadas e múltiplos atendentes',
-      'Senhas ilimitadas por mês',
-      'Inteligência Artificial preditiva de espera',
-      'Módulo Multi-Filas Integrado para clientes',
-      'Alertas por WhatsApp e Web Push',
-      'Dashboard analítico com histórico e relatórios',
-      'Suporte prioritário 24/7'
+      'Múltiplos Profissionais e Salas com login individual e limite de horas diárias',
+      'Módulo Recepção & Convênios B2B (validação de guias e envio direto ao médico)',
+      'Modo Telão TV com chamada sonora (gongo) e voz sintetizada em Português (PT-BR)',
+      'IA Preditiva de Espera com recálculo automático de atrasos (+5m / +10m)',
+      'Multi-Filas Simultâneas com Detector de Conflito de Horários no App',
+      'Disparo de alertas via WhatsApp e notificações Push em tempo real',
+      'Dashboard de Métricas & IA com fluxo por horário e exportação em PDF'
     ],
     popular: true,
     cta: 'Cadastrar Empresa'
   },
   {
     name: 'Enterprise',
-    badge: 'Para Redes & Hospitais',
+    badge: 'Para Redes, Hospitais & Franquias',
     monthlyPrice: 'R$ 499',
     annualPrice: 'R$ 399',
     period: '/mês',
-    desc: 'Grandes operações, redes de franquias, laboratórios e órgãos públicos com alta escala.',
+    desc: 'Operações em larga escala, policlínicas, laboratórios e órgãos públicos com integração via API.',
     features: [
-      'Multi-unidades e filiais centralizadas',
-      'API REST e Webhooks para integração ERP/HIS',
-      'Painel de TV (Totem) para salas de espera',
-      'Algoritmo de IA dedicado para previsão de atrasos',
-      'Gerente de conta dedicado e SLA de 99.9%',
-      'Treinamento e onboarding presencial/remoto'
+      'Profissionais, salas/guichês e senhas mensais ilimitados (Multi-unidades)',
+      'Todos os módulos do Profissional (Recepção B2B, Telão TV com Voz e IA Preditiva)',
+      'Calibração avançada do algoritmo de IA (Equilibrado, Conservador ou Giro Rápido)',
+      'Sincronização em Tempo Real via API REST & WebSockets (FastAPI / ERP / Prontuário)',
+      'Assinatura Digital com validação ICP-Brasil e relatórios consolidados de turno',
+      'Gerente de conta dedicado, onboarding da equipe e SLA 99.9% 24/7'
     ],
     popular: false,
     cta: 'Falar com Consultor'

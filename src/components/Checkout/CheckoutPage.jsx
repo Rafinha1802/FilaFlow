@@ -1110,7 +1110,7 @@ export default function CheckoutPage({
 
                 {/* Plan Features Checklist */}
                 <div className="ff-summary-features">
-                  {currentPlan.features.slice(0, 4).map((feat, idx) => (
+                  {currentPlan.features.map((feat, idx) => (
                     <div key={idx} className="ff-feature-item">
                       <Check size={14} color="#10b981" strokeWidth={2.5} style={{ flexShrink: 0 }} />
                       <span>{feat}</span>

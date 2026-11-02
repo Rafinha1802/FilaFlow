@@ -646,6 +646,28 @@ export default function App() {
       {isSiteRoute && (
         <LandingPage
           activeQueue={clientActiveQueues[0]}
+          activeQueues={clientActiveQueues}
+          selectedQueueId={selectedQueueId}
+          onSelectQueue={setSelectedQueueId}
+          onOpenQrScanner={() => setIsQrScannerOpen(true)}
+          onOpenSearch={() => setIsSearchOpen(true)}
+          onRemoveQueue={handleRemoveClientQueue}
+          onSecretaryCheckin={handleSecretaryCheckin}
+          onClientImOnMyWay={handleClientImOnMyWay}
+          onClientAskMoreTime={handleClientAskMoreTime}
+          hasConflict={hasConflict}
+          onDismissConflict={() => setHasConflict(false)}
+          onGoToLanding={() => navigate('/')}
+          onGoToCompany={handleOpenDashboard}
+          onSelectBusiness={handleSearchSelectBusiness}
+          onPlayChime={playChime}
+          currentUser={mobileClientUser}
+          isAuthenticated={isClientAuthenticated}
+          onLogout={() => setIsClientAuthenticated(false)}
+          onAuthSuccess={(user) => {
+            setMobileClientUser(user);
+            setIsClientAuthenticated(true);
+          }}
           onOpenSignup={handleOpenCompanySignup}
           onOpenLogin={() => navigate('/empresa/login')}
           onOpenPricing={() => setIsPricingOpen(true)}
@@ -683,7 +705,7 @@ export default function App() {
       {/* ROTA 3: /empresa (Painel Operacional da Empresa ou Telas de Login/Cadastro/Perfil) */}
       {isCompanyRoute && (
         <>
-          {currentPath === '/empresa/perfil' ? (
+          {false && currentPath === '/empresa/perfil' ? (
             <div style={{ background: '#f8fafc', minHeight: '100vh', padding: '20px 0' }}>
               <CompanyProfileView
                 businessData={businessData}
@@ -694,7 +716,7 @@ export default function App() {
                 showToast={showToast}
               />
             </div>
-          ) : currentPath === '/empresa/cadastro' ? (
+          ) : currentPath === '/empresa/cadastro' || currentPath === '/cadastro' ? (
             <CompanyAuth
               initialTab="register"
               onLoginSuccess={handleCompanyLoginSuccess}
@@ -703,7 +725,7 @@ export default function App() {
               onBackToSite={() => navigate('/')}
               onGoToClient={handleOpenClient}
             />
-          ) : currentPath === '/empresa/login' ? (
+          ) : currentPath === '/empresa/login' || currentPath === '/login' ? (
             <CompanyAuth
               initialTab="login"
               onLoginSuccess={handleCompanyLoginSuccess}
@@ -712,7 +734,7 @@ export default function App() {
               onBackToSite={() => navigate('/')}
               onGoToClient={handleOpenClient}
             />
-          ) : companyUser ? (
+          ) : (companyUser || currentPath.startsWith('/empresa/')) ? (
             <CompanyDashboard
               businessData={businessData}
               activeAttendingTicket={activeAttendingTicket}
@@ -726,6 +748,27 @@ export default function App() {
               onGoToSite={() => navigate('/')}
               onLogout={handleCompanyLogout}
               onOpenProfessional={(pro) => handleOpenProfessional(pro)}
+              onUpdateBusinessData={(newData) => {
+                if (newData) setBusinessData(newData);
+              }}
+              initialTab={
+                currentPath === '/empresa/recepcao' ? 'reception' :
+                currentPath === '/empresa/metricas' ? 'metrics' :
+                currentPath === '/empresa/totem' ? 'totem' :
+                currentPath === '/empresa/equipe' ? 'team' :
+                currentPath === '/empresa/perfil' ? 'profile' : 'operational'
+              }
+              onTabChange={(tab) => {
+                const map = {
+                  reception: '/empresa/recepcao',
+                  operational: '/empresa/dashboard',
+                  metrics: '/empresa/metricas',
+                  totem: '/empresa/totem',
+                  team: '/empresa/equipe',
+                  profile: '/empresa/perfil'
+                };
+                if (map[tab]) navigate(map[tab]);
+              }}
             />
           ) : (
             <CompanyAuth
