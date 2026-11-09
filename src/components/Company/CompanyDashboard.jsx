@@ -44,6 +44,8 @@ export default function CompanyDashboard({
   waitingQueue,
   queueBusy = false,
   queueError = '',
+  queueActionError = '',
+  onDismissQueueActionError,
   receptionPatients,
   onAuthorizeReceptionPatient,
   onUpdateReceptionStatus,
@@ -309,6 +311,30 @@ export default function CompanyDashboard({
         }}>
           <CheckCircle2 size={16} color="#34d399" />
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {queueActionError && (
+        <div style={{
+          position: 'fixed',
+          top: 76,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 6000,
+          maxWidth: 'calc(100vw - 32px)',
+          background: '#fff7ed',
+          color: '#9a3412',
+          border: '1px solid #fdba74',
+          borderRadius: 12,
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12
+        }}>
+          <span role="alert">{queueActionError}</span>
+          <button type="button" className="btn-ghost" onClick={onDismissQueueActionError}>
+            Fechar
+          </button>
         </div>
       )}
 

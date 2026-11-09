@@ -17,3 +17,6 @@ httpx==0.28.1
 
 # Conexão com PostgreSQL no ambiente local.
 psycopg[binary]>=3.2,<4
+
+# Carregamento do arquivo de ambiente pelo Uvicorn.
+python-dotenv>=1,<2

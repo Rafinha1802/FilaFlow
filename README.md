@@ -22,7 +22,7 @@
 
 ## ⚡ Da emissão à chamada
 
-O FastAPI valida a sessão empresarial e confirma as operações de fila. O painel consulta a fila após receber eventos por WebSocket. As senhas ficam em memória nesta versão. Cliente e profissional ainda não acompanham a mesma senha do painel. Cadastro empresarial, cobrança e previsão de espera são capacidades planejadas.
+O FastAPI valida a sessão empresarial e confirma as operações de fila. O painel consulta a fila após receber eventos por WebSocket. Com PostgreSQL configurado, as senhas e o encerramento persistem após reiniciar a API. Cliente e profissional ainda não acompanham a mesma senha do painel. Cadastro empresarial, cobrança e previsão de espera são capacidades planejadas.
 
 ## 🛠️ Rode o projeto
 

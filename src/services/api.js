@@ -160,6 +160,7 @@ export async function callNextTicketApi(queueId = 'clinica-vida') {
     const res = await fetchWithAuth(`${API_BASE}/tickets/next?queue_id=${encodeURIComponent(queueId)}`, {
       method: 'POST'
     });
+    if (res.status === 409) throw new Error('Finalize o atendimento atual antes de chamar outra senha.');
     if (!res.ok) throw new Error('Não foi possível chamar a próxima senha.');
     const data = await readQueueState(res);
     if (data.called_ticket !== null && !isQueueTicket(data.called_ticket)) {
@@ -192,6 +193,13 @@ async function readQueueState(res) {
 export async function fetchQueueStateApi(queueId = 'clinica-vida') {
   const res = await fetchWithAuth(`${API_BASE}/tickets?queue_id=${encodeURIComponent(queueId)}`);
   if (!res.ok) throw new Error('Não foi possível carregar a fila. Recarregue a página.');
+  return readQueueState(res);
+}
+
+export async function finishCurrentTicketApi(queueId, ticketNumber) {
+  const query = new URLSearchParams({ queue_id: queueId, ticket_number: ticketNumber });
+  const res = await fetchWithAuth(`${API_BASE}/tickets/finish?${query}`, { method: 'POST' });
+  if (!res.ok) throw new Error('Não foi possível finalizar o atendimento. Confira a fila.');
   return readQueueState(res);
 }
 

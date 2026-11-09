@@ -8,10 +8,10 @@
 
 API mínima em Python com FastAPI, independente do frontend React.
 Disponibiliza `GET /api/health`, que responde com HTTP 200 e `{"status": "ok"}`,
-e `GET /api/queues`, que lista uma fila demonstrativa em memória.
+e `GET /api/queues`, que lista o catálogo de filas.
 Também oferece `POST /api/auth/login` e `GET /api/auth/me` para autenticação
-de desenvolvimento. Nenhum desses endpoints acessa banco de dados.
-`POST /api/tickets/manual` emite uma senha em memória, exigindo autenticação.
+de desenvolvimento. A autenticação ainda usa uma conta de desenvolvimento.
+`POST /api/tickets/manual` emite uma senha e exige autenticação.
 `GET /api/tickets` consulta a fila empresarial e `POST /api/tickets/next` chama
 a próxima senha. Ambos exigem autenticação e o parâmetro `queue_id`.
 `/ws` avisa os painéis empresariais autenticados sobre emissões e chamadas.
@@ -147,35 +147,10 @@ quando a área empresarial está autenticada.
 
 ## Configuração por variáveis de ambiente
 
-`DATABASE_URL` será a URL de conexão PostgreSQL. Ela é opcional nesta etapa:
-ausente, vazia ou contendo apenas espaços, `get_database_url()` retorna `None`.
-Quando preenchida, a função retorna o texto sem espaços nas extremidades.
-Ela apenas lê o valor; não valida a URL nem tenta abrir uma conexão.
-
-O módulo `os`, da biblioteca padrão do Python, permite ler as variáveis do
-processo. Não foi necessário instalar uma biblioteca de configuração.
-No futuro, o código de conexão importará `get_database_url` de `app.core.config`.
-O endpoint de saúde continua independente dessa configuração.
-
-O arquivo `.env.example` é uma referência. Nem ele nem um arquivo `.env` são
-carregados automaticamente nesta etapa. Copiá-lo para `.env` não configura o
-processo. Quando você receber a URL real, defina-a no mesmo terminal PowerShell
-em que iniciará o servidor:
-
-```powershell
-$env:DATABASE_URL = Read-Host 'Informe a URL PostgreSQL recebida'
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-Não é necessário executar esse passo agora. Para executar sem configuração
-de banco, em um terminal que já tenha a variável definida:
-
-```powershell
-Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
-```
-
-Esse comando remove somente a variável da sessão atual, não arquivos ou dados.
-Não coloque credenciais reais no código nem em `.env.example`.
+Quando presente, `DATABASE_URL` ativa o PostgreSQL para catálogo e senhas.
+Sem ela, a API usa dados em memória. O endpoint de saúde verifica o processo.
+O inicializador lê `backend/.env` quando ele existe. Consulte o
+[guia local](../docs/desenvolvimento/ambiente-local.md) para gerar a configuração e aplicar as migrações.
 
 ## Autenticação de desenvolvimento
 
@@ -281,7 +256,7 @@ Para conferir manualmente:
 
 O backend continua sendo responsável por validar tokens nas rotas protegidas.
 A restrição de navegação React não substitui essa validação. Emissão e chamada
-estão integradas; conclusão e registro de ausência ainda não foram implementados.
+estão integradas. A conclusão também é confirmada pelo servidor. O registro de ausência segue pendente.
 
 ## Emissão manual de senha (etapa 6)
 
@@ -361,10 +336,7 @@ depois as demais, também em ordem de emissão. O bloqueio da memória cobre esc
 retirada e atualização do atendimento, impedindo chamadas duplicadas da mesma senha
 por requisições simultâneas. Fila vazia não altera o atendimento atual.
 
-Chamar novamente com pessoas esperando substitui o atendimento atual. Esta etapa
-não registra histórico, conclusão ou ausência. Os botões **Concluir** e
-**Pular / Ausente** informam que ainda não estão integrados e não alteram a fila.
-A conclusão independente do último atendimento ficará para uma etapa própria.
+Com PostgreSQL, conclua o atendimento antes de chamar outra senha. O botão **Concluir** atualiza o servidor. **Pular / Ausente** segue pendente.
 
 O painel aguarda a resposta antes de alterar a fila ou anunciar a senha por som.
 Uma falha mantém os dados exibidos e apresenta um erro. Não há repetição automática
@@ -432,11 +404,7 @@ e confira o atendimento atual nas duas. Interrompa temporariamente a conexão de
 uma aba e confira a recuperação ao reconectar. Ao sair, as conexões devem fechar.
 O app de clientes e o consultório profissional continuam demonstrativos nesta etapa.
 
-Os assinantes e os dados continuam na memória de **um único processo**. Não use
-múltiplos workers: eles não compartilham fila nem conexões. Não há histórico de
-eventos; após uma queda, recuperamos o estado atual por HTTP. Uma aba desconectada
-não impede o sucesso de uma emissão ou chamada. Reiniciar o servidor ainda perde
-as senhas e o atendimento atual.
+Os assinantes ficam na memória de um único processo. Use um worker. Após reconectar, o painel consulta o estado atual via HTTP. Com PostgreSQL, as senhas sobrevivem ao reinício da API.
 
 ## Testar
 
@@ -475,9 +443,7 @@ ao `package.json` ou ao `package-lock.json`.
 Não há persistência em banco.
 Autenticação está disponível apenas para o usuário de desenvolvimento configurado.
 A listagem de filas é apenas demonstrativa e não exige autenticação.
-A leitura de `DATABASE_URL` está preparada. A conexão PostgreSQL, seu driver
-e os modelos de persistência ficam para uma etapa posterior;
-nenhuma credencial ou conexão de banco é necessária agora.
+O PostgreSQL é opcional para os testes em memória. Para testar persistência, configure `TEST_DATABASE_URL` conforme o guia local.
 
 O login empresarial, a emissão, a consulta, a chamada e a atualização em tempo real estão integrados.
 Os demais fluxos continuam

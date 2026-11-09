@@ -16,6 +16,8 @@ if not exist "node_modules\.bin\vite.cmd" (
     exit /b 1
 )
 
-start "TemFyla Backend" /D "%CD%\backend" cmd /k ".venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload" || exit /b 1
+set "BACKEND_ENV="
+if exist "backend\.env" set "BACKEND_ENV=--env-file .env"
+start "TemFyla Backend" /D "%CD%\backend" cmd /k ".venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload %BACKEND_ENV%" || exit /b 1
 start "TemFyla Frontend" /D "%CD%" cmd /k "npm.cmd run dev -- --strictPort" || exit /b 1
 echo Comandos enviados aos terminais. Confirme a inicializacao em cada janela.

@@ -13,3 +13,16 @@ Antes do commit, o teste manual confirmou a abertura da aplicação, a resposta 
 
 O PostgreSQL local ficou saudável após o reinício. A fila de teste permaneceu
 no volume e foi consultada pelo Psycopg a partir do Windows.
+
+## Validação do checkpoint 3
+
+A fila empresarial passou a persistir no PostgreSQL. No teste manual, o painel
+emitiu, chamou e concluiu senhas na ordem de prioridade e chegada. O DBeaver
+confirmou a persistência e os estados ativo e concluído com seus horários.
+
+Com um atendimento ativo, a API bloqueou a chamada seguinte com HTTP 409.
+Após o ajuste do painel, o operador confirmou que o aviso de conclusão
+obrigatória ficou visível e que pôde chamar a próxima senha após concluir.
+
+O build passou com Vite 6.4.6. Passaram 38 testes JavaScript e 61 testes Python,
+incluindo o teste em PostgreSQL com schema descartável.

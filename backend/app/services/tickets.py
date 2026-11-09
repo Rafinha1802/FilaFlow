@@ -4,6 +4,8 @@ from threading import Lock
 
 from fastapi import HTTPException
 
+from app.core.config import get_database_url
+from app.repositories import queue_store
 from app.schemas.tickets import ManualTicketRequest, NextTicketResponse, QueueState, Ticket
 from app.services.queues import list_queues
 
@@ -16,6 +18,8 @@ _ticket_lock = Lock()
 
 def create_manual_ticket(data: ManualTicketRequest) -> Ticket:
     global _next_ticket_number
+    if url := get_database_url():
+        return queue_store.create_manual_ticket(url, data)
 
     if not any(queue.id == data.queue_id for queue in list_queues()):
         raise HTTPException(404, "Fila não encontrada.")
@@ -44,6 +48,8 @@ def _waiting_tickets(queue_id: str) -> list[Ticket]:
 
 
 def get_queue_state(queue_id: str) -> QueueState:
+    if url := get_database_url():
+        return queue_store.get_queue_state(url, queue_id)
     if not any(queue.id == queue_id for queue in list_queues()):
         raise HTTPException(404, "Fila não encontrada.")
     with _ticket_lock:
@@ -54,6 +60,8 @@ def get_queue_state(queue_id: str) -> QueueState:
 
 
 def call_next_ticket(queue_id: str) -> NextTicketResponse:
+    if url := get_database_url():
+        return queue_store.call_next_ticket(url, queue_id)
     if not any(queue.id == queue_id for queue in list_queues()):
         raise HTTPException(404, "Fila não encontrada.")
     # Escolha, retirada e atualização são uma única operação protegida.
@@ -68,3 +76,14 @@ def call_next_ticket(queue_id: str) -> NextTicketResponse:
             active_ticket=_active_tickets.get(queue_id),
             remaining_queue=waiting[1:] if called is not None else [],
         )
+
+
+def finish_current_ticket(queue_id: str, ticket_number: str) -> QueueState:
+    if url := get_database_url():
+        return queue_store.finish_current_ticket(url, queue_id, ticket_number)
+    with _ticket_lock:
+        ticket = _active_tickets.get(queue_id)
+        if not ticket or ticket.ticket_number != ticket_number:
+            raise HTTPException(409, "O atendimento atual mudou. Atualize a fila.")
+        del _active_tickets[queue_id]
+        return QueueState(active_ticket=None, remaining_queue=_waiting_tickets(queue_id))

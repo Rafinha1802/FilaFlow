@@ -4,6 +4,7 @@ import asyncio
 import json
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from starlette.concurrency import run_in_threadpool
 
 from app.services.auth import verify_token
 from app.services.events import close_connection, connections
@@ -27,7 +28,7 @@ async def queue_websocket(socket: WebSocket) -> None:
             await close_connection(socket, code=1008)
             return
         verify_token(token)
-        if not any(queue.id == queue_id for queue in list_queues()):
+        if not any(queue.id == queue_id for queue in await run_in_threadpool(list_queues)):
             await close_connection(socket, code=1008)
             return
         connections[socket] = (queue_id, token)
@@ -40,8 +41,8 @@ async def queue_websocket(socket: WebSocket) -> None:
                 await close_connection(socket, code=1008)
                 return
             await socket.send_json({"type": "pong"})
-    except HTTPException:
-        await close_connection(socket, code=1008)
+    except HTTPException as error:
+        await close_connection(socket, code=1011 if error.status_code == 503 else 1008)
     except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
         await close_connection(socket, code=1008)
     except TimeoutError:

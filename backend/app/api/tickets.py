@@ -1,10 +1,12 @@
 """Expõe emissão, consulta e chamada de senhas para usuários autenticados."""
 
+from starlette.concurrency import run_in_threadpool
+
 from fastapi import APIRouter, Depends, Query
 
 from app.api.auth import get_current_user
 from app.schemas.tickets import ManualTicketRequest, NextTicketResponse, QueueState, Ticket
-from app.services.tickets import call_next_ticket, create_manual_ticket, get_queue_state
+from app.services.tickets import call_next_ticket, create_manual_ticket, finish_current_ticket, get_queue_state
 from app.services.events import notify_queue
 
 router = APIRouter(prefix="/api/tickets", tags=["Senhas"])
@@ -14,7 +16,7 @@ router = APIRouter(prefix="/api/tickets", tags=["Senhas"])
              dependencies=[Depends(get_current_user)])
 async def issue_manual_ticket(data: ManualTicketRequest) -> Ticket:
     # A dependência valida o Bearer antes de permitir a emissão.
-    ticket = create_manual_ticket(data)
+    ticket = await run_in_threadpool(create_manual_ticket, data)
     await notify_queue(data.queue_id, "QUEUE_UPDATED")
     return ticket
 
@@ -27,7 +29,17 @@ def read_queue_state(queue_id: str = Query(min_length=1, max_length=100)) -> Que
 @router.post("/next", response_model=NextTicketResponse,
              dependencies=[Depends(get_current_user)])
 async def call_next(queue_id: str = Query(min_length=1, max_length=100)) -> NextTicketResponse:
-    result = call_next_ticket(queue_id)
+    result = await run_in_threadpool(call_next_ticket, queue_id)
     if result.called_ticket is not None:
         await notify_queue(queue_id, "TICKET_CALLED")
+    return result
+
+
+@router.post("/finish", response_model=QueueState, dependencies=[Depends(get_current_user)])
+async def finish(
+    queue_id: str = Query(min_length=1, max_length=100),
+    ticket_number: str = Query(min_length=2, max_length=24),
+) -> QueueState:
+    result = await run_in_threadpool(finish_current_ticket, queue_id, ticket_number)
+    await notify_queue(queue_id, "QUEUE_UPDATED")
     return result

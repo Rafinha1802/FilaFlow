@@ -10,4 +10,4 @@
 | Checkout | Seleção de plano e confirmação simuladas. Cadastro empresarial real e cobrança estão pendentes. |
 | Atrasos e IA | Estimativas locais de demonstração. Falta medir os tempos do atendimento real. |
 
-A operação oficial exige o FastAPI ativo. A fila perde o estado após reiniciar o processo. Encerramento e ausência ainda precisam de integração.
+A operação oficial exige o FastAPI ativo. Com PostgreSQL configurado, a fila preserva o estado ao reiniciar. O registro de ausência ainda precisa de integração.

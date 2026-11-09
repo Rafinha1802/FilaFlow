@@ -25,6 +25,7 @@ import {
 import {
   fetchQueues,
   callNextTicketApi,
+  finishCurrentTicketApi,
   reportDelayApi,
   addManualTicketApi,
   setupQueueWebSocket,
@@ -150,6 +151,7 @@ export default function App() {
   const [companyWaitingQueue, setCompanyWaitingQueue] = useState([]);
   const [queueReady, setQueueReady] = useState(false);
   const [queueError, setQueueError] = useState('');
+  const [queueActionError, setQueueActionError] = useState('');
   const [queueBusy, setQueueBusy] = useState(false);
   const queueOperation = useRef(false);
   const queueRefresh = useRef(null);
@@ -176,6 +178,7 @@ export default function App() {
     let ws = null;
     setQueueReady(false);
     setQueueError('');
+    setQueueActionError('');
 
     const refreshQueue = async () => {
       refreshRequested = true;
@@ -368,6 +371,7 @@ export default function App() {
     queueVersion.current += 1;
     setQueueBusy(true);
     setQueueError('');
+    setQueueActionError('');
     const token = getToken();
     try {
       const data = await callNextTicketApi('clinica-vida');
@@ -380,7 +384,7 @@ export default function App() {
       showToast(`Senha ${data.called_ticket.ticket_number} chamada no ${businessData.room}.`);
       return data.called_ticket;
     } catch (err) {
-      setQueueError(err.message);
+      if (getToken() === token) setQueueActionError(err.message);
       return null;
     } finally {
       queueOperation.current = false;
@@ -417,8 +421,26 @@ export default function App() {
   };
 
   // 4. Finalizar atendimento atual
-  const handleFinishCurrent = () => {
-    showToast('A conclusão de atendimento ainda não está integrada.');
+  const handleFinishCurrent = async () => {
+    if (!activeAttendingTicket || !queueReady || queueOperation.current) return;
+    queueOperation.current = true;
+    queueVersion.current += 1;
+    setQueueBusy(true);
+    setQueueError('');
+    setQueueActionError('');
+    const token = getToken();
+    try {
+      const data = await finishCurrentTicketApi('clinica-vida', activeAttendingTicket.ticket);
+      if (getToken() !== token) return;
+      applyQueueState(data);
+      showToast('Atendimento finalizado.');
+    } catch (err) {
+      if (getToken() === token) setQueueActionError(err.message);
+    } finally {
+      queueOperation.current = false;
+      setQueueBusy(false);
+      queueRefresh.current?.();
+    }
   };
 
   // 5. Emitir Senha Manual no Balcão
@@ -707,6 +729,8 @@ export default function App() {
           <CompanyDashboard
             queueBusy={!queueReady || queueBusy}
             queueError={queueError}
+            queueActionError={queueActionError}
+            onDismissQueueActionError={() => setQueueActionError('')}
             businessData={businessData}
             activeAttendingTicket={activeAttendingTicket}
             waitingQueue={companyWaitingQueue}

@@ -62,8 +62,7 @@ Para testar o driver Python pelo endereço publicado no host, rode na raiz:
 O resultado esperado antes e depois do reinício é a fila fictícia
 `clinica-vida`. O banco escuta localmente na porta 5433 por padrão. Para
 encerrar os serviços preservando o volume, use `docker compose down`.
-Neste checkpoint, o painel continua usando a fila em memória. O próximo
-checkpoint liga o FastAPI ao banco e testa as operações da fila.
+
 
 ### Arquivos de configuração local
 
@@ -73,6 +72,39 @@ definida, tem precedência no Compose. O teste Python acima lê o ambiente do
 PowerShell, então mantenha a variável da sessão ao executá-lo.
 
 A raiz configura o Docker Compose. O backend tem seu próprio modelo em
-backend/.env.example. O carregamento de backend/.env pelo inicializador e a
-conexão da API serão adicionados no checkpoint 3. Use o prefixo VITE_ apenas
+backend/.env.example. O inicializador carrega backend/.env quando o arquivo existe. Use o prefixo VITE_ apenas
 para valores públicos que podem chegar ao navegador.
+
+### Gerar os dois arquivos com um assistente
+
+Com as dependências Python instaladas, execute na raiz:
+
+~~~powershell
+.\backend\.venv\Scripts\python.exe scripts/configurar_ambiente_local.py
+~~~
+
+O assistente pede a porta, o e-mail fictício e as senhas sem exibi-las. Para
+um volume PostgreSQL existente, informe a senha usada na primeira
+inicialização. Para um volume novo, Enter gera a senha do banco. O script
+gera o hash do operador, a chave JWT e a URL de conexão e preserva arquivos
+existentes. As senhas e chaves ficam nos arquivos ignorados pelo Git.
+### Validar a fila persistida
+
+Com o banco saudável, a fila fictícia inserida e backend/.env configurado,
+aplique a segunda migração antes de iniciar a API:
+
+~~~powershell
+Get-Content -Raw -Encoding utf8 backend/migrations/002_create_tickets.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U temfyla -d temfyla
+.\iniciar_tudo.bat
+~~~
+
+No painel, emita uma senha comum e uma prioritária. Chame a próxima e
+confirme que é a prioritária. Reinicie a API e verifique se o atendimento
+ativo e a espera foram preservados. Conclua o atendimento e chame a senha
+restante. Com atendimento ativo e fila em espera, uma segunda chamada
+deve pedir que você conclua o atendimento atual.
+
+Para executar a suíte com PostgreSQL, configure TEST_DATABASE_URL no
+PowerShell com a URL do banco local, sem imprimi-la. O teste usa um schema
+descartável e exige permissão de criação de schema. Rode os testes conforme
+o início deste guia. Sem a variável, o teste PostgreSQL aparece como ignorado.
