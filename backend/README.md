@@ -1,4 +1,10 @@
-# Backend FilaFlow — etapas 1 a 8
+<p align="center">
+  <img src="../public/temfyla-logo.png" alt="TemFyla" width="240">
+</p>
+
+# ⚙️ TemFyla · API de filas
+
+[Produto](../README.md) · [Ambiente local](../docs/desenvolvimento/ambiente-local.md) · [Arquitetura](../docs/arquitetura/arquitetura-atual.md)
 
 API mínima em Python com FastAPI, independente do frontend React.
 Disponibiliza `GET /api/health`, que responde com HTTP 200 e `{"status": "ok"}`,
@@ -478,8 +484,7 @@ Os demais fluxos continuam
 demonstrativos; chamadas a endpoints ainda não implementados não são atendidas
 por esta API.
 O proxy Vite existente já direciona `/api` para a porta 8000 no desenvolvimento.
-Execute o backend com o comando acima: `iniciar_tudo.bat` ainda não procura
-a pasta `backend/`.
+Na raiz do monorepo, use o inicializador integrado conforme o guia de ambiente local.
 
 ## Referências
 
