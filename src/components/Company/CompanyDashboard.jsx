@@ -42,6 +42,10 @@ export default function CompanyDashboard({
   businessData,
   activeAttendingTicket,
   waitingQueue,
+  queueBusy = false,
+  queueError = '',
+  queueActionError = '',
+  onDismissQueueActionError,
   receptionPatients,
   onAuthorizeReceptionPatient,
   onUpdateReceptionStatus,
@@ -109,6 +113,8 @@ export default function CompanyDashboard({
   const [manualName, setManualName] = useState('');
   const [manualService, setManualService] = useState('Consulta Oftalmologia Geral');
   const [isPriority, setIsPriority] = useState(false);
+  const [isIssuingTicket, setIsIssuingTicket] = useState(false);
+  const [manualError, setManualError] = useState('');
 
   // Live clock for TV Panel
   const [currentTimeStr, setCurrentTimeStr] = useState(new Date().toLocaleTimeString('pt-BR'));
@@ -171,17 +177,13 @@ export default function CompanyDashboard({
     }
   };
 
-  const handleCallNextWithSound = () => {
-    if (waitingQueue.length === 0) {
-      showNotification('Não há mais clientes na fila de espera no momento.');
-      return;
-    }
-
-    const nextTicket = waitingQueue[0];
-    playCallAnnouncement(nextTicket.ticket, nextTicket.name, businessData.room);
+  const handleCallNextWithSound = async () => {
+    if (queueBusy) return;
+    const nextTicket = await onCallNext();
+    if (!nextTicket) return;
+    playCallAnnouncement(nextTicket.ticket_number, nextTicket.customer_name, businessData.room);
     setTimerSeconds(0);
-    onCallNext();
-    showNotification(`Senha ${nextTicket.ticket} (${nextTicket.name}) chamada no ${businessData.room || 'Consultório 04'}.`);
+    showNotification(`Senha ${nextTicket.ticket_number} (${nextTicket.customer_name}) chamada no ${businessData.room || 'Consultório 04'}.`);
   };
 
   const handleRecallActiveTicket = () => {
@@ -194,19 +196,29 @@ export default function CompanyDashboard({
     showNotification(`📲 Lembrete WhatsApp enviado para ${item.name}! Avisado para retornar ao saguão.`);
   };
 
-  const handleCreateManualTicket = (e) => {
+  const handleCreateManualTicket = async (e) => {
     e.preventDefault();
-    if (!manualName.trim()) return;
-
-    onAddManualTicket({
-      name: manualName,
-      serviceName: manualService,
-      isPriority
-    });
-
-    setManualName('');
-    setShowManualModal(false);
-    showNotification(`Senha presencial emitida com sucesso para ${manualName}!`);
+    if (isIssuingTicket || queueBusy) return;
+    if (!manualName.trim()) {
+      setManualError('Informe o nome do cliente ou paciente.');
+      return;
+    }
+    setIsIssuingTicket(true);
+    setManualError('');
+    try {
+      const ticket = await onAddManualTicket({
+        name: manualName,
+        serviceName: manualService,
+        isPriority
+      });
+      setManualName('');
+      setShowManualModal(false);
+      showNotification(`Senha ${ticket.ticket_number} emitida com sucesso para ${ticket.customer_name}!`);
+    } catch (err) {
+      setManualError(err.message);
+    } finally {
+      setIsIssuingTicket(false);
+    }
   };
 
   // Filtered Queue
@@ -299,6 +311,30 @@ export default function CompanyDashboard({
         }}>
           <CheckCircle2 size={16} color="#34d399" />
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {queueActionError && (
+        <div style={{
+          position: 'fixed',
+          top: 76,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 6000,
+          maxWidth: 'calc(100vw - 32px)',
+          background: '#fff7ed',
+          color: '#9a3412',
+          border: '1px solid #fdba74',
+          borderRadius: 12,
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12
+        }}>
+          <span role="alert">{queueActionError}</span>
+          <button type="button" className="btn-ghost" onClick={onDismissQueueActionError}>
+            Fechar
+          </button>
         </div>
       )}
 
@@ -430,6 +466,7 @@ export default function CompanyDashboard({
             className="btn-primary"
             onClick={() => setShowManualModal(true)}
             title="Emitir senha presencial rápida de balcão"
+            disabled={queueBusy}
             style={{ padding: '7px 14px', fontSize: 12, background: '#7c3aed', display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <Plus size={14} />
@@ -562,6 +599,7 @@ export default function CompanyDashboard({
           </button>
         </div>
       </header>
+      {queueError && <p role="alert">{queueError}</p>}
 
       {/* Active Reception Notice Banner */}
       {receptionNotice && (
@@ -671,7 +709,7 @@ export default function CompanyDashboard({
                   Em Atendimento
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: '#0f172a', marginTop: 2 }}>
-                  {activeAttendingTicket ? activeAttendingTicket.ticket : '#00'}
+                  {activeAttendingTicket ? activeAttendingTicket.ticket : '—'}
                 </div>
               </div>
               <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981' }} />
@@ -733,7 +771,7 @@ export default function CompanyDashboard({
                   No App Móvel
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 900, color: '#7c3aed', marginTop: 2 }}>
-                  {waitingQueue.filter((q) => q.isUser).length + 1} ativos
+                  {waitingQueue.filter((q) => q.isUser).length} ativos
                 </div>
               </div>
               <Smartphone size={18} color="#7c3aed" />
@@ -761,15 +799,15 @@ export default function CompanyDashboard({
                 </div>
 
                 <div className="ff-attending-ticket">
-                  {activeAttendingTicket ? activeAttendingTicket.ticket : '#44'}
+                  {activeAttendingTicket ? activeAttendingTicket.ticket : '—'}
                 </div>
 
                 <div className="ff-attending-name">
-                  {activeAttendingTicket ? activeAttendingTicket.name : 'João Santos'}
+                  {activeAttendingTicket ? activeAttendingTicket.name : 'Nenhum atendimento atual'}
                 </div>
 
                 <div style={{ fontSize: 13, color: '#64748b', marginBottom: 14 }}>
-                  {activeAttendingTicket?.service || 'Consulta Oftalmologia Geral'} • {businessData.room || 'Consultório 04'}
+                  {activeAttendingTicket?.service || '—'} • {businessData.room || 'Consultório 04'}
                 </div>
 
                 {/* Live Timer with Progress Ring */}
@@ -793,10 +831,7 @@ export default function CompanyDashboard({
                 <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'center' }}>
                   <button
                     className="btn-ghost"
-                    onClick={() => {
-                      onFinishCurrent();
-                      showNotification('Atendimento finalizado com sucesso!');
-                    }}
+                    onClick={onFinishCurrent}
                     style={{ background: 'white', border: '1px solid #cbd5e1', fontSize: 12, padding: '8px 12px' }}
                   >
                     <CheckCircle2 size={14} color="#10b981" />
@@ -805,10 +840,7 @@ export default function CompanyDashboard({
 
                   <button
                     className="btn-ghost"
-                    onClick={() => {
-                      onSkipTicket();
-                      showNotification('Paciente marcado como ausente.');
-                    }}
+                    onClick={onSkipTicket}
                     style={{ background: 'white', border: '1px solid #cbd5e1', fontSize: 12, padding: '8px 12px' }}
                   >
                     <UserX size={14} color="#ef4444" />
@@ -840,10 +872,11 @@ export default function CompanyDashboard({
                   <button
                     className="btn-call-next"
                     onClick={handleCallNextWithSound}
+                    disabled={queueBusy}
                     style={{ padding: '14px 28px', fontSize: 15 }}
                   >
                     <Play size={18} fill="white" />
-                    <span>Chamar Próximo ({waitingQueue[0] ? waitingQueue[0].ticket : 'Fila Vazia'})</span>
+                    <span>{queueBusy ? 'Aguarde...' : `Chamar Próximo (${waitingQueue[0] ? waitingQueue[0].ticket : 'Fila Vazia'})`}</span>
                   </button>
 
                   <button
@@ -929,6 +962,7 @@ export default function CompanyDashboard({
                 className="btn-primary"
                 onClick={() => setShowManualModal(true)}
                 style={{ background: '#7c3aed', padding: '9px 18px', fontSize: 13 }}
+                disabled={queueBusy}
               >
                 <Plus size={16} />
                 <span>Emitir Senha Presencial de Balcão</span>
@@ -1096,6 +1130,7 @@ export default function CompanyDashboard({
                             <div style={{ display: 'inline-flex', gap: 6 }}>
                               <button
                                 onClick={handleCallNextWithSound}
+                                disabled={queueBusy}
                                 style={{
                                   padding: '5px 12px',
                                   borderRadius: 6,
@@ -2162,11 +2197,11 @@ export default function CompanyDashboard({
               textShadow: '0 0 50px rgba(124, 58, 237, 0.8)',
               margin: '10px 0'
             }}>
-              {activeAttendingTicket ? activeAttendingTicket.ticket : '#44'}
+              {activeAttendingTicket ? activeAttendingTicket.ticket : '—'}
             </div>
 
             <div style={{ fontSize: 42, fontWeight: 800, color: '#f8fafc', marginBottom: 12 }}>
-              {activeAttendingTicket ? activeAttendingTicket.name : 'João Santos'}
+              {activeAttendingTicket ? activeAttendingTicket.name : 'Nenhum atendimento atual'}
             </div>
 
             <div style={{
@@ -2237,14 +2272,15 @@ export default function CompanyDashboard({
 
       {/* Manual Ticket Issuer Modal */}
       {showManualModal && (
-        <div className="ff-modal-overlay" onClick={() => setShowManualModal(false)}>
+        <div className="ff-modal-overlay" onClick={() => { if (!isIssuingTicket) setShowManualModal(false); }}>
           <div className="ff-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="ff-modal-header">
               <h3 className="ff-modal-title">Emitir Senha Presencial de Balcão</h3>
-              <button onClick={() => setShowManualModal(false)} style={{ color: '#64748b', cursor: 'pointer' }}>✕</button>
+              <button disabled={isIssuingTicket} onClick={() => setShowManualModal(false)} style={{ color: '#64748b', cursor: 'pointer' }}>✕</button>
             </div>
 
             <form onSubmit={handleCreateManualTicket} style={{ padding: 24 }}>
+              {manualError && <p role="alert">{manualError}</p>}
               <div className="ff-form" style={{ gap: 16 }}>
                 <div className="ff-form-group">
                   <label className="ff-form-label">Nome do Cliente ou Paciente *</label>
@@ -2252,6 +2288,8 @@ export default function CompanyDashboard({
                     type="text"
                     className="ff-input"
                     value={manualName}
+                    disabled={isIssuingTicket}
+                    maxLength={150}
                     onChange={(e) => setManualName(e.target.value)}
                     placeholder="Ex: Carlos Eduardo"
                     style={{ paddingLeft: 14 }}
@@ -2265,6 +2303,7 @@ export default function CompanyDashboard({
                   <select
                     className="ff-input"
                     value={manualService}
+                    disabled={isIssuingTicket}
                     onChange={(e) => setManualService(e.target.value)}
                     style={{ paddingLeft: 14 }}
                   >
@@ -2279,6 +2318,7 @@ export default function CompanyDashboard({
                   <input
                     type="checkbox"
                     id="priorityCheck"
+                    disabled={isIssuingTicket}
                     checked={isPriority}
                     onChange={(e) => setIsPriority(e.target.checked)}
                     style={{ width: 18, height: 18, accentColor: '#7c3aed', cursor: 'pointer' }}
@@ -2292,9 +2332,10 @@ export default function CompanyDashboard({
                   type="submit"
                   className="btn-primary"
                   style={{ background: '#7c3aed', width: '100%', justifyContent: 'center', padding: 12, marginTop: 8 }}
+                  disabled={isIssuingTicket || queueBusy}
                 >
                   <Plus size={16} />
-                  <span>Imprimir & Inserir na Fila</span>
+                  <span>{isIssuingTicket ? 'Emitindo...' : 'Imprimir & Inserir na Fila'}</span>
                 </button>
               </div>
             </form>

@@ -1,75 +1,23 @@
 @echo off
-chcp 65001 >nul
-title TemFyla - Servidor Integrado (Backend Python + Frontend Vite)
-color 0A
+setlocal
+cd /d "%~dp0" || exit /b 1
 
-echo ======================================================================
-echo          TEMFYLA - INICIALIZADOR UNIFICADO (BACK + FRONT)
-echo ======================================================================
-echo.
-echo  [1/4] Verificando ambiente Python e Node.js...
-
-set SCRIPT_DIR=%~dp0
-
-:: Detecta diretório do Backend
-if exist "%SCRIPT_DIR%app\main.py" (
-    set "BACK_DIR=%SCRIPT_DIR%"
-) else if exist "%SCRIPT_DIR%..\TemFyla_back\app\main.py" (
-    set "BACK_DIR=%SCRIPT_DIR%..\TemFyla_back\"
-) else if exist "%SCRIPT_DIR%..\FilaFlow_back\FilaFlow_back\app\main.py" (
-    set "BACK_DIR=%SCRIPT_DIR%..\FilaFlow_back\FilaFlow_back\"
-) else if exist "%SCRIPT_DIR%..\FilaFlow_back\app\main.py" (
-    set "BACK_DIR=%SCRIPT_DIR%..\FilaFlow_back\"
-) else (
-    set "BACK_DIR=%SCRIPT_DIR%"
+if not exist "backend\app\main.py" (
+    echo Backend ausente neste checkout.
+    exit /b 1
+)
+if not exist "backend\.venv\Scripts\python.exe" (
+    echo Crie o ambiente virtual conforme docs\desenvolvimento\ambiente-local.md.
+    exit /b 1
+)
+"backend\.venv\Scripts\python.exe" -c "import uvicorn; import fastapi; import pwdlib; import jwt" || exit /b 1
+if not exist "node_modules\.bin\vite.cmd" (
+    echo Instale as dependencias na raiz com npm ci.
+    exit /b 1
 )
 
-:: Detecta diretório do Frontend
-if exist "%SCRIPT_DIR%package.json" (
-    set "FRONT_DIR=%SCRIPT_DIR%"
-) else if exist "%SCRIPT_DIR%..\TemFyla\package.json" (
-    set "FRONT_DIR=%SCRIPT_DIR%..\TemFyla\"
-) else if exist "%SCRIPT_DIR%..\FilaFlow\package.json" (
-    set "FRONT_DIR=%SCRIPT_DIR%..\FilaFlow\"
-) else (
-    set "FRONT_DIR=%SCRIPT_DIR%"
-)
-
-:: Libera a porta 5174 caso tenha ficado presa anteriormente
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5174" ^| findstr "LISTENING"') do (
-    taskkill /F /PID %%a >nul 2>&1
-)
-
-if not exist "%BACK_DIR%.venv\Scripts\python.exe" (
-    echo  Ambiente virtual não encontrado em %BACK_DIR%. Criando .venv...
-    python -m venv "%BACK_DIR%.venv"
-    echo  Instalando dependências do backend...
-    "%BACK_DIR%.venv\Scripts\pip.exe" install -r "%BACK_DIR%requirements.txt"
-)
-
-echo  [2/4] Iniciando Backend Python (FastAPI na porta 8000)...
-start "TemFyla - Backend (FastAPI)" cmd /k "cd /d %BACK_DIR% && color 0B && title TemFyla Backend && echo === TemFyla FastAPI Backend === && .venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload"
-
-echo  [3/4] Iniciando Frontend React (Vite na porta 5174)...
-start "TemFyla - Frontend (Vite)" cmd /k "cd /d %FRONT_DIR% && color 0D && title TemFyla Frontend && echo === TemFyla Vite Frontend === && npm.cmd run dev"
-
-echo  [4/4] Aguardando inicialização dos servidores...
-timeout /t 3 /nobreak >nul
-
-echo.
-echo ======================================================================
-echo      SISTEMAS INICIADOS COM SUCESSO!
-echo ======================================================================
-echo   - Frontend:       http://localhost:5174/
-echo   - Painel Empresa: http://localhost:5174/empresa/dashboard
-echo   - App do Cliente: http://localhost:5174/app
-echo   - Backend API:    http://127.0.0.1:8000/
-echo   - Documentação:   http://127.0.0.1:8000/docs (Swagger Interativo)
-echo ======================================================================
-echo.
-echo  Abrindo o TemFyla no seu navegador padrão...
-start http://localhost:5174/
-
-echo.
-echo  Pressione qualquer tecla nesta janela para encerrar ou feche os terminais.
-pause >nul
+set "BACKEND_ENV="
+if exist "backend\.env" set "BACKEND_ENV=--env-file .env"
+start "TemFyla Backend" /D "%CD%\backend" cmd /k ".venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload %BACKEND_ENV%" || exit /b 1
+start "TemFyla Frontend" /D "%CD%" cmd /k "npm.cmd run dev -- --strictPort" || exit /b 1
+echo Comandos enviados aos terminais. Confirme a inicializacao em cada janela.

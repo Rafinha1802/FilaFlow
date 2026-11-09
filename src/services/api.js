@@ -1,13 +1,10 @@
 // TemFyla API Service Client & Token Manager
 const API_BASE = '/api';
-const TOKEN_STORAGE_KEY = 'TemFyla_token';
-const USER_STORAGE_KEY = 'TemFyla_user';
+const TOKEN_STORAGE_KEY = 'filaflow_token';
+const USER_STORAGE_KEY = 'filaflow_user';
 
-// Credenciais padrÃ£o da demonstraÃ§Ã£o para login automÃ¡tico com o backend
-export const DEFAULT_DEMO_CREDENTIALS = {
-  email: 'atendimento@clinicavida.com.br',
-  password: '123456'
-};
+export const AUTH_CLEARED_EVENT = 'filaflow:auth-cleared';
+let authRevision = 0;
 
 // Gerenciamento de Token JWT no LocalStorage
 export function getToken() {
@@ -53,80 +50,83 @@ export function setStoredUser(user) {
 }
 
 export function clearAuth() {
+  authRevision += 1;
   setToken(null);
   setStoredUser(null);
+  window.dispatchEvent(new Event(AUTH_CLEARED_EVENT));
 }
 
 /**
  * Realiza login direto no backend FastAPI.
  */
-export async function loginApi(email = DEFAULT_DEMO_CREDENTIALS.email, password = DEFAULT_DEMO_CREDENTIALS.password) {
+export async function loginApi(email, password, { signal } = {}) {
+  const revision = authRevision;
   try {
     const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
+      signal
     });
 
     if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || 'Falha na autenticaÃ§Ã£o');
+      if (res.status === 401) throw new Error('E-mail ou senha incorretos.');
+      if (res.status === 503) throw new Error('Login indisponível no momento. Tente novamente mais tarde.');
+      if (res.status === 422) throw new Error('Confira o e-mail e a senha informados.');
+      throw new Error('Não foi possível entrar. Tente novamente.');
     }
 
     const data = await res.json();
-    if (data.access_token) {
-      setToken(data.access_token);
-      if (data.user) setStoredUser(data.user);
-      console.log('[TemFyla API] Autenticado com sucesso no backend FastAPI!');
+    if (typeof data.access_token !== 'string' || !data.access_token || data.user?.role !== 'company') {
+      throw new Error('Resposta de autenticação inválida. Tente novamente.');
     }
+    // Uma resposta atrasada não pode restaurar uma sessão encerrada.
+    if (signal?.aborted || revision !== authRevision) throw new DOMException('Login cancelado.', 'AbortError');
+    setToken(data.access_token);
+    setStoredUser(data.user);
+    if (getToken() !== data.access_token) throw new Error('Permita o armazenamento no navegador para entrar.');
     return data;
   } catch (err) {
-    console.warn('[TemFyla API] Backend offline ou credenciais nÃ£o sincronizadas:', err.message);
-    return null;
+    if (err.name === 'AbortError') throw err;
+    if (revision === authRevision) clearAuth();
+    if (err instanceof TypeError) throw new Error('Não foi possível conectar ao servidor. Tente novamente.');
+    throw err;
   }
 }
 
 /**
- * Garante que o frontend possua um token vÃ¡lido ativo.
- * Caso nÃ£o haja token armazenado, tenta autenticar automaticamente com as credenciais padrÃ£o da clÃ­nica.
- */
-export async function ensureAuthToken(forceRefresh = false) {
-  let token = getToken();
-  if (!token || forceRefresh) {
-    const loginRes = await loginApi();
-    token = loginRes?.access_token || null;
-  }
-  return token;
-}
-
-/**
- * Wrapper de fetch com injeÃ§Ã£o automÃ¡tica de Authorization Bearer JWT
+ * Wrapper de fetch com injeção automática de Authorization Bearer JWT
  */
 async function fetchWithAuth(url, options = {}) {
-  let token = await ensureAuthToken();
+  const token = getToken();
+  if (!token) throw new Error('Entre na sua conta para continuar.');
   const headers = {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    'Authorization': `Bearer ${token}`,
     ...(options.headers || {})
   };
 
-  try {
-    let res = await fetch(url, { ...options, headers });
-
-    // Se retornar 401 (token expirado ou invÃ¡lido), tenta renovar o login 1 vez
-    if (res.status === 401) {
-      console.log('[TemFyla API] Token expirado (401). Renovando autenticaÃ§Ã£o com o backend...');
-      token = await ensureAuthToken(true);
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-        res = await fetch(url, { ...options, headers });
-      }
-    }
-
-    return res;
-  } catch (err) {
-    throw err;
+  const res = await fetch(url, { ...options, headers });
+  if (res.status === 401) {
+    if (getToken() === token) clearAuth();
+    throw new Error('Sua sessão expirou. Entre novamente.');
   }
+  return res;
+}
+
+export async function fetchCurrentUser() {
+  const token = getToken();
+  if (!token) return null;
+  const res = await fetchWithAuth(`${API_BASE}/auth/me`);
+  if (!res.ok) throw new Error('Não foi possível validar sua sessão. Tente entrar novamente.');
+  const user = await res.json();
+  if (getToken() !== token) return null;
+  if (user?.role !== 'company') {
+    clearAuth();
+    throw new Error('Sessão empresarial inválida. Entre novamente.');
+  }
+  setStoredUser(user);
+  return user;
 }
 
 // -------------------------------------------------------------
@@ -160,15 +160,47 @@ export async function callNextTicketApi(queueId = 'clinica-vida') {
     const res = await fetchWithAuth(`${API_BASE}/tickets/next?queue_id=${encodeURIComponent(queueId)}`, {
       method: 'POST'
     });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || 'Erro ao chamar prÃ³ximo');
+    if (res.status === 409) throw new Error('Finalize o atendimento atual antes de chamar outra senha.');
+    if (!res.ok) throw new Error('Não foi possível chamar a próxima senha.');
+    const data = await readQueueState(res);
+    if (data.called_ticket !== null && !isQueueTicket(data.called_ticket)) {
+      throw new Error('Resposta de chamada inválida. Recarregue a fila.');
     }
-    return await res.json();
+    return data;
   } catch (err) {
-    console.warn('[TemFyla API] Erro ao chamar prÃ³ximo:', err);
-    return null;
+    if (err instanceof TypeError || err instanceof SyntaxError) {
+      throw new Error('Não foi possível confirmar a chamada. Recarregue a fila antes de tentar novamente.');
+    }
+    throw err;
   }
+}
+
+function isQueueTicket(ticket) {
+  return ticket && typeof ticket.ticket_number === 'string' && ticket.ticket_number.length > 0 &&
+    typeof ticket.customer_name === 'string' && typeof ticket.service_name === 'string' &&
+    typeof ticket.is_priority === 'boolean';
+}
+
+async function readQueueState(res) {
+  const data = await res.json();
+  if (!data || (data.active_ticket !== null && !isQueueTicket(data.active_ticket)) ||
+      !Array.isArray(data.remaining_queue) || !data.remaining_queue.every(isQueueTicket)) {
+    throw new Error('Resposta da fila inválida. Recarregue a página.');
+  }
+  return data;
+}
+
+export async function fetchQueueStateApi(queueId = 'clinica-vida') {
+  const res = await fetchWithAuth(`${API_BASE}/tickets?queue_id=${encodeURIComponent(queueId)}`);
+  if (!res.ok) throw new Error('Não foi possível carregar a fila. Recarregue a página.');
+  return readQueueState(res);
+}
+
+export async function finishCurrentTicketApi(queueId, ticketNumber) {
+  const query = new URLSearchParams({ queue_id: queueId, ticket_number: ticketNumber });
+  const res = await fetchWithAuth(`${API_BASE}/tickets/finish?${query}`, { method: 'POST' });
+  if (!res.ok) throw new Error('Não foi possível finalizar o atendimento. Confira a fila.');
+  return readQueueState(res);
 }
 
 export async function reportDelayApi(queueId = 'clinica-vida', minutes = 5) {
@@ -191,11 +223,23 @@ export async function addManualTicketApi(ticketData) {
       method: 'POST',
       body: JSON.stringify(ticketData)
     });
-    if (!res.ok) throw new Error('Erro ao emitir senha');
-    return await res.json();
+    if (!res.ok) {
+      if (res.status === 422) throw new Error('Confira o nome, o serviço e a prioridade informados.');
+      if (res.status === 404) throw new Error('Fila não encontrada. Não foi possível emitir a senha.');
+      throw new Error('Não foi possível emitir a senha. Tente novamente mais tarde.');
+    }
+    const ticket = await res.json();
+    if (typeof ticket.ticket_number !== 'string' || !ticket.ticket_number ||
+        typeof ticket.customer_name !== 'string' || typeof ticket.service_name !== 'string' ||
+        typeof ticket.is_priority !== 'boolean' || ticket.queue_id !== ticketData.queue_id) {
+      throw new Error('Não foi possível confirmar os dados da senha emitida.');
+    }
+    return ticket;
   } catch (err) {
-    console.warn('[TemFyla API] Erro ao emitir senha:', err);
-    return null;
+    if (err instanceof TypeError || err instanceof SyntaxError) {
+      throw new Error('Não foi possível confirmar a emissão. Verifique a conexão antes de tentar novamente.');
+    }
+    throw err;
   }
 }
 
@@ -291,170 +335,72 @@ export async function createOrderApi(orderData) {
 // ConexÃ£o WebSocket para NotificaÃ§Ãµes e Eventos Live
 // -------------------------------------------------------------
 
-export function setupQueueWebSocket(onMessage, companyId = 'clinica-vida') {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+export function setupQueueWebSocket(onMessage, queueId = 'clinica-vida', onConnectionChange = () => {}) {
   const token = getToken();
-  const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : `?company_id=${encodeURIComponent(companyId)}`;
-  const wsUrl = `${protocol}//${window.location.host}/ws${tokenQuery}`;
-
+  if (!token) return null;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/ws`;
   let socket = null;
+  let stopped = false;
+  let reconnectTimer = null;
   let pingInterval = null;
+  let watchdog = null;
 
-  try {
-    socket = new WebSocket(wsUrl);
-
-    socket.onopen = () => {
-      console.log('[TemFyla WS] Conectado ao servidor WebSocket FastAPI em tempo real.');
-      // Envia comando de inscriÃ§Ã£o de sala da empresa e fila
-      try {
-        socket.send(JSON.stringify({
-          type: 'subscribe',
-          companyId: companyId,
-          queueId: 'clinica-vida',
-          token: token
-        }));
-      } catch (e) {}
-
-      // Ping a cada 25s para manter a conexÃ£o WebSocket ativa no backend
-      pingInterval = setInterval(() => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: 'ping' }));
-        }
-      }, 25000);
+  const clearTimers = () => {
+    clearTimeout(reconnectTimer);
+    clearInterval(pingInterval);
+    clearTimeout(watchdog);
+  };
+  const connect = () => {
+    if (stopped || getToken() !== token) return;
+    try {
+      socket = new WebSocket(wsUrl);
+    } catch {
+      onConnectionChange(false);
+      reconnectTimer = setTimeout(connect, 2000);
+      return;
+    }
+    const currentSocket = socket;
+    currentSocket.onopen = () => {
+      if (stopped || getToken() !== token) { currentSocket.close(); return; }
+      currentSocket.send(JSON.stringify({ type: 'subscribe', queue_id: queueId, token }));
+      watchdog = setTimeout(() => currentSocket.close(), 10000);
     };
-
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'pong') return;
-        if (onMessage) onMessage(data);
-      } catch (e) {
-        console.error('[TemFyla WS] Erro ao processar mensagem recebida:', e);
+    currentSocket.onmessage = (event) => {
+      if (stopped || getToken() !== token) return;
+      let data;
+      try { data = JSON.parse(event.data); } catch { currentSocket.close(); return; }
+      if (data?.type === 'pong') { clearTimeout(watchdog); return; }
+      if (data?.queue_id !== queueId) return;
+      if (data.type === 'READY') {
+        clearTimeout(watchdog);
+        clearInterval(pingInterval);
+        onConnectionChange(true);
+        pingInterval = setInterval(() => {
+          if (currentSocket.readyState === WebSocket.OPEN) {
+            currentSocket.send(JSON.stringify({ type: 'ping' }));
+            watchdog = setTimeout(() => currentSocket.close(), 10000);
+          }
+        }, 20000);
       }
+      onMessage?.(data);
     };
-
-    socket.onerror = (err) => {
-      console.warn('[TemFyla WS] ConexÃ£o WebSocket offline ou instÃ¡vel');
+    currentSocket.onerror = () => currentSocket.close();
+    currentSocket.onclose = (event) => {
+      clearTimers();
+      if (stopped || getToken() !== token) return;
+      if (event.code === 1008) { stopped = true; clearAuth(); return; }
+      onConnectionChange(false);
+      // A nova mensagem READY faz o painel consultar eventos perdidos na queda.
+      reconnectTimer = setTimeout(connect, 2000);
     };
-
-    socket.onclose = () => {
-      if (pingInterval) clearInterval(pingInterval);
-      console.log('[TemFyla WS] ConexÃ£o WebSocket encerrada.');
-    };
-  } catch (e) {
-    console.warn('[TemFyla WS] WebSocket nÃ£o pÃ´de ser iniciado:', e);
-  }
-
-  return socket;
+  };
+  connect();
+  return {
+    close() {
+      stopped = true;
+      clearTimers();
+      if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
+    }
+  };
 }
-
-
-// -------------------------------------------------------------
-// AutenticaÃ§Ã£o e Perfil de Paciente / Cliente Mobile
-// -------------------------------------------------------------
-
-export async function loginPatientApi(emailOrName, password) {
-  try {
-    const res = await fetch(`${API_BASE}/auth/patient/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: emailOrName, password })
-    });
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || 'Credenciais de paciente incorretas');
-    }
-
-    const data = await res.json();
-    if (data.access_token) {
-      setToken(data.access_token);
-      if (data.user) {
-        setStoredUser(data.user);
-        localStorage.setItem('TemFyla_client_user', JSON.stringify(data.user));
-        localStorage.setItem('TemFyla_client_is_auth', 'true');
-      }
-    }
-    return data;
-  } catch (err) {
-    console.warn('[TemFyla API] Erro no login de paciente:', err.message);
-    throw err;
-  }
-}
-
-export async function registerPatientApi(patientData) {
-  try {
-    const res = await fetch(`${API_BASE}/auth/patient/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patientData)
-    });
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || 'Erro ao realizar cadastro de paciente');
-    }
-
-    const data = await res.json();
-    if (data.access_token) {
-      setToken(data.access_token);
-      if (data.user) {
-        setStoredUser(data.user);
-        localStorage.setItem('TemFyla_client_user', JSON.stringify(data.user));
-        localStorage.setItem('TemFyla_client_is_auth', 'true');
-      }
-    }
-    return data;
-  } catch (err) {
-    console.warn('[TemFyla API] Erro ao cadastrar paciente:', err.message);
-    throw err;
-  }
-}
-
-export async function socialLoginPatientApi(provider = 'google', email = 'rafael.silva@email.com', name = 'Rafael Silva') {
-  try {
-    const res = await fetch(`${API_BASE}/auth/patient/social-login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider, email, name })
-    });
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || 'Falha no login social');
-    }
-
-    const data = await res.json();
-    if (data.access_token) {
-      setToken(data.access_token);
-      if (data.user) {
-        setStoredUser(data.user);
-        localStorage.setItem('TemFyla_client_user', JSON.stringify(data.user));
-        localStorage.setItem('TemFyla_client_is_auth', 'true');
-      }
-    }
-    return data;
-  } catch (err) {
-    console.warn('[TemFyla API] Erro no login social:', err.message);
-    throw err;
-  }
-}
-
-export async function updatePatientProfileApi(profileData) {
-  try {
-    const res = await fetchWithAuth(`${API_BASE}/auth/patient/profile`, {
-      method: 'PUT',
-      body: JSON.stringify(profileData)
-    });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || 'Erro ao atualizar perfil do paciente');
-    }
-    return await res.json();
-  } catch (err) {
-    console.warn('[TemFyla API] Erro ao atualizar perfil:', err.message);
-    throw err;
-  }
-}
-
-

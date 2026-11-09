@@ -15,7 +15,6 @@ import {
   Check,
   Clock
 } from 'lucide-react';
-import { loginApi, loginPatientApi, registerPatientApi, socialLoginPatientApi } from '../../services/api';
 
 export default function MobileAuthView({
   initialMode = 'login', // 'login' | 'signup' | 'register' | 'recovery'
@@ -63,49 +62,31 @@ export default function MobileAuthView({
     setIsLoading(true);
 
     try {
-      let authenticatedUser = null;
+      let authenticatedUser;
+      const registeredUsers = JSON.parse(
+        localStorage.getItem('temfyla_registered_clients') || localStorage.getItem('filaflow_registered_clients') || '[]'
+      );
+      const foundUser = registeredUsers.find(
+        (u) =>
+          u.email?.toLowerCase() === identifier.toLowerCase() ||
+          u.name?.toLowerCase() === identifier.toLowerCase()
+      );
 
-      // 1. Autenticação direta no backend FastAPI TemFyla
-      try {
-        const loginRes = await loginPatientApi(identifier, loginPassword);
-        if (loginRes && loginRes.user) {
-          authenticatedUser = loginRes.user;
-        }
-      } catch (backendErr) {
-        if (backendErr.message && !backendErr.message.includes('fetch') && !backendErr.message.includes('Failed to fetch')) {
-          setErrorMessage(backendErr.message);
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // 2. Fallback resiliente caso backend esteja offline
-      if (!authenticatedUser) {
-        const registeredUsers = JSON.parse(
-          localStorage.getItem('temfyla_registered_clients') || localStorage.getItem('filaflow_registered_clients') || '[]'
-        );
-        const foundUser = registeredUsers.find(
-          (u) =>
-            u.email?.toLowerCase() === identifier.toLowerCase() ||
-            u.name?.toLowerCase() === identifier.toLowerCase()
-        );
-
-        if (foundUser) {
-          authenticatedUser = foundUser;
-        } else {
-          const isDefault = identifier.toLowerCase().includes('rafael') || identifier.toLowerCase().includes('silva');
-          authenticatedUser = {
-            id: isDefault ? 'usr_rafael' : 'usr_' + Date.now(),
-            name: isDefault ? 'Rafael Silva' : (identifier.includes('@') ? identifier.split('@')[0] : identifier),
-            email: identifier.includes('@') ? identifier : (isDefault ? 'rafael.silva@email.com' : `${identifier.toLowerCase().replace(/\s+/g, '.')}@email.com`),
-            phone: '(11) 98765-4321',
-            cpf: '345.678.901-22',
-            insurance: 'Unimed Nacional',
-            cardNumber: '0012.3456.7890.1234',
-            avatarInitial: isDefault ? 'R' : identifier.charAt(0).toUpperCase(),
-            role: 'patient'
-          };
-        }
+      if (foundUser) {
+        authenticatedUser = foundUser;
+      } else {
+        const isDefault = identifier.toLowerCase().includes('rafael') || identifier.toLowerCase().includes('silva');
+        authenticatedUser = {
+          id: isDefault ? 'usr_rafael' : 'usr_' + Date.now(),
+          name: isDefault ? 'Rafael Silva' : (identifier.includes('@') ? identifier.split('@')[0] : identifier),
+          email: identifier.includes('@') ? identifier : (isDefault ? 'rafael.silva@email.com' : `${identifier.toLowerCase().replace(/\s+/g, '.')}@email.com`),
+          phone: '(11) 98765-4321',
+          cpf: '345.678.901-22',
+          insurance: 'Unimed Nacional',
+          cardNumber: '0012.3456.7890.1234',
+          avatarInitial: isDefault ? 'R' : identifier.charAt(0).toUpperCase(),
+          role: 'patient'
+        };
       }
 
       localStorage.setItem('temfyla_client_user', JSON.stringify(authenticatedUser));
@@ -121,7 +102,7 @@ export default function MobileAuthView({
     }
   };
 
-  // Submissão do Cadastro (Integrado ao Backend FastAPI TemFyla)
+  // Cadastro local de demonstração
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -156,37 +137,18 @@ export default function MobileAuthView({
         card_number: '0012.3456.7890.1234'
       };
 
-      let registeredUser = null;
-
-      // 1. Enviar cadastro para o backend FastAPI
-      try {
-        const regRes = await registerPatientApi(patientPayload);
-        if (regRes && regRes.user) {
-          registeredUser = regRes.user;
-        }
-      } catch (backendErr) {
-        if (backendErr.message && !backendErr.message.includes('fetch') && !backendErr.message.includes('Failed to fetch')) {
-          setErrorMessage(backendErr.message);
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // 2. Fallback caso backend esteja offline
-      if (!registeredUser) {
-        registeredUser = {
-          id: 'usr_' + Date.now(),
-          name: patientPayload.name,
-          email: patientPayload.email,
-          phone: patientPayload.phone,
-          cpf: patientPayload.cpf,
-          insurance: patientPayload.insurance,
-          cardNumber: patientPayload.card_number,
-          avatarInitial: (signupName.trim() || signupEmail).charAt(0).toUpperCase(),
-          role: 'patient',
-          createdAt: new Date().toISOString()
-        };
-      }
+      const registeredUser = {
+        id: 'usr_' + Date.now(),
+        name: patientPayload.name,
+        email: patientPayload.email,
+        phone: patientPayload.phone,
+        cpf: patientPayload.cpf,
+        insurance: patientPayload.insurance,
+        cardNumber: patientPayload.card_number,
+        avatarInitial: (signupName.trim() || signupEmail).charAt(0).toUpperCase(),
+        role: 'patient',
+        createdAt: new Date().toISOString()
+      };
 
       const existing = JSON.parse(
         localStorage.getItem('temfyla_registered_clients') || localStorage.getItem('filaflow_registered_clients') || '[]'
@@ -206,31 +168,21 @@ export default function MobileAuthView({
     }
   };
 
-  // Login Social (Apple / Google) integrado ao backend
+  // Login social simulado para demonstração
   const handleSocialLogin = async (provider) => {
     setIsLoading(true);
     try {
-      let socialUser = null;
-      try {
-        const res = await socialLoginPatientApi(provider, 'rafael.silva@email.com', 'Rafael Silva');
-        if (res && res.user) {
-          socialUser = res.user;
-        }
-      } catch (e) {}
-
-      if (!socialUser) {
-        socialUser = {
-          id: `usr_${provider}_` + Date.now(),
-          name: 'Rafael Silva',
-          email: 'rafael.silva@email.com',
-          phone: '(11) 98765-4321',
-          cpf: '345.678.901-22',
-          insurance: 'Unimed Nacional',
-          cardNumber: '0012.3456.7890.1234',
-          avatarInitial: 'R',
-          role: 'patient'
-        };
-      }
+      const socialUser = {
+        id: `usr_${provider}_` + Date.now(),
+        name: 'Rafael Silva',
+        email: 'rafael.silva@email.com',
+        phone: '(11) 98765-4321',
+        cpf: '345.678.901-22',
+        insurance: 'Unimed Nacional',
+        cardNumber: '0012.3456.7890.1234',
+        avatarInitial: 'R',
+        role: 'patient'
+      };
 
       localStorage.setItem('temfyla_client_user', JSON.stringify(socialUser));
       localStorage.setItem('temfyla_client_is_auth', 'true');

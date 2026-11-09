@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: temfyla
+      POSTGRES_DB: temfyla
+      POSTGRES_PASSWORD: "${TEMFYLA_DB_PASSWORD:?Defina TEMFYLA_DB_PASSWORD no PowerShell}"
+    ports:
+      - "127.0.0.1:${TEMFYLA_DB_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "temfyla", "-d", "temfyla"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  postgres_data:

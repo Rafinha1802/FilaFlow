@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppRouter } from './router/useAppRouter';
 import Navbar from './components/LandingPage/Navbar';
 import LandingPage from './components/LandingPage/LandingPage';
 import CompanyDashboard from './components/Company/CompanyDashboard';
-import CompanyAuth from './components/Company/CompanyAuth';
-import CompanyProfileView from './components/Company/CompanyProfileView';
+import CompanyLogin from './components/Company/CompanyLogin';
 import ProfessionalWorkspace from './components/Professional/ProfessionalWorkspace';
 import ProfessionalAuth from './components/Professional/ProfessionalAuth';
 import ProfessionalProfileView from './components/Professional/ProfessionalProfileView';
@@ -15,45 +14,43 @@ import QueueSearchModal from './components/Client/QueueSearchModal';
 import PricingModal from './components/Common/PricingModal';
 import CheckoutPage from './components/Checkout/CheckoutPage';
 import { INITIAL_QUEUES, REGISTERED_PROFESSIONALS } from './data/mockData';
-import { 
-  getCompanySession, 
-  setCompanySession, 
-  getProfessionalSession, 
-  setProfessionalSession, 
-  registerCompanyAndProfessionals, 
-  logoutCompany, 
+import {
+  getProfessionalSession,
+  setProfessionalSession,
+  registerCompanyAndProfessionals,
   logoutProfessional,
   getStoredProfessionals,
-  getPendingCompanyRegistration,
-  setPendingCompanyRegistration
+  getPendingCompanyRegistration
 } from './services/authService';
-import { 
-  fetchQueues, 
-  callNextTicketApi, 
-  reportDelayApi, 
-  addManualTicketApi, 
-  setupQueueWebSocket, 
-  ensureAuthToken 
+import {
+  fetchQueues,
+  callNextTicketApi,
+  finishCurrentTicketApi,
+  reportDelayApi,
+  addManualTicketApi,
+  setupQueueWebSocket,
+  fetchCurrentUser,
+  fetchQueueStateApi,
+  getToken,
+  clearAuth,
+  AUTH_CLEARED_EVENT
 } from './services/api';
 
 export default function App() {
   // Client-Side History Router: '/' (Site) | '/app' (Mobile App) | '/empresa' (SaaS B2B) | '/profissional' (Consultório) | '/checkout' (Pagamento)
-  const { 
-    currentPath, 
-    navigate, 
-    isAppRoute, 
-    isCompanyRoute, 
-    isCheckoutRoute, 
-    isProfessionalRoute, 
+  const {
+    currentPath,
+    navigate,
+    isAppRoute,
+    isCompanyRoute,
+    isCheckoutRoute,
+    isProfessionalRoute,
     isSiteRoute,
     isCompanyLogin,
     isCompanyRegister,
     isProfessionalLogin,
     isProfessionalRegister
   } = useAppRouter();
-
-  // Authentication State - Empresa (B2B)
-  const [companyUser, setCompanyUser] = useState(() => getCompanySession());
 
   // Authentication State - Profissional (Consultório)
   const [professionalUser, setProfessionalUser] = useState(() => getProfessionalSession());
@@ -68,25 +65,59 @@ export default function App() {
   const [checkoutPlan, setCheckoutPlan] = useState('Profissional');
   const [checkoutCycle, setCheckoutCycle] = useState('monthly');
 
-  // Business / Company Data State
-  const [businessData, setBusinessData] = useState(() => {
-    const session = getCompanySession();
-    if (session) {
-      return {
-        companyName: session.companyName,
-        unitName: session.unitName || 'Unidade Centro',
-        attendantName: session.attendantName || 'Dr. Carlos Mendes',
-        category: session.category || 'Clínica',
-        room: session.room || 'Consultório 04'
-      };
-    }
-    return {
-      companyName: 'Clínica Vida',
-      unitName: 'Unidade Centro',
-      attendantName: 'Dr. Carlos Mendes',
-      category: 'Clínica',
-      room: 'Consultório 04'
+  // Authentication State - Empresa / Profissional (B2B)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authCheckedPath, setAuthCheckedPath] = useState(null);
+  const [sessionError, setSessionError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    const resetSession = () => {
+      setIsAuthenticated(false);
+      setCurrentUser(null);
     };
+    const validateSession = async () => {
+      if (!isCompanyRoute) return;
+      setAuthCheckedPath(null);
+      setSessionError('');
+      try {
+        const user = await fetchCurrentUser();
+        if (active) {
+          setCurrentUser(user);
+          setIsAuthenticated(Boolean(user));
+        }
+      } catch (err) {
+        if (active) {
+          resetSession();
+          setSessionError('Não foi possível validar sua sessão. Entre novamente.');
+        }
+      } finally {
+        if (active) setAuthCheckedPath(currentPath);
+      }
+    };
+    const onStorage = (event) => {
+      if (event.key === 'filaflow_token' || event.key === null) {
+        resetSession();
+        validateSession();
+      }
+    };
+    window.addEventListener(AUTH_CLEARED_EVENT, resetSession);
+    window.addEventListener('storage', onStorage);
+    validateSession();
+    return () => {
+      active = false;
+      window.removeEventListener(AUTH_CLEARED_EVENT, resetSession);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [currentPath, isCompanyRoute]);
+  // Business / Company Data State
+  const [businessData, setBusinessData] = useState({
+    companyName: 'Clínica Vida',
+    unitName: 'Unidade Centro',
+    attendantName: 'Dr. Carlos Mendes',
+    category: 'Clínica',
+    room: 'Consultório 04'
   });
 
   // Client / Patient User for Mobile App (Público em geral, NÃO médico!)
@@ -114,20 +145,87 @@ export default function App() {
   const [isClientAuthenticated, setIsClientAuthenticated] = useState(true);
 
   // Active Attending Ticket in Company Dashboard
-  const [activeAttendingTicket, setActiveAttendingTicket] = useState({
-    ticket: '#43',
-    name: 'Maria Silva',
-    service: 'Consulta Oftalmologia Geral'
-  });
+  const [activeAttendingTicket, setActiveAttendingTicket] = useState(null);
 
   // Waiting Queue in Company Dashboard
-  const [companyWaitingQueue, setCompanyWaitingQueue] = useState([
-    { ticket: '#44', name: 'João Santos', service: 'Consulta Oftalmologia Geral', time: '~10 min', isPriority: false },
-    { ticket: '#45', name: 'Ana Costa', service: 'Exame de Fundo de Olho', time: '~22 min', isPriority: false },
-    { ticket: '#46', name: 'Pedro Lima', service: 'Retorno de Consulta', time: '~34 min', isPriority: false },
-    { ticket: '#47', name: 'Rafael', service: 'Consulta Oftalmologia Geral', time: '~42 min', isPriority: false, isUser: true },
-    { ticket: '#48', name: 'Mariana Alencar', service: 'Avaliação Cirúrgica', time: '~55 min', isPriority: true }
-  ]);
+  const [companyWaitingQueue, setCompanyWaitingQueue] = useState([]);
+  const [queueReady, setQueueReady] = useState(false);
+  const [queueError, setQueueError] = useState('');
+  const [queueActionError, setQueueActionError] = useState('');
+  const [queueBusy, setQueueBusy] = useState(false);
+  const queueOperation = useRef(false);
+  const queueRefresh = useRef(null);
+  const queueVersion = useRef(0);
+
+  const toDashboardTicket = (ticket) => ticket && ({
+    ticket: ticket.ticket_number,
+    name: ticket.customer_name,
+    service: ticket.service_name,
+    time: ticket.estimated_wait_text,
+    isPriority: ticket.is_priority,
+    isUser: false
+  });
+
+  const applyQueueState = (data) => {
+    setActiveAttendingTicket(toDashboardTicket(data.active_ticket));
+    setCompanyWaitingQueue(data.remaining_queue.map(toDashboardTicket));
+  };
+
+  useEffect(() => {
+    let active = true;
+    let refreshing = false;
+    let refreshRequested = false;
+    let ws = null;
+    setQueueReady(false);
+    setQueueError('');
+    setQueueActionError('');
+
+    const refreshQueue = async () => {
+      refreshRequested = true;
+      if (!active || refreshing || queueOperation.current) return;
+      refreshing = true;
+      try {
+        while (active && refreshRequested && !queueOperation.current) {
+          refreshRequested = false;
+          const version = queueVersion.current;
+          const data = await fetchQueueStateApi();
+          if (!active) return;
+          // Uma consulta antiga não deve sobrescrever uma operação mais recente.
+          if (version !== queueVersion.current) {
+            refreshRequested = true;
+            continue;
+          }
+          applyQueueState(data);
+          setQueueReady(true);
+        }
+      } catch {
+        if (active) {
+          setQueueReady(false);
+          setQueueError('Não foi possível atualizar a fila. Recarregue a página.');
+        }
+      } finally {
+        refreshing = false;
+      }
+    };
+
+    if (isAuthenticated && isCompanyRoute) {
+      queueRefresh.current = refreshQueue;
+      refreshQueue();
+      ws = setupQueueWebSocket((event) => {
+        if (['READY', 'QUEUE_UPDATED', 'TICKET_CALLED'].includes(event.type)) refreshQueue();
+      }, 'clinica-vida', (connected) => {
+        if (active) setQueueError(connected ? '' : 'Atualização em tempo real interrompida. Tentando reconectar.');
+      });
+    } else {
+      setActiveAttendingTicket(null);
+      setCompanyWaitingQueue([]);
+    }
+    return () => {
+      active = false;
+      queueRefresh.current = null;
+      ws?.close();
+    };
+  }, [isAuthenticated, isCompanyRoute]);
 
   // Client Active Queues (Multi-Queues in Mobile App)
   const [clientActiveQueues, setClientActiveQueues] = useState(INITIAL_QUEUES);
@@ -175,11 +273,6 @@ export default function App() {
   // Sincronização Automática com o Backend FastAPI & WebSockets
   // -------------------------------------------------------------
   useEffect(() => {
-    // 1. Garante autenticação em segundo plano com o backend (JWT)
-    ensureAuthToken().catch((err) => {
-      console.log('[TemFyla] Backend não detectado ou inicializando:', err);
-    });
-
     // 2. Busca filas reais do backend FastAPI
     async function syncBackendData() {
       try {
@@ -195,19 +288,7 @@ export default function App() {
               room: vidaQueue.room || prev.room
             }));
 
-            // Atualiza fila de espera no dashboard caso venha do backend
-            if (vidaQueue.aheadList && vidaQueue.aheadList.length > 0) {
-              setCompanyWaitingQueue(
-                vidaQueue.aheadList.map((t, idx) => ({
-                  ticket: t.ticket || `#${idx + 44}`,
-                  name: t.name || 'Paciente',
-                  service: vidaQueue.serviceName || 'Consulta Geral',
-                  time: t.time || '~15 min',
-                  isPriority: false,
-                  isUser: !!t.isUser
-                }))
-              );
-            }
+
           }
         }
       } catch (err) {
@@ -217,36 +298,11 @@ export default function App() {
 
     syncBackendData();
 
-    // 3. Conexão WebSocket para receber chamadas de senha e recálculos da IA em tempo real
-    const ws = setupQueueWebSocket((event) => {
-      console.log('[TemFyla WS Recebido]', event);
-      if (event.type === 'TICKET_CALLED') {
-        playChime();
-        const ticketNum = event.ticketNumber || event.ticket?.ticket_number || '#--';
-        const clientName = event.customerName || event.ticket?.customer_name || 'Paciente';
-        const roomName = event.room || 'Consultório 04';
-
-        setActiveAttendingTicket({
-          ticket: ticketNum,
-          name: clientName,
-          service: event.serviceName || 'Atendimento'
-        });
-
-        setCompanyWaitingQueue((prev) => prev.filter((t) => t.ticket !== ticketNum));
-        showToast(`🔔 SENHA CHAMADA: ${ticketNum} (${clientName}) no ${roomName}`);
-      } else if (event.type === 'QUEUE_UPDATED' || event.type === 'AI_PREDICTIONS_UPDATED') {
-        syncBackendData();
-      }
-    });
-
-    return () => {
-      if (ws) ws.close();
-    };
   }, []);
 
-  // Navegação e Controle de Autenticação - Empresa (B2B)
+  // A rota empresarial valida a sessão antes de exibir o painel.
   const handleOpenDashboard = () => {
-    if (companyUser) {
+    if (isAuthenticated) {
       navigate('/empresa/dashboard');
     } else {
       navigate('/empresa/login');
@@ -254,29 +310,7 @@ export default function App() {
   };
 
   const handleOpenCompanySignup = () => {
-    navigate('/empresa/cadastro');
-  };
-
-  const handleCompanyLoginSuccess = (company) => {
-    setCompanyUser(company);
-    setBusinessData((prev) => ({
-      ...prev,
-      companyName: company.companyName,
-      unitName: company.unitName || prev.unitName,
-      attendantName: company.attendantName || prev.attendantName,
-      category: company.category || prev.category,
-      room: company.room || prev.room
-    }));
-    navigate('/empresa/dashboard');
-    playChime();
-    showToast(`Bem-vindo ao Painel da ${company.companyName}!`);
-  };
-
-  const handleCompanyLogout = () => {
-    logoutCompany();
-    setCompanyUser(null);
-    navigate('/empresa/login');
-    showToast('Sessão da empresa encerrada.');
+    alert('O cadastro de empresas ainda não está disponível.');
   };
 
   // Navegação e Controle de Autenticação - Profissional (Consultório)
@@ -310,95 +344,53 @@ export default function App() {
     showToast('Sessão do consultório encerrada com sucesso.');
   };
 
-  // Redirecionamento da Empresa após cadastro para Pagamento
-  const handleGoToCheckout = (pendingData) => {
-    setPendingRegistrationData(pendingData);
-    setPendingCompanyRegistration(pendingData);
-    navigate('/checkout');
-    showToast('Cadastro realizado! Selecione o plano ideal para sua empresa.');
-  };
-
   const handleOpenClient = () => {
     navigate('/app');
   };
 
-  // 1. Chamar Próxima Senha (integrado à API real e com fallback local imediato)
+  const handleLogout = () => {
+    clearAuth();
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    navigate('/');
+    showToast('Sessão encerrada.');
+  };
+
+  const handleCompanyLogin = (user) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    setSessionError('');
+    setAuthCheckedPath('/empresa/dashboard');
+    navigate('/empresa/dashboard');
+  };
+
+  // A chamada só altera o painel depois da confirmação do servidor.
   const handleCallNextTicket = async () => {
-    // Tenta chamar a API do backend
-    const apiRes = await callNextTicketApi('clinica-vida');
-
-    if (apiRes && apiRes.called_ticket) {
-      const ct = apiRes.called_ticket;
-      const nextOne = {
-        ticket: ct.ticket_number,
-        name: ct.customer_name,
-        service: ct.service_name,
-        isUser: ct.is_user
-      };
-
-      setActiveAttendingTicket(nextOne);
-      if (apiRes.remaining_queue) {
-        setCompanyWaitingQueue(
-          apiRes.remaining_queue.map((t) => ({
-            ticket: t.ticket_number,
-            name: t.customer_name,
-            service: t.service_name,
-            time: t.estimated_wait_text || '~12 min',
-            isPriority: t.is_priority,
-            isUser: t.is_user
-          }))
-        );
-      } else {
-        setCompanyWaitingQueue((prev) => prev.slice(1));
+    if (!queueReady || queueOperation.current) return null;
+    queueOperation.current = true;
+    queueVersion.current += 1;
+    setQueueBusy(true);
+    setQueueError('');
+    setQueueActionError('');
+    const token = getToken();
+    try {
+      const data = await callNextTicketApi('clinica-vida');
+      if (getToken() !== token) return null;
+      applyQueueState(data);
+      if (!data.called_ticket) {
+        showToast('Não há clientes na fila de espera.');
+        return null;
       }
-
-      playChime();
-      showToast(`🔔 Senha ${ct.ticket_number} chamada no ${businessData.room || 'Consultório 04'}!`);
-      return;
+      showToast(`Senha ${data.called_ticket.ticket_number} chamada no ${businessData.room}.`);
+      return data.called_ticket;
+    } catch (err) {
+      if (getToken() === token) setQueueActionError(err.message);
+      return null;
+    } finally {
+      queueOperation.current = false;
+      setQueueBusy(false);
+      queueRefresh.current?.();
     }
-
-    // Fallback local se o backend estiver iniciando ou offline
-    if (companyWaitingQueue.length === 0) {
-      alert('Não há mais clientes na fila de espera no momento.');
-      return;
-    }
-
-    const nextOne = companyWaitingQueue[0];
-    const remainingQueue = companyWaitingQueue.slice(1);
-
-    setActiveAttendingTicket(nextOne);
-    setCompanyWaitingQueue(remainingQueue);
-    playChime();
-
-    if (nextOne.isUser || nextOne.ticket === '#47') {
-      showToast(`🔔 SUA VEZ CHEGOU! Senha ${nextOne.ticket} chamada no ${businessData.room || 'Consultório 04'}.`);
-    } else {
-      showToast(`🔔 Senha ${nextOne.ticket} (${nextOne.name}) chamada no ${businessData.room || 'Consultório 04'}.`);
-    }
-
-    // Sincroniza aplicativo cliente
-    setClientActiveQueues((prevQueues) =>
-      prevQueues.map((queue) => {
-        if (queue.id === 'clinica-vida') {
-          const newPos = Math.max(1, queue.position - 1);
-          const newWait = Math.max(2, queue.initialWaitMin - 8);
-          const isNowUserTurn = newPos === 1;
-
-          return {
-            ...queue,
-            position: newPos,
-            initialWaitMin: newWait,
-            estimatedWaitText: isNowUserTurn ? 'Sua Vez! Dirija-se à Sala' : `${newWait - 4}-${newWait + 3} min`,
-            status: isNowUserTurn ? 'ready' : 'waiting',
-            statusDetail: isNowUserTurn
-              ? '🟢 SUA VEZ: Dirija-se ao guichê/sala agora!'
-              : `Ritmo acelerado: ${newPos} atendimentos à frente`,
-            aheadList: queue.aheadList ? queue.aheadList.slice(1) : []
-          };
-        }
-        return queue;
-      })
-    );
   };
 
   // 2. Reportar Atraso (recalculado com IA)
@@ -425,38 +417,66 @@ export default function App() {
 
   // 3. Pular senha / Não compareceu
   const handleSkipTicket = () => {
-    handleCallNextTicket();
+    showToast('O registro de ausência ainda não está integrado.');
   };
 
   // 4. Finalizar atendimento atual
-  const handleFinishCurrent = () => {
-    handleCallNextTicket();
+  const handleFinishCurrent = async () => {
+    if (!activeAttendingTicket || !queueReady || queueOperation.current) return;
+    queueOperation.current = true;
+    queueVersion.current += 1;
+    setQueueBusy(true);
+    setQueueError('');
+    setQueueActionError('');
+    const token = getToken();
+    try {
+      const data = await finishCurrentTicketApi('clinica-vida', activeAttendingTicket.ticket);
+      if (getToken() !== token) return;
+      applyQueueState(data);
+      showToast('Atendimento finalizado.');
+    } catch (err) {
+      if (getToken() === token) setQueueActionError(err.message);
+    } finally {
+      queueOperation.current = false;
+      setQueueBusy(false);
+      queueRefresh.current?.();
+    }
   };
 
   // 5. Emitir Senha Manual no Balcão
   const handleAddManualTicket = async ({ name, serviceName, isPriority }) => {
-    addManualTicketApi({
+    if (!queueReady || queueOperation.current) throw new Error('Aguarde a atualização da fila.');
+    queueOperation.current = true;
+    queueVersion.current += 1;
+    setQueueBusy(true);
+    const token = getToken();
+    try {
+    const ticket = await addManualTicketApi({
       queue_id: 'clinica-vida',
       customer_name: name,
       service_name: serviceName,
       is_priority: isPriority
-    }).catch(() => {});
+    });
+    if (getToken() !== token) throw new Error('Sessão encerrada. Entre novamente para consultar a fila.');
 
-    const nextNum = Math.floor(50 + Math.random() * 40);
     const newTicketObj = {
-      ticket: `#${nextNum}`,
-      name,
-      service: serviceName,
-      time: `~${(companyWaitingQueue.length + 1) * 12} min`,
-      isPriority
+      ticket: ticket.ticket_number,
+      name: ticket.customer_name,
+      service: ticket.service_name,
+      time: ticket.estimated_wait_text,
+      isPriority: ticket.is_priority
     };
 
-    if (isPriority) {
-      setCompanyWaitingQueue([companyWaitingQueue[0], newTicketObj, ...companyWaitingQueue.slice(1)]);
-    } else {
-      setCompanyWaitingQueue([...companyWaitingQueue, newTicketObj]);
-    }
+    setCompanyWaitingQueue((prev) => [...prev, newTicketObj].sort(
+      (a, b) => Number(b.isPriority) - Number(a.isPriority)
+    ));
     showToast(`Senha ${newTicketObj.ticket} emitida e adicionada à fila!`);
+    return ticket;
+    } finally {
+      queueOperation.current = false;
+      setQueueBusy(false);
+      queueRefresh.current?.();
+    }
   };
 
   // 6. Confirmação do Pré-Checkin do Cliente
@@ -589,15 +609,15 @@ export default function App() {
       {/* Top Navbar - Renderizada na Landing Page do Site (/) */}
       {isSiteRoute && (
         <Navbar
-          isAuthenticated={!!companyUser}
-          currentUser={companyUser}
+          isAuthenticated={isAuthenticated}
+          currentUser={currentUser}
           onGoToLanding={() => navigate('/')}
           onOpenLogin={() => navigate('/empresa/login')}
           onOpenSignup={handleOpenCompanySignup}
           onOpenDashboard={handleOpenDashboard}
           onOpenPricing={() => setIsPricingOpen(true)}
           onOpenProfessional={() => handleOpenProfessional()}
-          onLogout={handleCompanyLogout}
+          onLogout={handleLogout}
         />
       )}
 
@@ -702,85 +722,57 @@ export default function App() {
         />
       )}
 
-      {/* ROTA 3: /empresa (Painel Operacional da Empresa ou Telas de Login/Cadastro/Perfil) */}
+      {/* ROTA 3: /empresa (Login e painel empresarial) */}
       {isCompanyRoute && (
-        <>
-          {false && currentPath === '/empresa/perfil' ? (
-            <div style={{ background: '#f8fafc', minHeight: '100vh', padding: '20px 0' }}>
-              <CompanyProfileView
-                businessData={businessData}
-                onUpdateBusinessData={(newData) => {
-                  if (newData) setBusinessData(newData);
-                }}
-                onGoBack={() => navigate('/empresa')}
-                showToast={showToast}
-              />
-            </div>
-          ) : currentPath === '/empresa/cadastro' || currentPath === '/cadastro' ? (
-            <CompanyAuth
-              initialTab="register"
-              onLoginSuccess={handleCompanyLoginSuccess}
-              onGoToCheckout={handleGoToCheckout}
-              onGoToProfessionalLogin={() => navigate('/profissional/login')}
-              onBackToSite={() => navigate('/')}
-              onGoToClient={handleOpenClient}
-            />
-          ) : currentPath === '/empresa/login' || currentPath === '/login' ? (
-            <CompanyAuth
-              initialTab="login"
-              onLoginSuccess={handleCompanyLoginSuccess}
-              onGoToCheckout={handleGoToCheckout}
-              onGoToProfessionalLogin={() => navigate('/profissional/login')}
-              onBackToSite={() => navigate('/')}
-              onGoToClient={handleOpenClient}
-            />
-          ) : (companyUser || currentPath.startsWith('/empresa/')) ? (
-            <CompanyDashboard
-              businessData={businessData}
-              activeAttendingTicket={activeAttendingTicket}
-              waitingQueue={companyWaitingQueue}
-              onCallNext={handleCallNextTicket}
-              onReportDelay={handleReportDelay}
-              onFinishCurrent={handleFinishCurrent}
-              onSkipTicket={handleSkipTicket}
-              onAddManualTicket={handleAddManualTicket}
-              onOpenMobileTest={handleOpenClient}
-              onGoToSite={() => navigate('/')}
-              onLogout={handleCompanyLogout}
-              onOpenProfessional={(pro) => handleOpenProfessional(pro)}
-              onUpdateBusinessData={(newData) => {
-                if (newData) setBusinessData(newData);
-              }}
-              initialTab={
-                currentPath === '/empresa/recepcao' ? 'reception' :
-                currentPath === '/empresa/metricas' ? 'metrics' :
-                currentPath === '/empresa/totem' ? 'totem' :
-                currentPath === '/empresa/equipe' ? 'team' :
-                currentPath === '/empresa/perfil' ? 'profile' : 'operational'
-              }
-              onTabChange={(tab) => {
-                const map = {
-                  reception: '/empresa/recepcao',
-                  operational: '/empresa/dashboard',
-                  metrics: '/empresa/metricas',
-                  totem: '/empresa/totem',
-                  team: '/empresa/equipe',
-                  profile: '/empresa/perfil'
-                };
-                if (map[tab]) navigate(map[tab]);
-              }}
-            />
-          ) : (
-            <CompanyAuth
-              initialTab="login"
-              onLoginSuccess={handleCompanyLoginSuccess}
-              onGoToCheckout={handleGoToCheckout}
-              onGoToProfessionalLogin={() => navigate('/profissional/login')}
-              onBackToSite={() => navigate('/')}
-              onGoToClient={handleOpenClient}
-            />
-          )}
-        </>
+        authCheckedPath !== currentPath ? <p role="status">Verificando sessão...</p> :
+        isAuthenticated ? (
+          <CompanyDashboard
+            queueBusy={!queueReady || queueBusy}
+            queueError={queueError}
+            queueActionError={queueActionError}
+            onDismissQueueActionError={() => setQueueActionError('')}
+            businessData={businessData}
+            activeAttendingTicket={activeAttendingTicket}
+            waitingQueue={companyWaitingQueue}
+            onCallNext={handleCallNextTicket}
+            onReportDelay={handleReportDelay}
+            onFinishCurrent={handleFinishCurrent}
+            onSkipTicket={handleSkipTicket}
+            onAddManualTicket={handleAddManualTicket}
+            onOpenMobileTest={handleOpenClient}
+            onGoToSite={() => navigate('/')}
+            onLogout={handleLogout}
+            onOpenProfessional={(pro) => handleOpenProfessional(pro)}
+            onUpdateBusinessData={(newData) => {
+              if (newData) setBusinessData(newData);
+            }}
+            initialTab={
+              currentPath === '/empresa/recepcao' ? 'reception' :
+              currentPath === '/empresa/metricas' ? 'metrics' :
+              currentPath === '/empresa/totem' ? 'totem' :
+              currentPath === '/empresa/equipe' ? 'team' :
+              currentPath === '/empresa/perfil' ? 'profile' : 'operational'
+            }
+            onTabChange={(tab) => {
+              const map = {
+                reception: '/empresa/recepcao',
+                operational: '/empresa/dashboard',
+                metrics: '/empresa/metricas',
+                totem: '/empresa/totem',
+                team: '/empresa/equipe',
+                profile: '/empresa/perfil'
+              };
+              if (map[tab]) navigate(map[tab]);
+            }}
+          />
+        ) : (
+          <CompanyLogin
+            initialError={sessionError}
+            onLoginSuccess={handleCompanyLogin}
+            onGoToSignup={handleOpenCompanySignup}
+            onCancel={() => navigate('/')}
+          />
+        )
       )}
 
       {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital ou Perfil/Login) */}
@@ -841,7 +833,6 @@ export default function App() {
                 professionalsList: order.pendingRegistrationData.professionalsList,
                 selectedPlan: order.planName
               });
-              setCompanyUser(regResult.company);
               setBusinessData((prev) => ({
                 ...prev,
                 companyName: regResult.company.companyName,

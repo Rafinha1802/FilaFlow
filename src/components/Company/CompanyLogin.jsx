@@ -1,24 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
 import BrandLogo from '../Common/BrandLogo';
+import { loginApi } from '../../services/api';
 
 export default function CompanyLogin({
   onLoginSuccess,
   onGoToSignup,
-  onCancel
+  onCancel,
+  initialError = ''
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(initialError);
+  const loginRequest = useRef(null);
 
-  const handleSubmit = (e) => {
+  useEffect(() => () => loginRequest.current?.abort(), []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email) return;
-    onLoginSuccess({
-      companyName: 'Minha Empresa',
-      unitName: 'Unidade Principal',
-      attendantName: email.split('@')[0],
-      category: 'Clínica'
-    });
+    if (loginRequest.current) return;
+    const controller = new AbortController();
+    loginRequest.current = controller;
+    setIsSubmitting(true);
+    setErrorMessage('');
+    try {
+      const data = await loginApi(email.trim(), password, { signal: controller.signal });
+      if (!controller.signal.aborted) onLoginSuccess(data.user);
+    } catch (err) {
+      if (!controller.signal.aborted) setErrorMessage(err.message);
+    } finally {
+      loginRequest.current = null;
+      if (!controller.signal.aborted) setIsSubmitting(false);
+    }
+  };
+
+  const handleDemoLogin = () => {
+    setErrorMessage('Para acessar a demonstração, informe seu e-mail e senha de acesso.');
   };
 
   return (
@@ -36,6 +54,7 @@ export default function CompanyLogin({
         </div>
 
         <form className="ff-form" onSubmit={handleSubmit}>
+          {errorMessage && <p className="ff-login-desc" role="alert">{errorMessage}</p>}
           <div className="ff-form-group">
             <label className="ff-form-label">E-mail Corporativo</label>
             <div className="ff-input-wrapper">
@@ -54,11 +73,7 @@ export default function CompanyLogin({
           <div className="ff-form-group">
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <label className="ff-form-label">Senha</label>
-              <a 
-                href="#forgot" 
-                onClick={(e) => { e.preventDefault(); alert('Utilize o link de recuperação enviado ao seu e-mail corporativo cadastrado.'); }} 
-                style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600 }}
-              >
+              <a href="#forgot" onClick={(e) => { e.preventDefault(); setErrorMessage('A recuperação de senha ainda não está disponível.'); }} style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600 }}>
                 Esqueceu?
               </a>
             </div>
@@ -75,8 +90,8 @@ export default function CompanyLogin({
             </div>
           </div>
 
-          <button type="submit" className="ff-btn-submit" style={{ background: '#7c3aed' }}>
-            <span>Entrar no Painel Operacional</span>
+          <button type="submit" disabled={isSubmitting} className="ff-btn-submit" style={{ background: '#7c3aed' }}>
+            <span>{isSubmitting ? 'Entrando...' : 'Entrar no Painel Operacional'}</span>
             <ArrowRight size={16} style={{ display: 'inline', marginLeft: 6 }} />
           </button>
         </form>
@@ -106,7 +121,7 @@ export default function CompanyLogin({
           }}
         >
           <Sparkles size={16} />
-          <span>Acesso Rápido Demo: Clínica Vida</span>
+          <span>Acesso Demo: Clínica Vida</span>
         </button>
 
         <div style={{ marginTop: 20, fontSize: 13, color: '#64748b', textAlign: 'center' }}>
