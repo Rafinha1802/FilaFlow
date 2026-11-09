@@ -1,4 +1,4 @@
-// FilaFlow API Service Client & Token Manager
+// TemFyla API Service Client & Token Manager
 const API_BASE = '/api';
 const TOKEN_STORAGE_KEY = 'filaflow_token';
 const USER_STORAGE_KEY = 'filaflow_user';
@@ -9,7 +9,7 @@ let authRevision = 0;
 // Gerenciamento de Token JWT no LocalStorage
 export function getToken() {
   try {
-    return localStorage.getItem(TOKEN_STORAGE_KEY);
+    return localStorage.getItem(TOKEN_STORAGE_KEY) || localStorage.getItem('filaflow_token');
   } catch (e) {
     return null;
   }
@@ -21,15 +21,16 @@ export function setToken(token) {
       localStorage.setItem(TOKEN_STORAGE_KEY, token);
     } else {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
+      localStorage.removeItem('filaflow_token');
     }
   } catch (e) {
-    console.warn('[FilaFlow API] Erro ao salvar token:', e);
+    console.warn('[TemFyla API] Erro ao salvar token:', e);
   }
 }
 
 export function getStoredUser() {
   try {
-    const raw = localStorage.getItem(USER_STORAGE_KEY);
+    const raw = localStorage.getItem(USER_STORAGE_KEY) || localStorage.getItem('filaflow_user');
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
     return null;
@@ -44,7 +45,7 @@ export function setStoredUser(user) {
       localStorage.removeItem(USER_STORAGE_KEY);
     }
   } catch (e) {
-    console.warn('[FilaFlow API] Erro ao salvar dados do usuário:', e);
+    console.warn('[TemFyla API] Erro ao salvar dados do usuÃ¡rio:', e);
   }
 }
 
@@ -135,10 +136,10 @@ export async function fetchCurrentUser() {
 export async function fetchQueues() {
   try {
     const res = await fetch(`${API_BASE}/queues`);
-    if (!res.ok) throw new Error('Falha ao buscar filas públicas');
+    if (!res.ok) throw new Error('Falha ao buscar filas pÃºblicas');
     return await res.json();
   } catch (err) {
-    console.warn('[FilaFlow API] Backend offline ou erro em /queues, usando dados locais:', err);
+    console.warn('[TemFyla API] Backend offline ou erro em /queues, usando dados locais:', err);
     return null;
   }
 }
@@ -149,7 +150,7 @@ export async function fetchMyQueues() {
     if (!res.ok) throw new Error('Falha ao buscar filas da empresa');
     return await res.json();
   } catch (err) {
-    console.warn('[FilaFlow API] Erro ao buscar /queues/me:', err);
+    console.warn('[TemFyla API] Erro ao buscar /queues/me:', err);
     return null;
   }
 }
@@ -203,7 +204,7 @@ export async function reportDelayApi(queueId = 'clinica-vida', minutes = 5) {
     if (!res.ok) throw new Error('Erro ao simular atraso');
     return await res.json();
   } catch (err) {
-    console.warn('[FilaFlow API] Erro ao simular atraso:', err);
+    console.warn('[TemFyla API] Erro ao simular atraso:', err);
     return null;
   }
 }
@@ -235,16 +236,16 @@ export async function addManualTicketApi(ticketData) {
 }
 
 // -------------------------------------------------------------
-// Recepção / Secretária & Autorização de Convênio
+// RecepÃ§Ã£o / SecretÃ¡ria & AutorizaÃ§Ã£o de ConvÃªnio
 // -------------------------------------------------------------
 
 export async function getReceptionWaitingList() {
   try {
     const res = await fetchWithAuth(`${API_BASE}/reception/waiting-list`);
-    if (!res.ok) throw new Error('Erro ao buscar lista da recepção');
+    if (!res.ok) throw new Error('Erro ao buscar lista da recepÃ§Ã£o');
     return await res.json();
   } catch (err) {
-    console.warn('[FilaFlow API] Erro ao buscar lista da recepção:', err);
+    console.warn('[TemFyla API] Erro ao buscar lista da recepÃ§Ã£o:', err);
     return null;
   }
 }
@@ -255,10 +256,10 @@ export async function addReceptionPatientApi(patientData) {
       method: 'POST',
       body: JSON.stringify(patientData)
     });
-    if (!res.ok) throw new Error('Erro ao cadastrar na recepção');
+    if (!res.ok) throw new Error('Erro ao cadastrar na recepÃ§Ã£o');
     return await res.json();
   } catch (err) {
-    console.warn('[FilaFlow API] Erro ao cadastrar paciente na recepção:', err);
+    console.warn('[TemFyla API] Erro ao cadastrar paciente na recepÃ§Ã£o:', err);
     return null;
   }
 }
@@ -271,7 +272,7 @@ export async function updateReceptionStatusApi(patientId, status) {
     if (!res.ok) throw new Error('Erro ao atualizar status');
     return await res.json();
   } catch (err) {
-    console.warn('[FilaFlow API] Erro ao atualizar status:', err);
+    console.warn('[TemFyla API] Erro ao atualizar status:', err);
     return null;
   }
 }
@@ -282,10 +283,10 @@ export async function authorizeReceptionPatientApi(patientId, authData = {}) {
       method: 'POST',
       body: JSON.stringify(authData)
     });
-    if (!res.ok) throw new Error('Erro ao autorizar convênio');
+    if (!res.ok) throw new Error('Erro ao autorizar convÃªnio');
     return await res.json();
   } catch (err) {
-    console.warn('[FilaFlow API] Erro ao autorizar convênio:', err);
+    console.warn('[TemFyla API] Erro ao autorizar convÃªnio:', err);
     return null;
   }
 }
@@ -298,7 +299,7 @@ export async function removeReceptionPatientApi(patientId) {
     if (!res.ok) throw new Error('Erro ao remover paciente');
     return await res.json();
   } catch (err) {
-    console.warn('[FilaFlow API] Erro ao remover paciente:', err);
+    console.warn('[TemFyla API] Erro ao remover paciente:', err);
     return null;
   }
 }
@@ -317,13 +318,13 @@ export async function createOrderApi(orderData) {
     if (!res.ok) throw new Error('Erro ao criar pedido');
     return await res.json();
   } catch (err) {
-    console.warn('[FilaFlow API] Erro no pedido de checkout:', err);
+    console.warn('[TemFyla API] Erro no pedido de checkout:', err);
     return null;
   }
 }
 
 // -------------------------------------------------------------
-// Conexão WebSocket para Notificações e Eventos Live
+// ConexÃ£o WebSocket para NotificaÃ§Ãµes e Eventos Live
 // -------------------------------------------------------------
 
 export function setupQueueWebSocket(onMessage, queueId = 'clinica-vida', onConnectionChange = () => {}) {

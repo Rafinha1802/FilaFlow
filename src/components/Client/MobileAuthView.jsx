@@ -62,16 +62,15 @@ export default function MobileAuthView({
     setIsLoading(true);
 
     try {
+      let authenticatedUser;
       const registeredUsers = JSON.parse(
-        localStorage.getItem('filaflow_registered_clients') || '[]'
+        localStorage.getItem('temfyla_registered_clients') || localStorage.getItem('filaflow_registered_clients') || '[]'
       );
       const foundUser = registeredUsers.find(
         (u) =>
           u.email?.toLowerCase() === identifier.toLowerCase() ||
           u.name?.toLowerCase() === identifier.toLowerCase()
       );
-
-      let authenticatedUser = null;
 
       if (foundUser) {
         authenticatedUser = foundUser;
@@ -90,19 +89,20 @@ export default function MobileAuthView({
         };
       }
 
-      localStorage.setItem('filaflow_client_user', JSON.stringify(authenticatedUser));
+      localStorage.setItem('temfyla_client_user', JSON.stringify(authenticatedUser));
+      localStorage.setItem('temfyla_client_is_auth', 'true');
 
       setTimeout(() => {
         setIsLoading(false);
         if (onSuccess) onSuccess(authenticatedUser);
-      }, 350);
+      }, 300);
     } catch (err) {
       setIsLoading(false);
       setErrorMessage(err.message || 'Erro ao realizar login.');
     }
   };
 
-  // Submissão do Cadastro
+  // Cadastro local de demonstração
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -115,6 +115,10 @@ export default function MobileAuthView({
       setErrorMessage('Por favor, crie uma senha.');
       return;
     }
+    if (signupPassword.length < 4) {
+      setErrorMessage('A senha deve conter no mínimo 4 caracteres.');
+      return;
+    }
     if (signupConfirmPassword && signupPassword !== signupConfirmPassword) {
       setErrorMessage('As senhas não coincidem.');
       return;
@@ -123,41 +127,51 @@ export default function MobileAuthView({
     setIsLoading(true);
 
     try {
-      const newUser = {
-        id: 'usr_' + Date.now(),
+      const patientPayload = {
         name: signupName.trim() || 'Rafael Silva',
         email: signupEmail.trim().toLowerCase(),
+        password: signupPassword,
         phone: '(11) 98765-4321',
         cpf: '345.678.901-22',
         insurance: 'Unimed Nacional',
-        cardNumber: '0012.3456.7890.1234',
+        card_number: '0012.3456.7890.1234'
+      };
+
+      const registeredUser = {
+        id: 'usr_' + Date.now(),
+        name: patientPayload.name,
+        email: patientPayload.email,
+        phone: patientPayload.phone,
+        cpf: patientPayload.cpf,
+        insurance: patientPayload.insurance,
+        cardNumber: patientPayload.card_number,
         avatarInitial: (signupName.trim() || signupEmail).charAt(0).toUpperCase(),
         role: 'patient',
         createdAt: new Date().toISOString()
       };
 
       const existing = JSON.parse(
-        localStorage.getItem('filaflow_registered_clients') || '[]'
+        localStorage.getItem('temfyla_registered_clients') || localStorage.getItem('filaflow_registered_clients') || '[]'
       );
-      existing.push(newUser);
-      localStorage.setItem('filaflow_registered_clients', JSON.stringify(existing));
-      localStorage.setItem('filaflow_client_user', JSON.stringify(newUser));
+      existing.push(registeredUser);
+      localStorage.setItem('temfyla_registered_clients', JSON.stringify(existing));
+      localStorage.setItem('temfyla_client_user', JSON.stringify(registeredUser));
+      localStorage.setItem('temfyla_client_is_auth', 'true');
 
       setTimeout(() => {
         setIsLoading(false);
-        if (onSuccess) onSuccess(newUser);
-      }, 350);
+        if (onSuccess) onSuccess(registeredUser);
+      }, 300);
     } catch (err) {
       setIsLoading(false);
       setErrorMessage('Erro ao criar conta.');
     }
   };
 
-  // Login Social (Apple / Google)
-  const handleSocialLogin = (provider) => {
+  // Login social simulado para demonstração
+  const handleSocialLogin = async (provider) => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
       const socialUser = {
         id: `usr_${provider}_` + Date.now(),
         name: 'Rafael Silva',
@@ -169,9 +183,14 @@ export default function MobileAuthView({
         avatarInitial: 'R',
         role: 'patient'
       };
-      localStorage.setItem('filaflow_client_user', JSON.stringify(socialUser));
+
+      localStorage.setItem('temfyla_client_user', JSON.stringify(socialUser));
+      localStorage.setItem('temfyla_client_is_auth', 'true');
+      setIsLoading(false);
       if (onSuccess) onSuccess(socialUser);
-    }, 350);
+    } catch (err) {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -11,14 +11,14 @@ export default function PricingModal({ isOpen, onClose, onSelectPlan }) {
     <div className="ff-modal-overlay" onClick={onClose}>
       <div 
         className="ff-modal-dialog" 
-        style={{ maxWidth: 840, width: '95%' }}
+        style={{ maxWidth: 960, width: '95%' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="ff-modal-header">
           <div>
             <h3 className="ff-modal-title">Planos Transparentes para o seu Negócio</h3>
             <p style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
-              Cancele quando quiser • 14 dias de teste grátis sem cartão de crédito
+              Cancele quando quiser • Ativação imediata e suporte especializado 24/7
             </p>
           </div>
           <button 

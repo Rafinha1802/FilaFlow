@@ -71,7 +71,7 @@ export default function ClientMobileApp({
   // Internal Client Authentication State (Self-contained + Props-aware)
   const [clientUser, setClientUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('filaflow_client_user');
+      const saved = localStorage.getItem('temfyla_client_user') || localStorage.getItem('filaflow_client_user');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.name && !parsed.name.includes('Dr.') && !parsed.email?.includes('clinicavida')) {
@@ -83,7 +83,7 @@ export default function ClientMobileApp({
   });
 
   const [clientIsAuth, setClientIsAuth] = useState(() => {
-    const saved = localStorage.getItem('filaflow_client_is_auth');
+    const saved = localStorage.getItem('temfyla_client_is_auth') || localStorage.getItem('filaflow_client_is_auth');
     if (saved !== null) return saved === 'true';
     return isAuthenticated !== undefined ? isAuthenticated : true;
   });
@@ -108,7 +108,9 @@ export default function ClientMobileApp({
   // Real client logout handler: clears session and immediately opens the Reference Login screen!
   const handleClientLogout = () => {
     try {
+      localStorage.removeItem('temfyla_client_user');
       localStorage.removeItem('filaflow_client_user');
+      localStorage.setItem('temfyla_client_is_auth', 'false');
       localStorage.setItem('filaflow_client_is_auth', 'false');
     } catch (e) {}
     setClientUser(null);
@@ -122,8 +124,8 @@ export default function ClientMobileApp({
   const handleClientAuthSuccess = (user) => {
     const cleanUser = sanitizeClientUser(user);
     try {
-      localStorage.setItem('filaflow_client_is_auth', 'true');
-      localStorage.setItem('filaflow_client_user', JSON.stringify(cleanUser));
+      localStorage.setItem('temfyla_client_is_auth', 'true');
+      localStorage.setItem('temfyla_client_user', JSON.stringify(cleanUser));
     } catch (e) {}
     setClientUser(cleanUser);
     setClientIsAuth(true);
@@ -169,24 +171,23 @@ export default function ClientMobileApp({
 
           <div className="ff-ext-nav-brand-badge">
             <span className="live-dot" />
-            <span>FilaFlow Mobile</span>
+            <span>TemFyla Mobile</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {/* Botão Direto para Abrir / Testar Login & Cadastro */}
-            <button
-              onClick={() => {
-                handleSetAuthMode('login');
-                handleSetAuthOpen(true);
-              }}
-              className="ff-ext-nav-btn purple"
-              title="Abrir Tela de Login & Cadastro estilo Referência"
-            >
-              <LogIn size={13} />
-              <span>Entrar / Cadastrar</span>
-            </button>
-
-            {clientIsAuth && (
+            {!clientIsAuth ? (
+              <button
+                onClick={() => {
+                  handleSetAuthMode('login');
+                  handleSetAuthOpen(true);
+                }}
+                className="ff-ext-nav-btn purple"
+                title="Entrar na sua conta"
+              >
+                <LogIn size={13} />
+                <span>Entrar</span>
+              </button>
+            ) : (
               <button
                 onClick={() => setActiveTab('profile')}
                 className="ff-ext-nav-btn"
@@ -237,17 +238,27 @@ export default function ClientMobileApp({
         </button>
       )}
 
-      {/* Device Frame */}
-      <div className={isFullScreen ? 'ff-phone-device-fullscreen' : 'ff-phone-device'}>
-        <div className="ff-phone-inner">
-          {/* Status Bar */}
-          <div className={`ff-phone-status-bar ${effectiveAuthOpen ? 'auth-mode' : ''}`}>
-            <span className="ff-status-clock">{currentTime}</span>
+      {/* Phone Wrapper with Ambient Glows */}
+      <div className="ff-phone-wrapper">
+        {!isFullScreen && (
+          <>
+            <div className="ff-phone-glow"></div>
+            <div className="ff-phone-glow-secondary"></div>
+          </>
+        )}
+
+        {/* Device Frame */}
+        <div className={isFullScreen ? 'ff-phone-device-fullscreen' : 'ff-phone-device'}>
+          <div className="ff-phone-bezel-reflection" />
+          <div className="ff-phone-inner">
+            {/* Status Bar */}
+            <div className={`ff-phone-status-bar ${effectiveAuthOpen ? 'auth-mode' : ''}`}>
+              <span className="ff-status-clock">{currentTime}</span>
 
             {/* Dynamic Island with Live Queue Indicator */}
             <div
               className={`ff-phone-dynamic-island ${urgentQueue ? 'has-activity' : ''}`}
-              title={urgentQueue ? `Fila Ativa: #${urgentQueue.ticketNumber} - ${urgentQueue.companyName}` : 'FilaFlow Live Activity'}
+              title={urgentQueue ? `Fila Ativa: #${urgentQueue.ticketNumber} - ${urgentQueue.companyName}` : 'TemFyla Live Activity'}
             >
               <div className="ff-island-sensor-group">
                 <div className="ff-island-camera"></div>
@@ -282,6 +293,7 @@ export default function ClientMobileApp({
               <>
                 {activeTab === 'dashboard' && (
                   <MobileDashboard
+                    currentUser={clientUser}
                     activeQueues={activeQueues}
                     selectedQueueId={selectedQueueId}
                     onSelectQueue={onSelectQueue}
@@ -295,6 +307,7 @@ export default function ClientMobileApp({
                     hasConflict={hasConflict}
                     onDismissConflict={onDismissConflict}
                     onNavigateTab={(tab) => setActiveTab(tab)}
+                    onPlayChime={onPlayChime}
                   />
                 )}
 
@@ -310,6 +323,7 @@ export default function ClientMobileApp({
                     onApproveReceptionCheckin={onApproveReceptionCheckin}
                     onOpenSearch={onOpenSearch}
                     onOpenQrScanner={onOpenQrScanner}
+                    onPlayChime={onPlayChime}
                   />
                 )}
 
@@ -407,5 +421,6 @@ export default function ClientMobileApp({
         </div>
       </div>
     </div>
+  </div>
   );
 }

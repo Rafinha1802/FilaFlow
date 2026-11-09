@@ -1,32 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ShieldCheck, 
-  UserPlus, 
-  Search, 
-  Filter, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  ArrowRight, 
-  FileText, 
-  Check, 
-  X, 
-  User, 
-  Phone, 
-  Sparkles, 
-  Building2, 
+import {
+  ShieldCheck,
+  UserPlus,
+  Search,
+  Filter,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  ArrowRight,
+  FileText,
+  Check,
+  X,
+  User,
+  Phone,
+  Sparkles,
+  Building2,
   Trash2,
   ExternalLink,
   ChevronRight,
   Stethoscope
 } from 'lucide-react';
 import ReceptionDeskModal from './ReceptionDeskModal';
-import { 
-  getReceptionWaitingList, 
-  addReceptionPatientApi, 
-  updateReceptionStatusApi, 
-  authorizeReceptionPatientApi, 
-  removeReceptionPatientApi 
+import {
+  getReceptionWaitingList,
+  addReceptionPatientApi,
+  updateReceptionStatusApi,
+  authorizeReceptionPatientApi,
+  removeReceptionPatientApi
 } from '../../services/api';
 
 const DEFAULT_PATIENTS = [
@@ -72,7 +72,7 @@ const DEFAULT_PATIENTS = [
     room: 'Consultório 04',
     status: 'awaiting_auth',
     is_priority: false,
-    notes: 'Chegou via check-in pelo aplicativo FilaFlow',
+    notes: 'Chegou via check-in pelo aplicativo TemFyla',
     created_at: new Date(Date.now() - 8 * 60000).toISOString()
   },
   {
@@ -133,11 +133,11 @@ export default function ReceptionDeskView({
 
   // Filtered patients
   const filteredPatients = patients.filter(p => {
-    const matchSearch = 
+    const matchSearch =
       p.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.document && p.document.includes(searchTerm)) ||
       (p.card_number && p.card_number.includes(searchTerm));
-    
+
     const matchStatus = statusFilter === 'all' ? true : p.status === statusFilter;
     const matchInsurance = insuranceFilter === 'all' ? true : p.insurance_name === insuranceFilter;
 
@@ -163,8 +163,8 @@ export default function ReceptionDeskView({
       is_priority: patient.is_priority
     });
 
-    const ticketNumber = (apiRes && apiRes.ticketNumber) 
-      ? apiRes.ticketNumber 
+    const ticketNumber = (apiRes && apiRes.ticketNumber)
+      ? apiRes.ticketNumber
       : `#${Math.floor(49 + Math.random() * 30)}`;
 
     // Move officially into Doctor's Waiting Queue

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 /**
- * Custom lightweight history-based router for FilaFlow
+ * Custom lightweight history-based router for TemFyla
  * Supports seamless navigation between:
  * - / (Institutional Site / Landing Page)
  * - /app (Mobile App Experience)
@@ -44,9 +44,19 @@ export function useAppRouter() {
 
   const isCheckoutRoute = currentPath === '/checkout' || currentPath === '/pagamento';
   const isAppRoute = currentPath === '/app' || currentPath.startsWith('/app/');
-  const isCompanyRoute = currentPath === '/empresa' || currentPath === '/empresa/dashboard';
+  const isCompanyRoute = currentPath === '/empresa' || currentPath.startsWith('/empresa') || currentPath === '/cadastro' || currentPath === '/login';
   const isProfessionalRoute = currentPath === '/profissional' || currentPath.startsWith('/profissional');
   const isSiteRoute = !isAppRoute && !isCompanyRoute && !isCheckoutRoute && !isProfessionalRoute;
+
+  // Subroute helpers
+  const isCompanyLogin = currentPath === '/empresa/login';
+  const isCompanyRegister = currentPath === '/empresa/cadastro';
+  const isCompanyDashboard = currentPath === '/empresa/dashboard';
+  const isCompanyProfile = currentPath === '/empresa/perfil';
+
+  const isProfessionalLogin = currentPath === '/profissional/login';
+  const isProfessionalRegister = currentPath === '/profissional/cadastro';
+  const isProfessionalProfile = currentPath === '/profissional/perfil';
 
   return {
     currentPath,
@@ -55,6 +65,13 @@ export function useAppRouter() {
     isCompanyRoute,
     isCheckoutRoute,
     isProfessionalRoute,
-    isSiteRoute
+    isSiteRoute,
+    isCompanyLogin,
+    isCompanyRegister,
+    isCompanyDashboard,
+    isCompanyProfile,
+    isProfessionalLogin,
+    isProfessionalRegister,
+    isProfessionalProfile
   };
 }

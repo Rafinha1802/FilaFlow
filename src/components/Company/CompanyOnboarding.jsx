@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
-import { 
-  Building2, 
-  Layers, 
-  Check, 
-  ArrowRight, 
-  ArrowLeft, 
-  QrCode, 
-  Clock, 
-  Sparkles, 
-  Download, 
+import {
+  Building2,
+  Layers,
+  Check,
+  ArrowRight,
+  ArrowLeft,
+  QrCode,
+  Clock,
+  Sparkles,
+  Download,
   Printer,
   Smartphone,
   CheckCircle2
 } from 'lucide-react';
+import BrandLogo from '../Common/BrandLogo';
 
 export default function CompanyOnboarding({
   onFinishOnboarding,
@@ -35,13 +36,13 @@ export default function CompanyOnboarding({
   const [aiMode, setAiMode] = useState('smart'); // 'smart' | 'conservative' | 'fast'
 
   const categories = [
-    'Clínica', 
-    'Restaurante', 
-    'Salão', 
-    'Laboratório', 
-    'Barbearia', 
-    'Oficina', 
-    'Cartório', 
+    'Clínica',
+    'Restaurante',
+    'Salão',
+    'Laboratório',
+    'Barbearia',
+    'Oficina',
+    'Cartório',
     'Outro'
   ];
 
@@ -71,13 +72,8 @@ export default function CompanyOnboarding({
       {/* Sidebar with Steps Progress */}
       <aside className="ff-onboarding-sidebar">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
-            <div className="ff-logo-mark">
-              <Layers size={20} />
-            </div>
-            <span style={{ fontSize: 22, fontWeight: 800, color: 'white', fontFamily: 'Outfit' }}>
-              Fila<span style={{ color: '#a78bfa' }}>Flow</span>
-            </span>
+          <div style={{ marginBottom: 40 }}>
+            <BrandLogo size={36} textColor="#ffffff" />
           </div>
 
           <h2 className="ff-onboarding-sidebar-title">Cadastro da Empresa</h2>
@@ -264,28 +260,88 @@ export default function CompanyOnboarding({
               </div>
 
               <div className="ff-form-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label className="ff-form-label">Tempo Médio Estimado por Atendimento</label>
-                  <span style={{ fontWeight: 800, color: '#2563eb', fontSize: 16 }}>
-                    {avgWaitMin} minutos
-                  </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label className="ff-form-label" style={{ margin: 0 }}>Tempo Médio Estimado por Atendimento</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => setAvgWaitMin((prev) => Math.max(3, prev - 1))}
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 6,
+                        border: '1px solid #cbd5e1',
+                        background: '#fff',
+                        cursor: 'pointer',
+                        fontWeight: 800,
+                        fontSize: 14,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      -
+                    </button>
+                    <span style={{ fontWeight: 800, color: '#2563eb', fontSize: 16, minWidth: 65, textAlign: 'center' }}>
+                      {avgWaitMin} min
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAvgWaitMin((prev) => Math.min(120, prev + 1))}
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 6,
+                        border: '1px solid #cbd5e1',
+                        background: '#fff',
+                        cursor: 'pointer',
+                        fontWeight: 800,
+                        fontSize: 14,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-                <input
-                  type="range"
-                  min="3"
-                  max="60"
-                  step="1"
-                  value={avgWaitMin}
-                  onChange={(e) => setAvgWaitMin(Number(e.target.value))}
-                  style={{ width: '100%', accentColor: '#2563eb', cursor: 'pointer', marginTop: 8 }}
-                />
+
+                {/* Preset Chips */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  {[10, 15, 20, 30, 45].map((val) => {
+                    const isSelected = avgWaitMin === val;
+                    return (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setAvgWaitMin(val)}
+                        style={{
+                          flex: 1,
+                          padding: '7px 4px',
+                          borderRadius: 8,
+                          border: isSelected ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
+                          background: isSelected ? '#2563eb' : '#f8fafc',
+                          color: isSelected ? '#ffffff' : '#334155',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {val}m
+                      </button>
+                    );
+                  })}
+                </div>
+
                 <span style={{ fontSize: 12, color: '#64748b' }}>
                   A IA calibrará esse valor automaticamente à medida que os atendimentos forem concluídos.
                 </span>
               </div>
 
               <div className="ff-form-group">
-                <label className="ff-form-label">Modo do Algoritmo de Previsão FilaFlow</label>
+                <label className="ff-form-label">Modo do Algoritmo de Previsão TemFyla</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                   <div
                     onClick={() => setAiMode('smart')}
@@ -365,11 +421,11 @@ export default function CompanyOnboarding({
         {step === 3 && (
           <div>
             <div style={{ marginBottom: 24, textAlign: 'center' }}>
-              <div style={{ 
-                width: 48, 
-                height: 48, 
-                borderRadius: '50%', 
-                background: '#dcfce7', 
+              <div style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: '#dcfce7',
                 color: '#15803d',
                 display: 'flex',
                 alignItems: 'center',
@@ -472,10 +528,10 @@ export default function CompanyOnboarding({
                 </div>
               </div>
 
-              <div style={{ 
-                marginTop: 14, 
-                fontSize: 12, 
-                fontWeight: 600, 
+              <div style={{
+                marginTop: 14,
+                fontSize: 12,
+                fontWeight: 600,
                 color: '#475569',
                 background: '#f1f5f9',
                 padding: '6px 10px',
@@ -509,7 +565,7 @@ export default function CompanyOnboarding({
                 style={{ justifyContent: 'center' }}
               >
                 <Smartphone size={16} />
-                <span>Testar Leitor no Celular do Cliente</span>
+                <span>Visualizar Leitor no Celular</span>
               </button>
             </div>
           </div>

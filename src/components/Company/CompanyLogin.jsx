@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layers, Mail, Lock, ArrowRight, Sparkles, Building2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
+import BrandLogo from '../Common/BrandLogo';
 import { loginApi } from '../../services/api';
 
 export default function CompanyLogin({
@@ -41,8 +42,8 @@ export default function CompanyLogin({
   return (
     <div className="ff-auth-page">
       <div className="ff-login-card">
-        <div className="ff-logo-mark" style={{ width: 44, height: 44, margin: '0 auto' }}>
-          <Layers size={24} />
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <BrandLogo size={42} textColor="#0f172a" />
         </div>
 
         <div className="ff-login-header">
@@ -83,7 +84,7 @@ export default function CompanyLogin({
                 className="ff-input"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Digite sua senha"
                 required
               />
             </div>
@@ -109,18 +110,25 @@ export default function CompanyLogin({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 8
+            gap: 8,
+            width: '100%',
+            padding: '10px 14px',
+            borderRadius: 10,
+            border: '1.5px solid #ddd6fe',
+            cursor: 'pointer',
+            fontSize: 13,
+            fontWeight: 700
           }}
         >
           <Sparkles size={16} />
           <span>Acesso Demo: Clínica Vida</span>
         </button>
 
-        <div style={{ marginTop: 20, fontSize: 13, color: '#64748b' }}>
-          Sua empresa ainda não usa o FilaFlow?{' '}
+        <div style={{ marginTop: 20, fontSize: 13, color: '#64748b', textAlign: 'center' }}>
+          Sua empresa ainda não usa o TemFyla?{' '}
           <button
             onClick={onGoToSignup}
-            style={{ color: '#7c3aed', fontWeight: 700, textDecoration: 'underline' }}
+            style={{ color: '#7c3aed', fontWeight: 700, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Cadastrar Gratuitamente
           </button>

@@ -1,36 +1,139 @@
-import React from 'react';
-import { Wifi, Battery, Clock, Sparkles, Bell, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Wifi,
+  Battery,
+  Home,
+  Ticket,
+  Compass,
+  Bell,
+  User,
+  Zap
+} from 'lucide-react';
+import MobileDashboard from '../Client/MobileDashboard';
+import { INITIAL_QUEUES } from '../../data/mockData';
 
-export default function InteractiveHeroPhone({ activeQueue }) {
-  const queue = activeQueue || {
-    companyName: 'Clínica Vida',
+const EXTRA_CATEGORY_QUEUES = {
+  beauty: {
+    id: 'beauty',
+    companyName: 'Don Corleone Barber Club',
+    unitName: 'Unidade Jardins',
+    category: 'Barbearia',
+    badgeColor: 'purple',
+    serviceName: 'Corte Degradê + Barba Terapia',
+    attendantName: 'Dr. Marcos Barbeiro',
+    room: 'Cadeira 02',
+    ticketNumber: '09',
+    position: 1,
+    initialWaitMin: 5,
+    estimatedWaitText: '4-7 min',
+    status: 'waiting',
+    statusDetail: 'Você é o próximo a ser atendido',
+    staffNote: 'Ritmo de Marcos: ~5 min para finalizar acabamento'
+  },
+  public: {
+    id: 'public',
+    companyName: '2º Cartório de Registro Civil',
     unitName: 'Unidade Centro',
-    ticketNumber: '47',
-    position: 5,
-    estimatedWaitText: '35-42 min',
-    aheadList: [
-      { ticket: '#43', name: 'Maria Silva', status: 'Em atendimento' },
-      { ticket: '#44', name: 'João Santos', status: 'Aguardando' },
-      { ticket: '#45', name: 'Ana Costa', status: 'Aguardando' },
-      { ticket: '#46', name: 'Pedro Lima', status: 'Próximo a chamar' },
-      { ticket: '#47', name: 'Você (Rafael)', status: 'Sua vez em breve', isUser: true },
-    ]
+    category: 'Cartório',
+    badgeColor: 'blue',
+    serviceName: 'Reconhecimento de Firma & Procuração',
+    attendantName: 'Dr. Ricardo (Tabelião)',
+    room: 'Guichê 05',
+    ticketNumber: '31',
+    position: 2,
+    initialWaitMin: 9,
+    estimatedWaitText: '8-11 min',
+    status: 'waiting',
+    statusDetail: 'Guichê expresso em andamento',
+    staffNote: 'Ritmo do Guichê 05: ~4 min por atendimento'
+  }
+};
+
+const STATIC_HERO_USER = {
+  id: 'usr_client',
+  name: 'Rafael Silva',
+  email: 'rafael.silva@email.com',
+  phone: '(11) 98765-4321',
+  cpf: '345.678.901-22',
+  insurance: 'Unimed Nacional',
+  cardNumber: '0012.3456.7890.1234',
+  avatarInitial: 'R',
+  role: 'patient'
+};
+
+export default function InteractiveHeroPhone({
+  activeQueue,
+  activeQueues = INITIAL_QUEUES,
+  selectedQueueId
+}) {
+  const [currentTime, setCurrentTime] = useState('14:30');
+  const [tiltStyle, setTiltStyle] = useState({});
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMouseMove = (e) => {
+    if (!wrapperRef.current) return;
+    const rect = wrapperRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    const rotateY = (x * 8).toFixed(2);
+    const rotateX = (-y * 8).toFixed(2);
+    setTiltStyle({
+      transform: `perspective(1200px) translateY(-6px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
+      transition: 'transform 0.15s ease-out'
+    });
   };
 
+  const handleMouseLeave = () => {
+    setTiltStyle({
+      transform: 'perspective(1200px) translateY(0px) rotateX(0deg) rotateY(0deg)',
+      transition: 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)'
+    });
+  };
+
+  const baseQueues = Array.isArray(activeQueues) && activeQueues.length > 0
+    ? activeQueues
+    : INITIAL_QUEUES;
+
+  const effectiveSelectedQueueId = selectedQueueId || 'clinica-vida';
+
+  const queuesToRender = EXTRA_CATEGORY_QUEUES[effectiveSelectedQueueId] &&
+    !baseQueues.some((q) => q.id === effectiveSelectedQueueId)
+    ? [...baseQueues, EXTRA_CATEGORY_QUEUES[effectiveSelectedQueueId]]
+    : baseQueues;
+
+  const urgentQueue = queuesToRender.length > 0
+    ? [...queuesToRender].sort((a, b) => (a.position || 99) - (b.position || 99))[0]
+    : null;
+
   return (
-    <div className="ff-phone-wrapper">
+    <div
+      ref={wrapperRef}
+      className="ff-phone-wrapper"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Dynamic Ambient Background Glows */}
       <div className="ff-phone-glow"></div>
       <div className="ff-phone-glow-secondary"></div>
 
-      {/* Floating Micro-Badges around the Phone for SaaS depth */}
+      {/* Pop-ups Flutuantes (Micro-Badges ao redor do telefone na Landing Page) */}
       <div className="ff-float-chip ff-float-chip-top">
         <div className="ff-float-chip-icon red">
           <Bell size={13} />
         </div>
         <div className="ff-float-chip-content">
           <span className="chip-label">Alerta Automático</span>
-          <span className="chip-value">Sua vez em 5 min • Sala 04</span>
+          <span className="chip-value">{activeQueue?.chipTopText || 'Sua vez em 5 min • Sala 04'}</span>
         </div>
       </div>
 
@@ -40,145 +143,87 @@ export default function InteractiveHeroPhone({ activeQueue }) {
         </div>
         <div className="ff-float-chip-content">
           <span className="chip-label">Previsão por IA</span>
-          <span className="chip-value">Fluxo +18% mais ágil hoje</span>
+          <span className="chip-value">{activeQueue?.chipBottomText || 'IA: Fluxo +18% mais ágil hoje'}</span>
         </div>
       </div>
 
-      {/* Phone Chassis (Flagship Titanium Finish) */}
-      <div className="ff-phone-device">
-        <div className="ff-phone-bezel-reflection"></div>
-
+      {/* Device Frame Estático com o visual idêntico ao App e movimento suave ao aproximar o cursor */}
+      <div className="ff-phone-device ff-phone-static-preview" style={tiltStyle}>
+        <div className="ff-phone-bezel-reflection" />
         <div className="ff-phone-inner">
           {/* Status Bar */}
           <div className="ff-phone-status-bar">
-            <span className="ff-phone-time">14:30</span>
+            <span className="ff-status-clock">{currentTime}</span>
 
-            <div className="ff-phone-dynamic-island">
-              <div className="ff-island-camera"></div>
-              <div className="ff-island-live-activity">
-                <span className="ff-island-pulse-dot"></span>
-                <span className="ff-island-text">#43 Chamado</span>
+            {/* Dynamic Island */}
+            <div className={`ff-phone-dynamic-island ${urgentQueue ? 'has-activity' : ''}`}>
+              <div className="ff-island-sensor-group">
+                <div className="ff-island-camera"></div>
+                <div className="ff-island-mic"></div>
               </div>
+              {urgentQueue ? (
+                <div className="ff-island-content">
+                  <span className="island-dot"></span>
+                  <span className="island-text">
+                    #{urgentQueue.ticketNumber} • {urgentQueue.companyName.split(' ')[0]}
+                  </span>
+                </div>
+              ) : (
+                <div className="ff-island-indicator"></div>
+              )}
             </div>
 
-            <div className="ff-phone-status-icons">
+            <div className="ff-status-icons">
               <Wifi size={13} />
               <Battery size={15} />
             </div>
           </div>
 
-          {/* Screen Content */}
-          <div className="ff-phone-screen-content">
-            {/* Header Badge */}
-            <div className="ff-ticket-app-header">
-              <div className="ff-unit-badge">
-                <span className="ff-unit-dot"></span>
-                <span>{queue.companyName}</span>
-                <span className="ff-unit-divider">•</span>
-                <span className="ff-unit-room">{queue.unitName}</span>
-              </div>
-              <div className="ff-pwa-live-pill">
-                <span className="pwa-dot"></span>
-                <span>AO VIVO</span>
-              </div>
-            </div>
-
-            {/* Ticket Hero - Card Holográfico Moderno */}
-            <div className="ff-ticket-hero-card">
-              <div className="ff-ticket-card-reflection"></div>
-              <div className="ff-ticket-top-row">
-                <span className="ff-ticket-category-tag">Atendimento Presencial</span>
-                <span className="ff-ticket-id-tag">PASS-7842</span>
-              </div>
-
-              <div className="ff-ticket-center">
-                <div className="ff-ticket-label">SUA SENHA ATIVA</div>
-                <div className="ff-ticket-number">#{queue.ticketNumber}</div>
-                <div className="ff-ticket-service">Consulta Oftalmologia Geral</div>
-              </div>
-
-              <div className="ff-ticket-footer-row">
-                <div className="ff-ticket-pos-badge">
-                  <span className="pos-highlight">{queue.position}º</span> na fila de espera
-                </div>
-                <div className="ff-ticket-barcode-mini">
-                  <span></span><span></span><span></span><span></span><span></span><span></span>
-                </div>
-              </div>
-            </div>
-
-            {/* Forecast Box with Live Wave Visualizer */}
-            <div className="ff-forecast-card">
-              <div className="ff-forecast-header">
-                <div className="ff-forecast-title-group">
-                  <Clock size={14} className="ff-forecast-icon" />
-                  <span className="ff-forecast-title">Previsão Estimada por IA</span>
-                </div>
-                <span className="ff-forecast-confidence">96% precisão</span>
-              </div>
-
-              <div className="ff-forecast-main">
-                <div className="ff-forecast-time">{queue.estimatedWaitText}</div>
-                <div className="ff-ai-wave-bars">
-                  <span className="wave-bar bar-1"></span>
-                  <span className="wave-bar bar-2"></span>
-                  <span className="wave-bar bar-3"></span>
-                  <span className="wave-bar bar-4"></span>
-                  <span className="wave-bar bar-5"></span>
-                </div>
-              </div>
-
-              <div className="ff-forecast-footer">
-                <span className="ff-forecast-dot-pulse"></span>
-                <span>Ritmo do Dr. Carlos: ~8 min por atendimento</span>
-              </div>
-            </div>
-
-            {/* Queue List Box */}
-            <div className="ff-phone-queue-box">
-              <div className="ff-queue-box-title">
-                <span>Fila em Andamento</span>
-                <span className="ff-queue-count-pill">{queue.aheadList ? queue.aheadList.length : 5} pessoas</span>
-              </div>
-
-              <div className="ff-queue-list-compact">
-                {queue.aheadList && queue.aheadList.slice(0, 5).map((item, idx) => {
-                  let rowClass = 'waiting';
-                  let statusBadgeClass = 'badge-waiting';
-                  if (item.status === 'Em atendimento') {
-                    rowClass = 'current';
-                    statusBadgeClass = 'badge-current';
-                  } else if (item.status.includes('Próximo')) {
-                    rowClass = 'next';
-                    statusBadgeClass = 'badge-next';
-                  } else if (item.isUser) {
-                    rowClass = 'you';
-                    statusBadgeClass = 'badge-you';
-                  }
-
-                  return (
-                    <div key={idx} className={`ff-queue-row-compact ${rowClass}`}>
-                      <div className="queue-row-left">
-                        <span className="queue-row-ticket">{item.ticket}</span>
-                        <span className="queue-row-name">{item.name}</span>
-                      </div>
-                      <span className={`queue-status-chip ${statusBadgeClass}`}>
-                        {item.status}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Live Indicator Footer */}
-            <div className="ff-phone-live-footer">
-              <Sparkles size={13} className="sparkle-spin" />
-              <span>Sincronizado via WebSockets com a recepção</span>
-            </div>
+          {/* Tela Estática na Senha (sem clique e sem scroll) */}
+          <div className="ff-phone-screen-clean ff-hero-static-screen">
+            <MobileDashboard
+              currentUser={STATIC_HERO_USER}
+              activeQueues={queuesToRender}
+              selectedQueueId={effectiveSelectedQueueId}
+              hasConflict={true}
+            />
           </div>
 
-          {/* Home indicator */}
+          {/* Barra de Navegação Inferior Estática */}
+          <nav className="ff-mob-bottom-nav ff-hero-static-nav">
+            <button type="button" className="mob-nav-tab active" tabIndex={-1}>
+              <Home size={19} />
+              <span>Início</span>
+            </button>
+
+            <button type="button" className="mob-nav-tab" tabIndex={-1}>
+              <div className="tab-icon-relative">
+                <Ticket size={19} />
+                <span className="mob-tab-badge">{queuesToRender.length}</span>
+              </div>
+              <span>Filas</span>
+            </button>
+
+            <button type="button" className="mob-nav-tab" tabIndex={-1}>
+              <Compass size={19} />
+              <span>Explorar</span>
+            </button>
+
+            <button type="button" className="mob-nav-tab" tabIndex={-1}>
+              <div className="tab-icon-relative">
+                <Bell size={19} />
+                <span className="mob-tab-badge dot"></span>
+              </div>
+              <span>Alertas</span>
+            </button>
+
+            <button type="button" className="mob-nav-tab" tabIndex={-1}>
+              <User size={19} />
+              <span>Perfil</span>
+            </button>
+          </nav>
+
+          {/* Home Indicator Bar */}
           <div className="ff-phone-home-indicator">
             <div className="ff-home-pill"></div>
           </div>

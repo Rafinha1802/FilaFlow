@@ -1,28 +1,29 @@
 import React, { useState } from 'react';
-import { 
-  Sparkles, 
-  Clock, 
-  Navigation, 
-  QrCode, 
-  Search, 
-  CheckCircle2, 
-  ChevronRight, 
-  MapPin, 
-  Zap, 
+import {
+  Clock,
+  Sparkles,
   Bell,
-  Bookmark,
-  Coffee,
+  Zap,
+  MessageCircle,
+  Building2,
+  CalendarCheck,
+  CheckCircle2,
+  QrCode,
+  Search,
   ShieldCheck,
-  Flame,
+  Coffee,
+  AlertTriangle,
+  ChevronRight,
   ArrowRight,
-  SlidersHorizontal,
-  Stethoscope,
-  FlaskConical,
-  Store
+  MapPin,
+  Ticket,
+  User,
+  HeartPulse
 } from 'lucide-react';
 
 export default function MobileDashboard({
-  activeQueues,
+  currentUser,
+  activeQueues = [],
   selectedQueueId,
   onSelectQueue,
   onOpenQrScanner,
@@ -34,425 +35,465 @@ export default function MobileDashboard({
   onApproveReceptionCheckin,
   hasConflict,
   onDismissConflict,
-  onNavigateTab
+  onNavigateTab,
+  onPlayChime
 }) {
-  const [activeFilter, setActiveFilter] = useState('ticket'); // 'ticket' | 'ahead'
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (msg) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 5000);
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Find currently selected queue or first queue
-  const currentQueue = activeQueues.find((q) => q.id === selectedQueueId) || activeQueues[0] || null;
+  const userName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Rafael';
+  const avatarLetter = userName.charAt(0).toUpperCase() || 'R';
 
-  // Find most urgent queue
-  const urgentQueue = activeQueues.length > 0 
+  // Find most urgent queue or currently selected
+  const urgentQueue = activeQueues.length > 0
     ? [...activeQueues].sort((a, b) => (a.position || 99) - (b.position || 99))[0]
     : null;
 
-  const handleSecretaryCheckinAction = (id) => {
-    if (onSecretaryCheckin) {
-      onSecretaryCheckin(id || currentQueue?.id);
-    }
-    showToast('✓ Check-in validado com a secretária! Liberado para a consulta.');
-  };
+  const displayQueue = activeQueues.length > 0
+    ? (activeQueues.find((q) => q.id === selectedQueueId) || urgentQueue || activeQueues[0])
+    : null;
+
+  const formattedTicket = displayQueue?.ticketNumber
+    ? (displayQueue.ticketNumber.toString().startsWith('A-') ? displayQueue.ticketNumber : `A-${displayQueue.ticketNumber}`)
+    : 'A-47';
+
+  const attendantDisplay = displayQueue?.attendantName?.startsWith('Dr')
+    ? displayQueue.attendantName
+    : `Dra. ${displayQueue?.attendantName || 'Camila'}`;
 
   const handleAskMoreTime = (id) => {
-    onClientAskMoreTime(id || currentQueue?.id);
-    showToast('⏱️ Previsão recalculada: +5 min concedidos pela IA.');
+    if (onClientAskMoreTime) onClientAskMoreTime(id || displayQueue?.id);
+    showToast('⏱️ Previsão recalculada: +5 min concedidos pela recepção.');
   };
 
-  // Disparo de notificação normal ao chegar/carregar fila em espera
-  React.useEffect(() => {
-    if (urgentQueue && !urgentQueue.isCheckedInWithSecretary) {
-      const doc = urgentQueue.attendantName?.startsWith('Dr') 
-        ? `médico ${urgentQueue.attendantName}` 
-        : `médico ${urgentQueue.attendantName || 'responsável'}`;
-      showToast({
-        title: 'Fila de Espera • Totem QR',
-        message: `Você está na fila de espera, aguarde você ser aprovado para poder ir para a fila do ${doc}...`
-      });
+  // WhatsApp Share & Real-Time Sync
+  const handleOpenWhatsApp = (queue) => {
+    const q = queue || displayQueue;
+    if (!q) return;
+
+    const text = `🔔 *TemFyla - Status da Senha em Tempo Real*\n\n` +
+      `🏥 *Local:* ${q.companyName || 'Clínica Bem Estar'}\n` +
+      `🩺 *Serviço:* ${q.serviceName || 'Consulta Cardiologia Clínica'}\n` +
+      `🎟️ *Sua Senha:* #${formattedTicket}\n` +
+      `📍 *Posição:* ${q.position === 1 ? 'Sua Vez Agora!' : `${q.position || 3}º lugar na fila`}\n` +
+      `⏱️ *Previsão de Atendimento:* ${q.estimatedWaitText || '18-22 min'}\n` +
+      `👩‍⚕️ *Profissional:* ${attendantDisplay}\n\n` +
+      `Acompanhe ao vivo pelo TemFyla: https://temfyla.com/fila/${q.id || 'clinica-vida'}`;
+
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+    showToast('💬 Status da senha preparado para acompanhar pelo WhatsApp!');
+  };
+
+  // Push / Chime notification
+  const handleTriggerPushNotification = () => {
+    if (onPlayChime) {
+      onPlayChime();
+    } else {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+      } catch (e) {}
     }
-  }, [urgentQueue?.id]);
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification('TemFyla: Sua vez está próxima!', {
+          body: `Senha #${formattedTicket} na ${displayQueue?.companyName || 'Clínica Bem Estar'}. ${displayQueue?.room || 'Sala 04'}.`,
+          icon: '/favicon.ico'
+        });
+      } catch (e) {}
+    } else if ('Notification' in window && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+
+    showToast('🔔 Notificação sonora disparada com sucesso!');
+  };
 
   return (
-    <div className="ff-mob-clean-app">
-      {/* Notificação Normal Mobile (Floating Push Notification Banner no Topo) */}
+    <div className="ff-mob-dashboard">
+      {/* Toast Flutuante */}
       {toastMessage && (
-        <div className="ff-mob-toast-clean" onClick={() => setToastMessage(null)}>
-          <div className="toast-icon-circle">
-            <Bell size={16} />
+        <div className="ff-mob-floating-toast" onClick={() => setToastMessage(null)}>
+          <div className="toast-icon-pulse">
+            <Bell size={14} />
           </div>
-          <div className="toast-content-col">
-            <div className="toast-top-row">
-              <strong className="toast-title">
-                {typeof toastMessage === 'object' ? toastMessage.title : 'FilaFlow'}
-              </strong>
-              <span className="toast-time">Agora</span>
-            </div>
-            <p className="toast-body-text">
-              {typeof toastMessage === 'object' ? toastMessage.message : toastMessage}
-            </p>
-          </div>
-          <button 
-            className="toast-close-btn" 
-            onClick={(e) => { e.stopPropagation(); setToastMessage(null); }}
+          <span className="toast-text">{typeof toastMessage === 'object' ? toastMessage.message : toastMessage}</span>
+          <button
+            className="toast-dismiss-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setToastMessage(null);
+            }}
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* 1. Header estilo Screen 3 (Hello, Welcome + Avatar + Big Title) */}
-      <header className="ff-mob-clean-header">
-        <div className="header-user-row">
-          <div className="header-greeting-col">
-            <span className="greeting-sub">Olá, Bem-vindo 👋</span>
-            <h3 className="greeting-name">Rafael Silva</h3>
-          </div>
-
-          <div className="header-avatar-group">
-            <button 
-              className="btn-icon-soft" 
-              onClick={() => onNavigateTab && onNavigateTab('notifications')}
-              title="Notificações"
-            >
-              <Bell size={18} />
-              <span className="dot-badge"></span>
-            </button>
-            <div className="clean-avatar-circle">
-              <span>R</span>
-            </div>
+      {/* 1. Header do Usuário com Saudação e Atalhos Rápidos */}
+      <header className="ff-mob-top-header">
+        <div className="ff-mob-user-info">
+          <h1 className="ff-mob-user-title">Olá, {userName} 👋</h1>
+          <div className="ff-mob-status-sub">
+            <span className="live-pulse-dot" />
+            <span>
+              {activeQueues.length > 0
+                ? `${activeQueues.length} fila${activeQueues.length > 1 ? 's' : ''} em andamento`
+                : 'Pronto para fila'}
+            </span>
           </div>
         </div>
 
-        {/* Big Bold Clean Headline */}
-        <div className="header-headline-row">
-          <h1 className="header-headline">
-            Sua Vez, <span className="headline-highlight">Sem Espera</span> Hoje!
-          </h1>
-        </div>
-
-        {/* Category Filter Tabs: Somente Minha Senha e Fila ao Vivo */}
-        <div className="clean-category-tabs two-tabs">
-          <button 
-            className={`category-tab-btn ${activeFilter === 'ticket' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('ticket')}
+        <div className="ff-mob-header-actions">
+          <button
+            type="button"
+            className="ff-mob-action-btn"
+            onClick={onOpenQrScanner}
+            title="Escanear QR Code no Totem"
           >
-            Minha Senha
+            <QrCode size={15} />
           </button>
-          <button 
-            className={`category-tab-btn ${activeFilter === 'ahead' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('ahead')}
+
+          <button
+            type="button"
+            className="ff-mob-action-btn"
+            onClick={onOpenSearch}
+            title="Buscar Clínicas & Serviços"
           >
-            Fila ao Vivo
+            <Search size={15} />
+          </button>
+
+          <button
+            type="button"
+            className="ff-mob-user-avatar"
+            onClick={() => onNavigateTab && onNavigateTab('profile')}
+            title="Meu Perfil"
+          >
+            <span>{avatarLetter}</span>
+            <span className="avatar-online-dot" />
           </button>
         </div>
       </header>
 
-      {/* 2. Alerta Discreto de Choque de Horários (Se houver conflito ativo) */}
+      {/* 2. Banner Inteligente de Choque de Horários (se ativo) */}
       {hasConflict && activeQueues.length > 1 && (
-        <div className="clean-conflict-banner">
-          <div className="conflict-banner-icon">
-            <Zap size={16} />
+        <div className="ff-mob-conflict-card">
+          <div className="conflict-card-icon">
+            <AlertTriangle size={13} />
           </div>
-          <div className="conflict-banner-body">
-            <strong>Choque de Horários Evitado</strong>
-            <span>Médico e Exame chamariam juntos. IA recalculou +5m.</span>
+          <div className="conflict-card-text">
+            <strong>Choque de Horários:</strong>
+            <span>Atendimentos previstos no mesmo período.</span>
           </div>
-          <button className="conflict-banner-close" onClick={onDismissConflict}>✕</button>
+          <button
+            type="button"
+            className="conflict-card-close"
+            onClick={onDismissConflict}
+            title="Ignorar aviso"
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      {/* 3. Hero Card em Destaque (Inspirado no 3D Illustration Course Card - Screen 3) */}
-      {urgentQueue && activeFilter === 'ticket' && (
-        urgentQueue.status === 'reception_waiting' ? (
-          /* Card Pastel Suave de Recepção / Triagem */
-          <div className="clean-hero-card reception-theme">
-            <div className="hero-card-header">
-              <span className="hero-category-chip amber">Etapa 1 • Fila da Recepção</span>
-              <button className="hero-bookmark-btn" title="Salvo">
-                <Bookmark size={18} />
-              </button>
-            </div>
-
-            <div className="hero-card-body">
-              <h2 className="hero-card-title">{urgentQueue.companyName}</h2>
-              <p className="hero-card-sub">{urgentQueue.serviceName} • {urgentQueue.insuranceName || 'Convênio'}</p>
-
-              <div className="reception-status-box">
-                <div className="reception-number-group">
-                  <span className="reception-label">STATUS ATUAL</span>
-                  <div className="reception-val">Aguardando Balcão</div>
-                </div>
-                <div className="reception-pos-pill">
-                  {urgentQueue.position}º na Triagem
-                </div>
-              </div>
-
-              {/* Stepper Super Limpo */}
-              <div className="clean-stepper-row">
-                <span className="step-point done">✓ QR Code</span>
-                <span className="step-arrow">➔</span>
-                <span className="step-point active">● Recepção</span>
-                <span className="step-arrow">➔</span>
-                <span className="step-point pending">○ Médico</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Card Hero Principal Escuro / Violeta Nobre (Estilo Screen 3) */
-          <div className="clean-hero-card dark-theme">
-            <div className="hero-card-glow"></div>
-            
-            <div className="hero-card-header">
-              <div className="hero-live-badge">
-                <span className="pulse-dot"></span>
-                <span>AO VIVO NO APP</span>
-              </div>
-              <button className="hero-bookmark-btn light" title="Favorito">
-                <Bookmark size={18} />
-              </button>
-            </div>
-
-            <div className="hero-card-body">
-              <div className="hero-unit-tag">
-                <MapPin size={12} />
-                <span>{urgentQueue.companyName} • {urgentQueue.room || 'Consultório 04'}</span>
-              </div>
-
-              {/* Status da Fila */}
-              <div className="hero-checkin-badge-row">
-                {urgentQueue.isCheckedInWithSecretary ? (
-                  <span className="checkin-badge-status approved">
-                    <CheckCircle2 size={12} color="#34d399" />
-                    <span>Liberado para o Médico</span>
-                  </span>
-                ) : (
-                  <span className="checkin-badge-status pending">
-                    <Clock size={12} color="#fbbf24" />
-                    <span>Fila de Espera • Aguardando aprovação</span>
-                  </span>
-                )}
-              </div>
-
-              <div className="hero-ticket-center">
-                <span className="hero-ticket-label">SUA SENHA</span>
-                <h1 className="hero-ticket-number">#{urgentQueue.ticketNumber}</h1>
-                <p className="hero-service-name">{urgentQueue.serviceName}</p>
-              </div>
-
-              <div className="hero-wait-banner">
-                <div className="wait-time-col">
-                  <span className="wait-time-title">Tempo Estimado</span>
-                  <div className="wait-time-display">
-                    <Clock size={16} />
-                    <span>{urgentQueue.estimatedWaitText}</span>
-                  </div>
-                </div>
-
-                <div className="wait-pos-col">
-                  <span className="wait-pos-badge">
-                    {urgentQueue.position === 1 ? '🟢 SUA VEZ!' : `${urgentQueue.position}º na fila`}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Ações: Só pode pedir +5 min quando já estiver na fila do médico */}
-            {urgentQueue.isCheckedInWithSecretary && (
-              <div className="hero-card-actions single-action">
-                <button 
-                  className="clean-pill-btn translucent"
-                  style={{ width: '100%' }}
-                  onClick={() => handleAskMoreTime(urgentQueue.id)}
-                  title="Solicitar tolerância de 5 min na previsão"
+      {/* 3. Seletor de Múltiplas Filas Ativas (Pills Carousel) */}
+      {activeQueues.length > 1 && (
+        <div className="ff-mob-queue-pills-bar">
+          <div className="queue-pills-scroll">
+            {activeQueues.map((q) => {
+              const isSelected = displayQueue?.id === q.id;
+              const qTicket = q.ticketNumber
+                ? (q.ticketNumber.toString().startsWith('A-') ? q.ticketNumber : `A-${q.ticketNumber}`)
+                : 'A-47';
+              return (
+                <button
+                  key={q.id}
+                  type="button"
+                  onClick={() => onSelectQueue && onSelectQueue(q.id)}
+                  className={`queue-pill-btn ${isSelected ? 'active' : ''}`}
                 >
-                  <Clock size={15} />
-                  <span>Pedir +5 min</span>
+                  <span className={`pill-dot ${q.position === 1 ? 'urgent' : ''}`} />
+                  <span className="pill-name">#{qTicket} • {q.companyName?.split(' ')[0]}</span>
+                  <span className="pill-pos">{q.position === 1 ? 'Sua Vez!' : `${q.position}º`}</span>
                 </button>
-              </div>
-            )}
+              );
+            })}
           </div>
-        )
+        </div>
       )}
 
-      {/* 4. Bento Grid de Serviços em Cores Pastéis (Exatamente o visual Screen 2) */}
-      {activeFilter === 'ticket' && (
-        <section className="clean-section-block">
-          <div className="clean-section-header">
-            <h3 className="section-title">Serviços & Filas</h3>
-            <span className="section-subtitle">Acesso Rápido</span>
-          </div>
-
-          <div className="clean-pastel-bento-grid">
-            {/* Card 1: Peach / Consulta */}
-            <div 
-              className="pastel-bento-card peach"
-              onClick={() => onSelectQueue && onSelectQueue('clinica-vida')}
-            >
-              <div className="card-top-icon">
-                <div className="icon-squircle peach">
-                  <Stethoscope size={20} />
-                </div>
-                <span className="card-badge">Ativa</span>
-              </div>
-              <h4 className="card-title">Consulta Médica</h4>
-              <p className="card-desc">Senha #47 • Dr. Carlos</p>
+      {/* 4. Cartão Principal da Senha Digital (ou Estado Vazio se sem filas) */}
+      {displayQueue ? (
+        <div className="ff-digital-ticket-card">
+          {/* Header do Bilhete Digital */}
+          <div className="ticket-card-header">
+            <div className="ticket-place-info">
+              <MapPin size={13} color="#a5b4fc" />
+              <span className="ticket-place-name">{displayQueue.companyName || 'Clínica Bem Estar'}</span>
+              <span className="ticket-place-separator">•</span>
+              <span className="ticket-room-pill">{displayQueue.room || 'Consultório 04'}</span>
             </div>
 
-            {/* Card 2: Mint / Exames */}
-            <div 
-              className="pastel-bento-card mint"
-              onClick={() => onSelectQueue && onSelectQueue('lab-exame')}
-            >
-              <div className="card-top-icon">
-                <div className="icon-squircle mint">
-                  <FlaskConical size={20} />
-                </div>
-                <span className="card-badge mint">Fila 2</span>
-              </div>
-              <h4 className="card-title">Exames de Sangue</h4>
-              <p className="card-desc">Senha #12 • Sala 02</p>
-            </div>
-
-            {/* Card 3: Sky Blue / QR Check-in */}
-            <div 
-              className="pastel-bento-card sky"
-              onClick={onOpenQrScanner}
-            >
-              <div className="card-top-icon">
-                <div className="icon-squircle sky">
-                  <QrCode size={20} />
-                </div>
-                <span className="card-badge sky">Sem App</span>
-              </div>
-              <h4 className="card-title">Ler QR Totem</h4>
-              <p className="card-desc">Check-in de Balcão</p>
-            </div>
-
-            {/* Card 4: Lavender / Café */}
-            <div 
-              className="pastel-bento-card lavender"
-              onClick={() => showToast('☕ Cupom ativado! 15% OFF no Café Havanna na sua espera.')}
-            >
-              <div className="card-top-icon">
-                <div className="icon-squircle lavender">
-                  <Coffee size={20} />
-                </div>
-                <span className="card-badge lavender">Desconto</span>
-              </div>
-              <h4 className="card-title">Café Havanna</h4>
-              <p className="card-desc">15% OFF na Espera</p>
+            <div className={`ticket-live-badge ${displayQueue.position === 1 ? 'is-now' : ''}`}>
+              <span className="pulse-indicator" />
+              <span>{displayQueue.position === 1 ? 'SUA VEZ!' : 'AO VIVO'}</span>
             </div>
           </div>
-        </section>
-      )}
 
-      {/* 5. Lista de Fila em Andamento (Estilo Screen 4: 12 Lessons com Squircles e Pílulas) */}
-      {activeFilter === 'ahead' && (
-        <section className="clean-section-block">
-          <div className="clean-section-header">
-            <div>
-              <h3 className="section-title">Fila em Tempo Real</h3>
-              <p className="section-subtitle">Ritmo monitorado por Inteligência Artificial</p>
+          {/* Número da Senha em Destaque */}
+          <div className="ticket-core-box">
+            <span className="ticket-caption">SUA SENHA ATIVA</span>
+            <div className="ticket-number-display">#{formattedTicket}</div>
+            <div className="ticket-service-title">
+              {displayQueue.serviceName || 'Consulta Cardiologia Clínica'}
             </div>
-            {currentQueue?.aheadList && (
-              <span className="count-pill">{currentQueue.aheadList.length} na frente</span>
-            )}
+            <span className="ticket-doctor-tag">{attendantDisplay}</span>
           </div>
 
-          {currentQueue?.aheadList && currentQueue.aheadList.length > 0 ? (
-            <div className="clean-lessons-list">
-              {currentQueue.aheadList.map((item, idx) => {
-                const isCurrent = item.status === 'Em atendimento';
-                const isYou = item.isUser;
-                const isNext = item.status.includes('Próximo');
-
-                let squircleColor = 'neutral';
-                let badgeColor = 'neutral';
-                if (isCurrent) {
-                  squircleColor = 'mint';
-                  badgeColor = 'mint';
-                } else if (isYou) {
-                  squircleColor = 'purple';
-                  badgeColor = 'purple';
-                } else if (isNext) {
-                  squircleColor = 'amber';
-                  badgeColor = 'amber';
-                }
-
-                return (
-                  <div key={idx} className={`clean-lesson-row ${isYou ? 'is-you' : ''}`}>
-                    <div className={`lesson-squircle ${squircleColor}`}>
-                      <span>{item.ticket}</span>
-                    </div>
-
-                    <div className="lesson-body">
-                      <h5 className="lesson-name">{item.name}</h5>
-                      <span className="lesson-time">
-                        {isCurrent ? 'Consultório 04 • Em consulta' : isYou ? 'Sua senha digital' : 'Aguardando chamada'}
-                      </span>
-                    </div>
-
-                    <div className={`lesson-status-chip ${badgeColor}`}>
-                      {item.status}
-                    </div>
-                  </div>
-                );
-              })}
+          {/* Stepper Visual de Progresso do Atendimento */}
+          <div className="ticket-stepper-track">
+            <div className="ticket-step done">
+              <span className="step-circle">✓</span>
+              <span className="step-label">Check-in</span>
             </div>
-          ) : (
-            <div className="clean-empty-live-queue">
-              <div className="empty-squircle mint">
-                <Clock size={28} />
-              </div>
-              <h4>Nenhum atendimento ativo na fila</h4>
-              <p>Pegue uma senha ou aponte a câmera para um totem presencial.</p>
-              <button 
-                className="clean-pill-btn primary-glow"
-                onClick={() => setActiveFilter('ticket')}
-              >
-                Ver Minha Senha
-              </button>
+            <div className="step-line active" />
+            <div className={`ticket-step ${displayQueue.position === 1 ? 'done' : 'active'}`}>
+              <span className="step-circle">{displayQueue.position === 1 ? '✓' : '●'}</span>
+              <span className="step-label">Na Fila</span>
             </div>
-          )}
-        </section>
-      )}
-
-      {/* 6. Seção de Benefícios e Parcerias na Espera (Estilo Screen 3 Course of the Week) */}
-      {activeFilter === 'ticket' && (
-        <section className="clean-section-block" style={{ paddingBottom: 20 }}>
-          <div className="clean-section-header">
-            <h3 className="section-title">Benefícios na Sua Espera</h3>
-            <span className="section-subtitle">Parceiros</span>
+            <div className={`step-line ${displayQueue.position === 1 ? 'active' : ''}`} />
+            <div className={`ticket-step ${displayQueue.position === 1 ? 'urgent active' : ''}`}>
+              <span className="step-circle">{displayQueue.position === 1 ? '●' : '○'}</span>
+              <span className="step-label">Atendimento</span>
+            </div>
           </div>
 
-          <div className="clean-partner-card">
-            <div className="partner-img-box">
-              <Coffee size={26} color="#d97706" />
+          {/* Métricas Principais da Fila */}
+          <div className="ticket-metrics-grid">
+            <div className="metric-box">
+              <span className="metric-label">Posição</span>
+              <span className="metric-value metric-pos-highlight">
+                {displayQueue.position === 1 ? 'Sua Vez!' : `${displayQueue.position}º lugar`}
+              </span>
             </div>
-            <div className="partner-info">
-              <h4 className="partner-name">Café Havanna Paulista</h4>
-              <p className="partner-desc">40m a pé • Apresente a senha e ganhe 15% OFF</p>
-              <div className="partner-rating">
-                <span className="stars">★★★★★</span>
-                <span className="rating-num">5.0 (420 avaliações)</span>
-              </div>
+
+            <div className="metric-box">
+              <span className="metric-label">Na Frente</span>
+              <span className="metric-value">
+                {displayQueue.position > 1
+                  ? `${displayQueue.position - 1} ${displayQueue.position - 1 === 1 ? 'pessoa' : 'pessoas'}`
+                  : 'Você é o 1º'}
+              </span>
             </div>
-            <button 
-              className="partner-arrow-btn"
-              onClick={() => showToast('☕ Cupom ativado! Apresente o bilhete da Clínica Vida no caixa.')}
-              title="Resgatar benefício"
+
+            <div className="metric-box">
+              <span className="metric-label">Previsão</span>
+              <span className="metric-value">
+                {displayQueue.estimatedWaitText || '18-22 min'}
+              </span>
+            </div>
+          </div>
+
+          {/* Linha de Ações Imediatas do Bilhete */}
+          <div className="ticket-actions-row">
+            <button
+              type="button"
+              className="ticket-btn zap"
+              onClick={() => handleOpenWhatsApp(displayQueue)}
+              title="Acompanhar e receber chamadas no WhatsApp"
             >
-              <ArrowRight size={18} />
+              <MessageCircle size={14} />
+              <span>WhatsApp</span>
+            </button>
+
+            <button
+              type="button"
+              className="ticket-btn push"
+              onClick={handleTriggerPushNotification}
+              title="Testar Notificação Sonora e Push"
+            >
+              <Bell size={14} />
+              <span>Notificar</span>
+            </button>
+
+            <button
+              type="button"
+              className="ticket-btn secondary"
+              onClick={() => handleAskMoreTime(displayQueue.id)}
+              title="Pedir tolerância de +5 min sem perder a vez"
+            >
+              <Clock size={14} />
+              <span>+5 min</span>
             </button>
           </div>
-        </section>
+        </div>
+      ) : (
+        <div className="ff-empty-ticket-card">
+          <div className="empty-ticket-icon">
+            <Ticket size={28} />
+          </div>
+          <h3>Nenhuma Senha Ativa</h3>
+          <p>
+            Você não está em nenhuma fila no momento. Aponte a câmera para um totem ou explore os estabelecimentos parceiros.
+          </p>
+          <div className="empty-ticket-btns">
+            <button
+              type="button"
+              className="ff-primary-btn"
+              onClick={onOpenQrScanner}
+            >
+              <QrCode size={14} />
+              <span>Ler QR Totem</span>
+            </button>
+            <button
+              type="button"
+              className="ff-secondary-btn"
+              onClick={() => onNavigateTab && onNavigateTab('explore')}
+            >
+              <Search size={14} />
+              <span>Explorar Locais</span>
+            </button>
+          </div>
+        </div>
       )}
 
+      {/* 5. Previsão Estimada por IA com Equalizador de Ritmo (quando há fila) */}
+      {displayQueue && (
+        <div className="ff-forecast-card">
+          <div className="ff-forecast-header">
+            <div className="ff-forecast-title-group">
+              <Clock size={14} className="ff-forecast-icon" />
+              <span className="ff-forecast-title">Previsão Estimada por IA</span>
+            </div>
+            <span className="ff-forecast-confidence">96% precisão</span>
+          </div>
+
+          <div className="ff-forecast-main">
+            <div className="ff-forecast-time">
+              {displayQueue.estimatedWaitText || '18-22 min'}
+            </div>
+            <div className="ff-ai-wave-bars">
+              <span className="wave-bar bar-1" />
+              <span className="wave-bar bar-2" />
+              <span className="wave-bar bar-3" />
+              <span className="wave-bar bar-4" />
+              <span className="wave-bar bar-5" />
+            </div>
+          </div>
+
+          <div className="ff-forecast-footer">
+            <span className="ff-forecast-dot-pulse" />
+            <span>
+              {displayQueue.staffNote || `Ritmo do(a) ${attendantDisplay}: ~7 min por consulta • Otimizado por IA`}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Acesso Rápido - 4 Recursos Essenciais */}
+      <section className="ff-mob-section">
+        <div className="section-head-clean">
+          <h2 className="section-title-clean">Acesso Rápido</h2>
+          <span className="section-badge-clean">4 recursos</span>
+        </div>
+
+        <div className="ff-quick-actions-grid">
+          <div
+            className="quick-action-card"
+            onClick={onOpenQrScanner}
+          >
+            <div className="action-card-icon-box purple">
+              <QrCode size={19} />
+            </div>
+            <div className="action-card-info">
+              <h3 className="action-title">Ler QR Totem</h3>
+              <p className="action-sub">Check-in no balcão</p>
+            </div>
+          </div>
+
+          <div
+            className="quick-action-card"
+            onClick={() => onNavigateTab && onNavigateTab('explore')}
+          >
+            <div className="action-card-icon-box emerald">
+              <Search size={19} />
+            </div>
+            <div className="action-card-info">
+              <h3 className="action-title">Explorar</h3>
+              <p className="action-sub">Clínicas e serviços</p>
+            </div>
+          </div>
+
+          <div
+            className="quick-action-card"
+            onClick={() => onNavigateTab && onNavigateTab('notifications')}
+          >
+            <div className="action-card-icon-box blue">
+              <Bell size={19} />
+            </div>
+            <div className="action-card-info">
+              <h3 className="action-title">Central Alertas</h3>
+              <p className="action-sub">WhatsApp e Avisos</p>
+            </div>
+          </div>
+
+          <div
+            className="quick-action-card"
+            onClick={() => onNavigateTab && onNavigateTab('profile')}
+          >
+            <div className="action-card-icon-box amber">
+              <ShieldCheck size={19} />
+            </div>
+            <div className="action-card-info">
+              <h3 className="action-title">Meu Convênio</h3>
+              <p className="action-sub">Unimed Nacional</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. Benefício na Espera (Parceiro Exclusivo) */}
+      <div className="ff-perk-banner-card">
+        <div className="perk-logo-circle">
+          <Coffee size={22} />
+        </div>
+        <div className="perk-content">
+          <h3 className="perk-title">Café Havanna Paulista</h3>
+          <p className="perk-desc">15% OFF na sua espera • 40m a pé</p>
+          <div className="perk-rating-row">
+            <span className="perk-stars">★★★★★</span>
+            <span className="perk-score">5.0 (420 avaliações)</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="perk-claim-btn"
+          onClick={() => showToast('☕ Cupom ativado! Apresente o bilhete da senha no caixa do Café Havanna.')}
+          title="Resgatar 15% OFF"
+        >
+          <ArrowRight size={16} />
+        </button>
+      </div>
+
+      {/* 8. Rodapé de Sincronização ao Vivo via WebSockets */}
+      <div className="ff-phone-live-footer">
+        <Sparkles size={13} className="sparkle-spin" />
+        <span>Sincronizado via WebSockets com a recepção</span>
+      </div>
     </div>
   );
 }
