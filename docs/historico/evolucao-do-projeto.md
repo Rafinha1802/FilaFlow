@@ -26,3 +26,12 @@ obrigatória ficou visível e que pôde chamar a próxima senha após concluir.
 
 O build passou com Vite 6.4.6. Passaram 38 testes JavaScript e 61 testes Python,
 incluindo o teste em PostgreSQL com schema descartável.
+
+## Planejamento da próxima fase
+
+Consulte o [registro de planejamento dos checkpoints 4 a 6](planejamento-checkpoints-4-a-6.md) para as decisões de identidade, integração e organização das páginas.
+
+## Validação do checkpoint 4.1
+
+A revisão do modelo e dos papéis por unidade está no
+[registro do checkpoint 4.1](checkpoint-4-1-modelo-de-unidades.md).

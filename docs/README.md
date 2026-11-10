@@ -6,3 +6,4 @@
 - [Guia do desenvolvedor](desenvolvimento/README.md)
 - [Ambiente local](desenvolvimento/ambiente-local.md)
 - [Evolução do projeto](historico/evolucao-do-projeto.md)
+- [Plano de implementação dos checkpoints 4 a 6](desenvolvimento/plano-checkpoints-4-a-6.md)

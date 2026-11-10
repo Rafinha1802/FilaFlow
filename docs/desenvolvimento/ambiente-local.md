@@ -108,3 +108,20 @@ Para executar a suíte com PostgreSQL, configure TEST_DATABASE_URL no
 PowerShell com a URL do banco local, sem imprimi-la. O teste usa um schema
 descartável e exige permissão de criação de schema. Rode os testes conforme
 o início deste guia. Sem a variável, o teste PostgreSQL aparece como ignorado.
+
+### Validar unidades e vínculos (checkpoint 4.1)
+
+Use apenas o PostgreSQL local de desenvolvimento. Com as migrações 001 e
+002 aplicadas, rode na raiz:
+
+~~~powershell
+Get-Content -Raw -Encoding utf8 backend/migrations/003_create_unit_identity.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U temfyla -d temfyla
+Get-Content -Raw -Encoding utf8 backend/migrations/seed_unit_identity_demo.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U temfyla -d temfyla
+~~~
+
+No DBeaver, confira as duas unidades fictícias em units, o vínculo de cada
+fila em queue_units e os dois papéis da conta demo-multi em unit_memberships.
+Confira que as senhas que já estavam em tickets mantêm os identificadores
+e estados. As contas fictícias começam desativadas, sem senha, até a etapa
+de autenticação. A migração atribui uma unidade separada a cada fila antiga
+sem vínculo; filas da mesma unidade podem ser associadas explicitamente.
