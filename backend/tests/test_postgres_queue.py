@@ -26,29 +26,35 @@ def test_postgres_ticket_lifecycle():
         try:
             scoped_url = make_conninfo(url, options=f"-c search_path={schema}")
             with psycopg.connect(scoped_url, autocommit=True) as conn:
-                for name in ("001_create_queues.sql", "002_create_tickets.sql", "seed_demo.sql"):
+                for name in ("001_create_queues.sql", "002_create_tickets.sql",
+                             "003_create_unit_identity.sql", "seed_unit_identity_demo.sql"):
                     conn.execute((migrations / name).read_text(encoding="utf-8-sig"))
 
-            queue_id = queue_store.list_queues(scoped_url)[0].id
+                conn.execute("""
+                    UPDATE accounts SET is_active = true, password_hash = 'repository-test-only'
+                    WHERE id = 'demo-multi'
+                """)
+            queue_id = "clinica-vida"
+            actor = "demo-multi"
 
             def issue(priority):
                 return queue_store.create_manual_ticket(scoped_url, ManualTicketRequest(
                     queue_id=queue_id, customer_name="Pessoa fictícia",
                     service_name="Teste", is_priority=priority,
-                ))
+                ), actor)
 
             with ThreadPoolExecutor(max_workers=2) as executor:
                 normal, priority = executor.map(issue, (False, True))
             assert normal.ticket_number != priority.ticket_number
-            assert queue_store.call_next_ticket(scoped_url, queue_id).called_ticket == priority
+            assert queue_store.call_next_ticket(scoped_url, queue_id, actor).called_ticket == priority
             with pytest.raises(HTTPException) as blocked:
-                queue_store.call_next_ticket(scoped_url, queue_id)
+                queue_store.call_next_ticket(scoped_url, queue_id, actor)
             assert blocked.value.status_code == 409
             with pytest.raises(HTTPException) as stale:
-                queue_store.finish_current_ticket(scoped_url, queue_id, normal.ticket_number)
+                queue_store.finish_current_ticket(scoped_url, queue_id, normal.ticket_number, actor)
             assert stale.value.status_code == 409
-            assert queue_store.get_queue_state(scoped_url, queue_id).active_ticket == priority
-            state = queue_store.finish_current_ticket(scoped_url, queue_id, priority.ticket_number)
+            assert queue_store.get_queue_state(scoped_url, queue_id, actor).active_ticket == priority
+            state = queue_store.finish_current_ticket(scoped_url, queue_id, priority.ticket_number, actor)
             assert state.active_ticket is None
             assert state.remaining_queue == [normal]
             with psycopg.connect(scoped_url) as conn:

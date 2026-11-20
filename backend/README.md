@@ -10,7 +10,7 @@ API mínima em Python com FastAPI, independente do frontend React.
 Disponibiliza `GET /api/health`, que responde com HTTP 200 e `{"status": "ok"}`,
 e `GET /api/queues`, que lista o catálogo de filas.
 Também oferece `POST /api/auth/login` e `GET /api/auth/me` para autenticação
-de desenvolvimento. A autenticação ainda usa uma conta de desenvolvimento.
+com contas persistidas quando o PostgreSQL está configurado.
 `POST /api/tickets/manual` emite uma senha e exige autenticação.
 `GET /api/tickets` consulta a fila empresarial e `POST /api/tickets/next` chama
 a próxima senha. Ambos exigem autenticação e o parâmetro `queue_id`.
@@ -134,7 +134,7 @@ execute `npm run dev` em outro terminal na raiz do projeto (após `npm ci`,
 caso as dependências do frontend ainda não estejam instaladas).
 Abra http://localhost:5174/empresa/dashboard e confira, na aba Network das
 ferramentas do navegador, a resposta 200 de `/api/queues` e seu array JSON.
-Faça login com o usuário de desenvolvimento configurado abaixo. Após entrar,
+Faça login com uma conta habilitada no modo de execução escolhido. Após entrar,
 o painel deve manter Clínica Vida, Dr. Carlos Mendes e Consultório 04.
 
 A chamada existente do React já aceita esses campos. Essa resposta pública
@@ -152,7 +152,14 @@ Sem ela, a API usa dados em memória. O endpoint de saúde verifica o processo.
 O inicializador lê `backend/.env` quando ele existe. Consulte o
 [guia local](../docs/desenvolvimento/ambiente-local.md) para gerar a configuração e aplicar as migrações.
 
-## Autenticação de desenvolvimento
+## Autenticação e escopo operacional
+
+Com PostgreSQL, a API usa as contas habilitadas no banco. A rota
+`GET /api/queues/me` retorna as filas operacionais e o papel por unidade.
+Para provisionar e validar as contas do piloto, siga o
+[roteiro do checkpoint 4.2](../docs/desenvolvimento/ambiente-local.md#validar-autenticação-e-permissões-por-unidade-checkpoint-42).
+
+### Autenticação de desenvolvimento em memória
 
 Esta etapa permite um único usuário empresarial, configurado por ambiente.
 Não cria usuários no banco nem oferece cadastro. O login recebe JSON
@@ -441,7 +448,7 @@ ao `package.json` ou ao `package-lock.json`.
 ## Limites desta etapa
 
 Não há persistência em banco.
-Autenticação está disponível apenas para o usuário de desenvolvimento configurado.
+O piloto usa contas operacionais provisionadas no banco. O modo em memória usa uma conta de desenvolvimento.
 A listagem de filas é apenas demonstrativa e não exige autenticação.
 O PostgreSQL é opcional para os testes em memória. Para testar persistência, configure `TEST_DATABASE_URL` conforme o guia local.
 

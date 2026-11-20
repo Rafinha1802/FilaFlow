@@ -1,5 +1,7 @@
 """Define o resumo de fila retornado ao frontend existente."""
 
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -11,3 +13,8 @@ class QueueSummary(BaseModel):
     attendantName: str
     room: str
     serviceName: str
+
+
+class OperationalQueue(QueueSummary):
+    unitId: str | None
+    role: Literal["admin", "reception", "professional"]

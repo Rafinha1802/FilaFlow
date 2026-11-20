@@ -6,9 +6,7 @@ import json
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from starlette.concurrency import run_in_threadpool
 
-from app.services.auth import verify_token
-from app.services.events import close_connection, connections
-from app.services.queues import list_queues
+from app.services.events import authorize_subscription, close_connection, connections
 
 router = APIRouter()
 
@@ -27,16 +25,16 @@ async def queue_websocket(socket: WebSocket) -> None:
         if not isinstance(token, str) or not token or len(token) > 4096:
             await close_connection(socket, code=1008)
             return
-        verify_token(token)
-        if not any(queue.id == queue_id for queue in await run_in_threadpool(list_queues)):
+        if not isinstance(queue_id, str) or not 1 <= len(queue_id) <= 100:
             await close_connection(socket, code=1008)
             return
+        await run_in_threadpool(authorize_subscription, token, queue_id)
         connections[socket] = (queue_id, token)
         await socket.send_json({"type": "READY", "queue_id": queue_id})
 
         while True:
             message = await asyncio.wait_for(socket.receive_json(), timeout=45)
-            verify_token(token)
+            await run_in_threadpool(authorize_subscription, token, queue_id)
             if not isinstance(message, dict) or message.get("type") != "ping":
                 await close_connection(socket, code=1008)
                 return

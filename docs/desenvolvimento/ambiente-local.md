@@ -125,3 +125,38 @@ Confira que as senhas que já estavam em tickets mantêm os identificadores
 e estados. As contas fictícias começam desativadas, sem senha, até a etapa
 de autenticação. A migração atribui uma unidade separada a cada fila antiga
 sem vínculo; filas da mesma unidade podem ser associadas explicitamente.
+
+### Validar autenticação e permissões por unidade (checkpoint 4.2)
+
+Com o PostgreSQL local saudável e o seed do 4.1 aplicado, confira se
+backend/.env tem DATABASE_URL e JWT_SECRET_KEY. Na raiz, ative as contas
+fictícias abaixo. O script pede a senha e a confirmação sem eco no terminal.
+Contas já ativadas mantêm a senha definida anteriormente.
+
+~~~powershell
+.\backend\.venv\Scripts\python.exe backend/activate_demo_account.py demo-centro
+.\backend\.venv\Scripts\python.exe backend/activate_demo_account.py demo-norte
+.\backend\.venv\Scripts\python.exe backend/activate_demo_account.py demo-multi
+.\iniciar_tudo.bat
+~~~
+
+Abra http://127.0.0.1:8000/docs. Para cada conta, faça POST /api/auth/login
+com o e-mail fictício correspondente e use o access_token em Authorize.
+Troque o token ao mudar de conta. Use GET /api/queues/me para conferir as
+filas e o papel associado a cada unidade.
+
+| Conta | Aceite esperado |
+| --- | --- |
+| centro@example.invalid | Consulta e emite na fila clinica-vida. Recebe 403 ao chamar nessa fila ou acessar a fila do Norte. |
+| norte@example.invalid | Consulta, chama e conclui na fila clinica-vida-norte. Recebe 403 ao emitir ou acessar a fila do Centro. |
+| multi@example.invalid | Opera como administrador na fila do Centro e como profissional na fila do Norte. Recebe 403 ao tentar emitir no Norte. |
+
+O Norte começa sem senhas. Para exercitar uma chamada bem-sucedida no
+Norte, o banco de testes precisa de uma senha em espera naquela fila.
+A suíte automatizada valida o WebSocket com sessões independentes e
+revogação de vínculo. As telas de seleção da unidade entram no 4.3.
+
+Com DATABASE_URL configurada, o login usa contas persistidas. A conta de
+demonstração de backend/.env é usada no modo em memória. O campo role do
+login continua com o valor company para compatibilidade com o painel.
+O papel efetivo vem de GET /api/queues/me e é aplicado pelo servidor.

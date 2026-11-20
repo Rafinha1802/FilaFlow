@@ -91,7 +91,7 @@ def test_authentication_required(client, authorization):
 def test_concurrent_issuance_has_unique_numbers():
     data = ManualTicketRequest(**PAYLOAD)
     with ThreadPoolExecutor(max_workers=8) as executor:
-        created = list(executor.map(lambda _: tickets.create_manual_ticket(data), range(40)))
+        created = list(executor.map(lambda _: tickets.create_manual_ticket(data, "demo-company"), range(40)))
     assert {item.ticket_number for item in created} == {f"#{n}" for n in range(49, 89)}
     assert len(tickets._tickets) == 40
 
@@ -150,11 +150,11 @@ def test_queue_read_and_next_require_authentication(client, method, path):
 
 def test_concurrent_calls_never_call_the_same_ticket_twice():
     for _ in range(20):
-        tickets.create_manual_ticket(ManualTicketRequest(**PAYLOAD))
+        tickets.create_manual_ticket(ManualTicketRequest(**PAYLOAD), "demo-company")
     with ThreadPoolExecutor(max_workers=8) as executor:
-        results = list(executor.map(lambda _: tickets.call_next_ticket("clinica-vida"), range(30)))
+        results = list(executor.map(lambda _: tickets.call_next_ticket("clinica-vida", "demo-company"), range(30)))
     called = [r.called_ticket.ticket_number for r in results if r.called_ticket]
     assert len(called) == 20
     assert len(set(called)) == 20
     assert sum(r.called_ticket is None for r in results) == 10
-    assert tickets.get_queue_state("clinica-vida").remaining_queue == []
+    assert tickets.get_queue_state("clinica-vida", "demo-company").remaining_queue == []

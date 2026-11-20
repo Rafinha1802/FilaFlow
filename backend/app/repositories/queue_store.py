@@ -34,6 +34,19 @@ def lock_queue(conn, queue_id: str) -> None:
         raise HTTPException(404, "Fila não encontrada.")
 
 
+def require_queue_access(conn, queue_id: str, account_id: str, roles: tuple[str, ...] = ()) -> None:
+    membership = conn.execute("""
+        SELECT m.role
+        FROM queue_units qu
+        JOIN unit_memberships m ON m.unit_id = qu.unit_id
+        JOIN accounts a ON a.id = m.account_id
+        WHERE qu.queue_id = %s AND m.account_id = %s AND a.is_active
+        FOR SHARE OF qu, m, a
+    """, (queue_id, account_id)).fetchone()
+    if membership is None or (roles and membership["role"] not in roles):
+        raise HTTPException(403, "Acesso à fila não permitido.")
+
+
 def to_ticket(row) -> Ticket:
     return Ticket(ticket_number=f"#{row['id']}", **row)
 
@@ -50,14 +63,16 @@ def read_state(conn, queue_id: str) -> QueueState:
     )
 
 
-def get_queue_state(url: str, queue_id: str) -> QueueState:
+def get_queue_state(url: str, queue_id: str, account_id: str) -> QueueState:
     with connection(url) as conn:
+        require_queue_access(conn, queue_id, account_id)
         lock_queue(conn, queue_id)
         return read_state(conn, queue_id)
 
 
-def create_manual_ticket(url: str, data: ManualTicketRequest) -> Ticket:
+def create_manual_ticket(url: str, data: ManualTicketRequest, account_id: str) -> Ticket:
     with connection(url) as conn:
+        require_queue_access(conn, data.queue_id, account_id, ("admin", "reception"))
         lock_queue(conn, data.queue_id)
         row = conn.execute("""
             INSERT INTO tickets (queue_id, customer_name, service_name, is_priority)
@@ -67,8 +82,9 @@ def create_manual_ticket(url: str, data: ManualTicketRequest) -> Ticket:
         return to_ticket(row)
 
 
-def call_next_ticket(url: str, queue_id: str) -> NextTicketResponse:
+def call_next_ticket(url: str, queue_id: str, account_id: str) -> NextTicketResponse:
     with connection(url) as conn:
+        require_queue_access(conn, queue_id, account_id, ("admin", "professional"))
         lock_queue(conn, queue_id)
         state = read_state(conn, queue_id)
         if not state.remaining_queue:
@@ -83,8 +99,9 @@ def call_next_ticket(url: str, queue_id: str) -> NextTicketResponse:
         )
 
 
-def finish_current_ticket(url: str, queue_id: str, ticket_number: str) -> QueueState:
+def finish_current_ticket(url: str, queue_id: str, ticket_number: str, account_id: str) -> QueueState:
     with connection(url) as conn:
+        require_queue_access(conn, queue_id, account_id, ("admin", "professional"))
         lock_queue(conn, queue_id)
         state = read_state(conn, queue_id)
         if not state.active_ticket or state.active_ticket.ticket_number != ticket_number:

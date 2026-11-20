@@ -35,3 +35,9 @@ Consulte o [registro de planejamento dos checkpoints 4 a 6](planejamento-checkpo
 
 A revisão do modelo e dos papéis por unidade está no
 [registro do checkpoint 4.1](checkpoint-4-1-modelo-de-unidades.md).
+
+## Validação do checkpoint 4.2
+
+O responsável concluiu e aprovou o teste manual das permissões por unidade.
+O [registro do checkpoint 4.2](checkpoint-4-2-autorizacao-por-unidade.md)
+descreve as evidências e a interpretação das respostas da API.
