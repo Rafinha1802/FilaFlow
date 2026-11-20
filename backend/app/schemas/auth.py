@@ -13,7 +13,7 @@ class LoginRequest(BaseModel):
 class AuthUser(BaseModel):
     id: str = "demo-company"
     email: str
-    role: Literal["company"] = "company"
+    role: Literal["company", "client"] = "company"
 
 
 class LoginResponse(BaseModel):

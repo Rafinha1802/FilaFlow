@@ -16,6 +16,14 @@ com contas persistidas quando o PostgreSQL está configurado.
 a próxima senha. Ambos exigem autenticação e o parâmetro `queue_id`.
 `/ws` avisa os painéis empresariais autenticados sobre emissões e chamadas.
 
+## Pré-check-in do cliente
+
+A API oferece POST /api/pre-checkins e GET /api/pre-checkins/me para contas
+de cliente. Recepção e administrador da unidade consultam os pedidos
+pendentes e confirmam a mesma senha em POST /api/pre-checkins/{ticket_id}/confirm.
+A migração 004 e a ativação das contas estão no
+[roteiro do checkpoint 5.1](../docs/desenvolvimento/ambiente-local.md#validar-pré-check-in-e-confirmação-checkpoint-51).
+
 ## Arquivos e responsabilidades
 
 - `app/__init__.py`: identifica o pacote Python da aplicação.

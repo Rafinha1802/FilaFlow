@@ -34,7 +34,9 @@ def test_unit_identity_migration(with_existing_ticket):
                     INSERT INTO tickets (queue_id, customer_name, service_name, is_priority, status)
                     VALUES ('clinica-vida', 'Pessoa fictícia', 'Teste', true, 'active')
                 """)
-            before = conn.execute("SELECT * FROM tickets").fetchall()
+            original_columns = ("id, queue_id, customer_name, service_name, is_priority, status, "
+                                "issued_at, called_at, finished_at")
+            before = conn.execute(f"SELECT {original_columns} FROM tickets").fetchall()
 
             apply("003_create_unit_identity.sql")
             if with_existing_ticket:
@@ -45,7 +47,10 @@ def test_unit_identity_migration(with_existing_ticket):
             apply("003_create_unit_identity.sql")
             apply("seed_unit_identity_demo.sql")
 
-            assert conn.execute("SELECT * FROM tickets").fetchall() == before
+            apply("004_create_precheckins.sql")
+            apply("004_create_precheckins.sql")
+            assert conn.execute(f"SELECT {original_columns} FROM tickets").fetchall() == before
+            assert conn.execute("SELECT count(*) FROM tickets WHERE waiting_since IS NULL").fetchone() == (0,)
             assert conn.execute("SELECT count(*) FROM units").fetchone() == (2,)
             assert conn.execute("SELECT count(*) FROM queue_units").fetchone() == (2,)
             assert conn.execute("""

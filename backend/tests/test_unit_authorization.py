@@ -31,7 +31,7 @@ def operational_session(monkeypatch):
             password = secrets.token_urlsafe(24)
             with psycopg.connect(scoped_url, autocommit=True) as conn:
                 for name in ("001_create_queues.sql", "002_create_tickets.sql",
-                             "003_create_unit_identity.sql", "seed_unit_identity_demo.sql"):
+                             "003_create_unit_identity.sql", "004_create_precheckins.sql", "seed_unit_identity_demo.sql", "seed_client_demo.sql"):
                     conn.execute((directory / name).read_text(encoding="utf-8-sig"))
                 conn.execute("UPDATE accounts SET is_active = true, password_hash = %s",
                              (password_hasher.hash(password),))

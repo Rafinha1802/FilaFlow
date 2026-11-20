@@ -52,7 +52,7 @@ def login(email: str, password: str) -> LoginResponse:
             matches = False
         if not account or not matches:
             raise unauthorized()
-        return issue_token(AuthUser(id=account["id"], email=account["email"]), account["id"],
+        return issue_token(AuthUser(id=account["id"], email=account["email"], role=account["role"]), account["id"],
                            key, DATABASE_TOKEN_ISSUER)
 
     settings = require_auth_settings()
@@ -104,7 +104,7 @@ def verify_token(token: str) -> AuthUser:
         account = active_account(url, account_id=claims["sub"])
         if not account:
             raise unauthorized()
-        return AuthUser(id=account["id"], email=account["email"])
+        return AuthUser(id=account["id"], email=account["email"], role=account["role"])
 
     if claims["sub"] != settings.email:
         raise unauthorized()

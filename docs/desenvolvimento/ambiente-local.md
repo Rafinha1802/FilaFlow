@@ -199,3 +199,64 @@ As contas precisam estar ativadas conforme o roteiro anterior.
 O seletor mostra somente as filas que a API autoriza para a conta atual.
 Em cada opção aparecem empresa, unidade, serviço e sala. O papel fica
 visível ao lado do seletor. As operações oficiais usam a fila selecionada.
+
+### Validar pré-check-in e confirmação (checkpoint 5.1)
+
+Na DEVBackEnd, com o PostgreSQL local saudável e as migrações 001 a 003
+já aplicadas, encerre o backend antes de aplicar a migração 004.
+Ela preserva o identificador, o estado e os horários das senhas anteriores.
+
+~~~powershell
+Get-Content -Raw -Encoding utf8 backend/migrations/004_create_precheckins.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U temfyla -d temfyla
+Get-Content -Raw -Encoding utf8 backend/migrations/seed_client_demo.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U temfyla -d temfyla
+& "./backend/.venv/Scripts/python.exe" backend/activate_demo_account.py demo-cliente
+& "./backend/.venv/Scripts/python.exe" backend/activate_demo_account.py demo-cliente-2
+& "./iniciar_tudo.bat"
+~~~
+
+As contas cliente@example.invalid e cliente-2@example.invalid usam senhas
+escolhidas durante a ativação. No Swagger, faça login em /api/auth/login
+e informe o access_token em Authorize. Essas contas recebem role client
+e podem criar e consultar seus próprios pré-check-ins.
+
+1. Com a conta cliente@example.invalid, execute POST /api/pre-checkins
+   com o corpo abaixo. Guarde o id retornado. O status esperado é pending,
+   e waiting_since fica vazio.
+2. Repita o mesmo corpo. O id e a senha devem continuar iguais.
+3. Troque request_id por um UUID novo mantendo a fila. Enquanto a primeira
+   senha estiver aberta, a API responde 409.
+4. Com a conta cliente-2@example.invalid, execute GET /api/pre-checkins/me.
+   A senha criada pela primeira conta deve ficar fora da resposta.
+5. Com centro@example.invalid, execute GET /api/pre-checkins usando
+   queue_id clinica-vida. O pré-check-in deve aparecer. Em GET /api/tickets,
+   ele ainda fica fora da espera.
+6. Com o token da recepção do Centro, execute
+   POST /api/pre-checkins/{ticket_id}/confirm usando o id guardado e o
+   corpo {"is_priority": false}. Confira status waiting, confirmed_at e
+   waiting_since preenchidos. Repita a confirmação e confira o mesmo id
+   e os mesmos horários.
+7. Confira no DBeaver o mesmo registro em tickets. A coluna confirmed_by
+   indica a conta que confirmou. Faça GET /api/tickets para conferir a
+   entrada na fila. O painel empresarial pode chamar e concluir a senha.
+8. Tente confirmar com cliente@example.invalid ou norte@example.invalid.
+   O resultado esperado é 403. Com o token do cliente original,
+   GET /api/pre-checkins/me deve continuar mostrando a mesma senha e
+   o estado persistido após confirmação e chamada.
+
+Corpo do primeiro pedido, usando um request_id novo para cada intenção
+de entrada na fila. Para repetir uma requisição incerta, reutilize o
+request_id original.
+
+~~~json
+{
+  "queue_id": "clinica-vida",
+  "request_id": "4e443eba-c37c-4c80-b061-f61ec1904ccd"
+}
+~~~
+
+A identidade e o nome vêm da conta de cliente autenticada. O serviço vem
+do catálogo da fila. A recepção define a prioridade na confirmação.
+A ordem entre senhas da mesma prioridade usa a entrada efetiva na espera.
+Uma conta pode ter senhas abertas em filas diferentes. Cada conta admite
+uma senha aberta por fila. Depois da conclusão, pode enviar um novo pedido
+com outro request_id.

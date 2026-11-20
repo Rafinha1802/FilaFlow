@@ -56,3 +56,18 @@ os roteiros das duas branches. O build e os 42 testes JavaScript passaram,
 assim como os 65 testes Python com PostgreSQL em schemas descartáveis.
 O teste manual do conjunto na Homolog é a verificação seguinte, antes
 da promoção para main.
+
+## Desenvolvimento do checkpoint 5.1
+
+O [registro do pré-check-in persistido](checkpoint-5-1-precheckin.md)
+descreve a decisão sobre confirmação, ordem de espera e repetição de pedidos.
+O roteiro manual está no guia de ambiente local.
+
+
+## Aceite do checkpoint 5.1
+
+Em 20 de novembro de 2026, o responsável aprovou os oito cenários manuais
+do pré-check-in e da confirmação pela recepção. O
+[histórico do checkpoint 5.1](checkpoint-5-1-precheckin.md) reúne o aceite
+e o resultado dos 68 testes Python com PostgreSQL.
+O próximo checkpoint é o 5.2 na DEVBackEnd.

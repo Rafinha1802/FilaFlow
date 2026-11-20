@@ -13,7 +13,7 @@ from app.services.auth import password_hasher
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("account", choices=("demo-centro", "demo-norte", "demo-multi", "demo-recepcao-norte"))
+    parser.add_argument("account", choices=("demo-centro", "demo-norte", "demo-multi", "demo-recepcao-norte", "demo-cliente", "demo-cliente-2"))
     parser.add_argument("--env-file", type=Path, default=Path(__file__).parent / ".env")
     args = parser.parse_args()
     load_dotenv(args.env_file)

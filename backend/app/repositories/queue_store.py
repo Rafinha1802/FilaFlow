@@ -55,7 +55,7 @@ def read_state(conn, queue_id: str) -> QueueState:
     rows = conn.execute("""
         SELECT id, queue_id, customer_name, service_name, is_priority, status
         FROM tickets WHERE queue_id = %s AND status IN ('waiting', 'active')
-        ORDER BY is_priority DESC, id
+        ORDER BY is_priority DESC, waiting_since, id
     """, (queue_id,)).fetchall()
     return QueueState(
         active_ticket=next((to_ticket(row) for row in rows if row["status"] == "active"), None),

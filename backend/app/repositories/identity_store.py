@@ -7,8 +7,10 @@ from app.schemas.queues import OperationalQueue
 def active_account(url: str, *, email: str | None = None, account_id: str | None = None):
     with connection(url) as conn:
         return conn.execute("""
-            SELECT id, email, password_hash FROM accounts
-            WHERE is_active AND (email = %s OR id = %s)
+            SELECT a.id, a.email, a.password_hash,
+                   CASE WHEN p.account_id IS NULL THEN 'company' ELSE 'client' END AS role
+            FROM accounts a LEFT JOIN client_profiles p ON p.account_id = a.id
+            WHERE a.is_active AND (a.email = %s OR a.id = %s)
         """, (email, account_id)).fetchone()
 
 
