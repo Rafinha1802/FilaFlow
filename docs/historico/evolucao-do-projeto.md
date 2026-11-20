@@ -41,3 +41,18 @@ A revisão do modelo e dos papéis por unidade está no
 O responsável concluiu e aprovou o teste manual das permissões por unidade.
 O [registro do checkpoint 4.2](checkpoint-4-2-autorizacao-por-unidade.md)
 descreve as evidências e a interpretação das respostas da API.
+
+## Validação do checkpoint 4.3
+
+O responsável aprovou a seleção operacional e a visibilidade das ações.
+O [registro do checkpoint 4.3](checkpoint-4-3-selecao-operacional.md)
+descreve a evolução e as verificações realizadas.
+
+## Integração dos checkpoints 4.1 a 4.3 na Homolog
+
+A integração reuniu a identidade e as permissões por unidade, a recepção
+fictícia do Norte e a seleção operacional no painel. O guia local recebeu
+os roteiros das duas branches. O build e os 42 testes JavaScript passaram,
+assim como os 65 testes Python com PostgreSQL em schemas descartáveis.
+O teste manual do conjunto na Homolog é a verificação seguinte, antes
+da promoção para main.

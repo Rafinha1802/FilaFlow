@@ -4,7 +4,7 @@ import {
   AUTH_CLEARED_EVENT, clearAuth, fetchCurrentUser, fetchMyQueues,
   getStoredUser, getToken, loginApi, setStoredUser, setToken,
   addManualTicketApi,
-  callNextTicketApi, fetchQueueStateApi,
+  callNextTicketApi, fetchQueueStateApi, finishCurrentTicketApi,
   setupQueueWebSocket,
 } from '../src/services/api.js';
 
@@ -78,7 +78,7 @@ test('resposta sem token não libera acesso', async () => {
 test('consulta sem token não tenta autenticação automática', async () => {
   const fetchMock = mock.method(globalThis, 'fetch', async () => assert.fail('Não deve chamar fetch'));
   assert.equal(await fetchCurrentUser(), null);
-  assert.equal(await fetchMyQueues(), null);
+  await assert.rejects(fetchMyQueues(), /Entre na sua conta/);
   assert.equal(fetchMock.mock.callCount(), 0);
 });
 
@@ -366,4 +366,47 @@ test('falha ao criar WebSocket não interrompe o painel e pode ser cancelada', (
   connection.close();
   mock.timers.tick(10000);
   assert.equal(attempts, 1);
+});
+
+test('filas operacionais retornam os papéis por unidade com a sessão atual', async () => {
+  setToken('session-test');
+  const queues = [
+    { id: 'center', unitId: 'unit-center', role: 'admin' },
+    { id: 'north', unitId: 'unit-north', role: 'professional' },
+  ];
+  mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, '/api/queues/me');
+    assert.equal(options.headers.Authorization, 'Bearer session-test');
+    return Response.json(queues);
+  });
+  assert.deepEqual(await fetchMyQueues(), queues);
+});
+
+test('falha na consulta das filas operacionais é apresentada como erro', async () => {
+  setToken('session-test');
+  mock.method(globalThis, 'fetch', async () => new Response('', { status: 503 }));
+  await assert.rejects(fetchMyQueues(), /Não foi possível carregar/);
+});
+
+test('resposta sem papel operacional válido é rejeitada', async () => {
+  setToken('session-test');
+  mock.method(globalThis, 'fetch', async () => Response.json([{ id: 'center', role: 'company' }]));
+  await assert.rejects(fetchMyQueues(), /Resposta de filas inválida/);
+});
+
+test('consulta, chamada e conclusão usam a fila operacional informada', async () => {
+  setToken('session-test');
+  const urls = [];
+  mock.method(globalThis, 'fetch', async (url) => {
+    urls.push(url);
+    return Response.json({ active_ticket: null, remaining_queue: [], called_ticket: null });
+  });
+  await fetchQueueStateApi('north');
+  await callNextTicketApi('north');
+  await finishCurrentTicketApi('north', '#50');
+  assert.deepEqual(urls, [
+    '/api/tickets?queue_id=north',
+    '/api/tickets/next?queue_id=north',
+    '/api/tickets/finish?queue_id=north&ticket_number=%2350',
+  ]);
 });

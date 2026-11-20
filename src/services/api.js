@@ -145,14 +145,15 @@ export async function fetchQueues() {
 }
 
 export async function fetchMyQueues() {
-  try {
-    const res = await fetchWithAuth(`${API_BASE}/queues/me`);
-    if (!res.ok) throw new Error('Falha ao buscar filas da empresa');
-    return await res.json();
-  } catch (err) {
-    console.warn('[TemFyla API] Erro ao buscar /queues/me:', err);
-    return null;
-  }
+  const res = await fetchWithAuth(`${API_BASE}/queues/me`);
+  if (!res.ok) throw new Error('Não foi possível carregar suas filas. Recarregue a página.');
+  const queues = await res.json();
+  if (!Array.isArray(queues) || !queues.every((queue) =>
+    typeof queue.id === 'string' && queue.id.length > 0 &&
+    (queue.unitId === null || typeof queue.unitId === 'string') &&
+    ['admin', 'reception', 'professional'].includes(queue.role)
+  )) throw new Error('Resposta de filas inválida. Entre novamente.');
+  return queues;
 }
 
 export async function callNextTicketApi(queueId = 'clinica-vida') {

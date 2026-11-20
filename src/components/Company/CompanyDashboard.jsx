@@ -43,6 +43,12 @@ export default function CompanyDashboard({
   activeAttendingTicket,
   waitingQueue,
   queueBusy = false,
+  operationalQueues = [],
+  selectedOperationalQueue,
+  onSelectOperationalQueue,
+  selectionBusy = false,
+  canIssue = false,
+  canAttend = false,
   queueError = '',
   queueActionError = '',
   onDismissQueueActionError,
@@ -178,7 +184,7 @@ export default function CompanyDashboard({
   };
 
   const handleCallNextWithSound = async () => {
-    if (queueBusy) return;
+    if (queueBusy || !canAttend) return;
     const nextTicket = await onCallNext();
     if (!nextTicket) return;
     playCallAnnouncement(nextTicket.ticket_number, nextTicket.customer_name, businessData.room);
@@ -198,7 +204,7 @@ export default function CompanyDashboard({
 
   const handleCreateManualTicket = async (e) => {
     e.preventDefault();
-    if (isIssuingTicket || queueBusy) return;
+    if (isIssuingTicket || queueBusy || !canIssue) return;
     if (!manualName.trim()) {
       setManualError('Informe o nome do cliente ou paciente.');
       return;
@@ -462,7 +468,8 @@ export default function CompanyDashboard({
         {/* Dashboard Topbar Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* Nova Senha Balcão */}
-          <button
+          {canIssue && (
+            <button
             className="btn-primary"
             onClick={() => setShowManualModal(true)}
             title="Emitir senha presencial rápida de balcão"
@@ -472,6 +479,7 @@ export default function CompanyDashboard({
             <Plus size={14} />
             <span className="hidden-mobile">Nova Senha Balcão</span>
           </button>
+          )}
 
           {/* Modo Telão TV */}
           <button
@@ -599,6 +607,27 @@ export default function CompanyDashboard({
           </button>
         </div>
       </header>
+      <div style={{ padding: '12px 18px', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+        <label htmlFor="operational-queue">Unidade e fila</label>
+        <select
+          id="operational-queue"
+          value={selectedOperationalQueue?.id || ''}
+          onChange={(event) => onSelectOperationalQueue(event.target.value)}
+          disabled={selectionBusy || operationalQueues.length === 0}
+        >
+          {operationalQueues.length === 0 && <option value="">Nenhuma fila disponível</option>}
+          {operationalQueues.map((queue) => (
+            <option key={queue.id} value={queue.id}>
+              {queue.companyName} · {queue.unitName} · {queue.serviceName} ({queue.room})
+            </option>
+          ))}
+        </select>
+        {selectedOperationalQueue && (
+          <span>Papel nesta unidade: {{
+            admin: 'Administrador', reception: 'Recepção', professional: 'Profissional'
+          }[selectedOperationalQueue.role]}</span>
+        )}
+      </div>
       {queueError && <p role="alert">{queueError}</p>}
 
       {/* Active Reception Notice Banner */}
@@ -832,6 +861,7 @@ export default function CompanyDashboard({
                   <button
                     className="btn-ghost"
                     onClick={onFinishCurrent}
+                    disabled={queueBusy || !canAttend}
                     style={{ background: 'white', border: '1px solid #cbd5e1', fontSize: 12, padding: '8px 12px' }}
                   >
                     <CheckCircle2 size={14} color="#10b981" />
@@ -872,7 +902,7 @@ export default function CompanyDashboard({
                   <button
                     className="btn-call-next"
                     onClick={handleCallNextWithSound}
-                    disabled={queueBusy}
+                    disabled={queueBusy || !canAttend}
                     style={{ padding: '14px 28px', fontSize: 15 }}
                   >
                     <Play size={18} fill="white" />
@@ -958,7 +988,8 @@ export default function CompanyDashboard({
                 </span>
               </div>
 
-              <button
+              {canIssue && (
+            <button
                 className="btn-primary"
                 onClick={() => setShowManualModal(true)}
                 style={{ background: '#7c3aed', padding: '9px 18px', fontSize: 13 }}
@@ -967,6 +998,7 @@ export default function CompanyDashboard({
                 <Plus size={16} />
                 <span>Emitir Senha Presencial de Balcão</span>
               </button>
+          )}
             </div>
 
             {/* Toolbar: Search Input + Filter Pills */}
@@ -1130,7 +1162,7 @@ export default function CompanyDashboard({
                             <div style={{ display: 'inline-flex', gap: 6 }}>
                               <button
                                 onClick={handleCallNextWithSound}
-                                disabled={queueBusy}
+                                disabled={queueBusy || !canAttend}
                                 style={{
                                   padding: '5px 12px',
                                   borderRadius: 6,
@@ -2271,7 +2303,7 @@ export default function CompanyDashboard({
       )}
 
       {/* Manual Ticket Issuer Modal */}
-      {showManualModal && (
+      {canIssue && showManualModal && (
         <div className="ff-modal-overlay" onClick={() => { if (!isIssuingTicket) setShowManualModal(false); }}>
           <div className="ff-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="ff-modal-header">
@@ -2332,7 +2364,7 @@ export default function CompanyDashboard({
                   type="submit"
                   className="btn-primary"
                   style={{ background: '#7c3aed', width: '100%', justifyContent: 'center', padding: 12, marginTop: 8 }}
-                  disabled={isIssuingTicket || queueBusy}
+                  disabled={isIssuingTicket || queueBusy || !canIssue}
                 >
                   <Plus size={16} />
                   <span>{isIssuingTicket ? 'Emitindo...' : 'Imprimir & Inserir na Fila'}</span>

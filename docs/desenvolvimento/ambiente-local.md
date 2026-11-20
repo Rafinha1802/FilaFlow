@@ -173,3 +173,29 @@ O teste manual deve confirmar emissão no Norte e bloqueio de emissão no
 Centro. Chamada e conclusão ficam com as contas profissionais do Norte.
 A execução automatizada verifica esse ciclo e a preservação dos vínculos
 quando o seed é reaplicado.
+
+### Validar seleção operacional no painel (checkpoint 4.3)
+
+Na Homolog, valide o frontend e a API integrados com os checkpoints 4.1 a 4.3.
+As contas precisam estar ativadas conforme o roteiro anterior.
+
+1. Entre com multi@example.invalid em /empresa/login.
+2. No seletor Unidade e fila, confira Centro com papel Administrador e Norte
+   com papel Profissional.
+3. No Centro, emita uma senha fictícia e confirme a fila no DBeaver.
+4. Troque para o Norte. Confira o papel, os dados da fila selecionada e o
+   botão de emissão oculto. Chamada e conclusão seguem disponíveis
+   quando o estado da fila permite.
+5. Volte ao Centro e confira a senha emitida. Recarregue a página e confira
+   que o painel carrega uma fila permitida para a sessão.
+6. Saia e entre como centro@example.invalid. Confira apenas a fila Centro,
+   com emissão habilitada e chamada e conclusão desabilitadas.
+7. Saia e entre como norte@example.invalid. Confira apenas a fila Norte,
+   com emissão oculta. Repita a navegação com sessões independentes.
+8. Durante uma consulta em rede lenta, troque a fila. A resposta da fila
+   anterior deve ser descartada. Durante uma operação de gravação o seletor
+   fica desabilitado até o término da requisição.
+
+O seletor mostra somente as filas que a API autoriza para a conta atual.
+Em cada opção aparecem empresa, unidade, serviço e sala. O papel fica
+visível ao lado do seletor. As operações oficiais usam a fila selecionada.
