@@ -160,3 +160,16 @@ Com DATABASE_URL configurada, o login usa contas persistidas. A conta de
 demonstração de backend/.env é usada no modo em memória. O campo role do
 login continua com o valor company para compatibilidade com o painel.
 O papel efetivo vem de GET /api/queues/me e é aplicado pelo servidor.
+
+### Cenário complementar de recepção no Norte
+
+O seed inclui a conta demo-recepcao-norte, com e-mail
+recepcao-norte@example.invalid e papel reception apenas na Unidade Norte.
+Reaplique seed_unit_identity_demo.sql e ative a conta com o script
+activate_demo_account.py. Em um worktree sem configuração própria, o
+argumento --env-file permite selecionar o backend/.env local.
+
+O teste manual deve confirmar emissão no Norte e bloqueio de emissão no
+Centro. Chamada e conclusão ficam com as contas profissionais do Norte.
+A execução automatizada verifica esse ciclo e a preservação dos vínculos
+quando o seed é reaplicado.

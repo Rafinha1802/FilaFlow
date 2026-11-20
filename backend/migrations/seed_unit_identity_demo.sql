@@ -21,13 +21,15 @@ INSERT INTO accounts (id, email)
 VALUES
     ('demo-centro', 'centro@example.invalid'),
     ('demo-norte', 'norte@example.invalid'),
-    ('demo-multi', 'multi@example.invalid')
+    ('demo-multi', 'multi@example.invalid'),
+    ('demo-recepcao-norte', 'recepcao-norte@example.invalid')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO unit_memberships (account_id, unit_id, role)
 VALUES
     ('demo-centro', 'legacy:clinica-vida', 'reception'),
     ('demo-norte', 'demo:norte', 'professional'),
+    ('demo-recepcao-norte', 'demo:norte', 'reception'),
     ('demo-multi', 'legacy:clinica-vida', 'admin'),
     ('demo-multi', 'demo:norte', 'professional')
 ON CONFLICT (account_id, unit_id) DO NOTHING;

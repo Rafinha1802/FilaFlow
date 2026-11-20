@@ -65,6 +65,7 @@ def test_operational_roles_and_unit_isolation(operational_session):
     center = login(client, "centro", password)
     north = login(client, "norte", password)
     multi = login(client, "multi", password)
+    reception_north = login(client, "recepcao-norte", password)
     assert client.post("/api/auth/login", json={
         "email": "inactive@example.invalid", "password": password,
     }).status_code == 401
@@ -79,6 +80,21 @@ def test_operational_roles_and_unit_isolation(operational_session):
         assert client.get("/api/tickets", headers=headers(token), params={"queue_id": queue_id}).status_code == 403
         assert client.post("/api/tickets/next", headers=headers(token),
                            params={"queue_id": queue_id}).status_code == 403
+    assert issue(client, reception_north, "clinica-vida-norte").status_code == 201
+    assert issue(client, reception_north, "clinica-vida").status_code == 403
+    assert client.post("/api/tickets/next", headers=headers(reception_north),
+                       params={"queue_id": "clinica-vida-norte"}).status_code == 403
+    northern_call = client.post("/api/tickets/next", headers=headers(north),
+                               params={"queue_id": "clinica-vida-norte"})
+    assert northern_call.status_code == 200
+    northern_params = {
+        "queue_id": "clinica-vida-norte",
+        "ticket_number": northern_call.json()["called_ticket"]["ticket_number"],
+    }
+    assert client.post("/api/tickets/finish", headers=headers(reception_north),
+                       params=northern_params).status_code == 403
+    assert client.post("/api/tickets/finish", headers=headers(north),
+                       params=northern_params).status_code == 200
     params = {"queue_id": "clinica-vida"}
     assert client.post("/api/tickets/next", headers=headers(center), params=params).status_code == 403
     called = client.post("/api/tickets/next", headers=headers(multi), params=params)

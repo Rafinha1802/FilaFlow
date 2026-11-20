@@ -48,6 +48,10 @@ def test_unit_identity_migration(with_existing_ticket):
             assert conn.execute("SELECT * FROM tickets").fetchall() == before
             assert conn.execute("SELECT count(*) FROM units").fetchone() == (2,)
             assert conn.execute("SELECT count(*) FROM queue_units").fetchone() == (2,)
+            assert conn.execute("""
+                SELECT unit_id, role FROM unit_memberships
+                WHERE account_id = 'demo-recepcao-norte'
+            """).fetchall() == [("demo:norte", "reception")]
             assert conn.execute("SELECT count(*) FROM accounts WHERE is_active").fetchone() == (0,)
             assert conn.execute("""
                 SELECT unit_id, role FROM unit_memberships

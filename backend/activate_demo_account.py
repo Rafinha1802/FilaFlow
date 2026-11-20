@@ -13,9 +13,10 @@ from app.services.auth import password_hasher
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("account", choices=("demo-centro", "demo-norte", "demo-multi"))
+    parser.add_argument("account", choices=("demo-centro", "demo-norte", "demo-multi", "demo-recepcao-norte"))
+    parser.add_argument("--env-file", type=Path, default=Path(__file__).parent / ".env")
     args = parser.parse_args()
-    load_dotenv(Path(__file__).parent / ".env")
+    load_dotenv(args.env_file)
     url = get_database_url()
     if not url:
         raise SystemExit("Configure DATABASE_URL no ambiente local.")
