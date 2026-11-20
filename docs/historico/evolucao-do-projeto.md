@@ -41,3 +41,9 @@ A revisão do modelo e dos papéis por unidade está no
 O responsável concluiu e aprovou o teste manual das permissões por unidade.
 O [registro do checkpoint 4.2](checkpoint-4-2-autorizacao-por-unidade.md)
 descreve as evidências e a interpretação das respostas da API.
+
+## Validação do checkpoint 4.3
+
+O responsável aprovou a seleção operacional e a visibilidade das ações.
+O [registro do checkpoint 4.3](checkpoint-4-3-selecao-operacional.md)
+descreve a evolução e as verificações realizadas.
