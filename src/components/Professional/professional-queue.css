@@ -1,0 +1,14 @@
+.professional-queue-page { min-height: 100vh; padding: 24px 16px; background: #f8f7fc; color: #1e293b; }
+.professional-queue-container { max-width: 1100px; margin: auto; display: grid; gap: 20px; }
+.professional-queue-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.professional-queue-heading h1, .professional-queue-heading h2 { margin: 0; }
+.professional-queue-heading label { display: grid; gap: 8px; max-width: 100%; }
+.professional-queue-heading select { max-width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; background: white; color: inherit; font: inherit; }
+.professional-queue-card { padding: 24px; background: white; border-radius: 20px; border: 1px solid #e9e5f3; display: grid; gap: 12px; }
+.professional-queue-card h2, .professional-queue-card p { margin: 0; }
+.professional-queue-number { font-size: 36px; color: #7c3aed; }
+.professional-queue-list { padding-left: 24px; margin: 0; }
+.professional-queue-list li { padding: 16px 0; border-bottom: 1px solid #e9e5f3; }
+.professional-queue-list li span { margin-left: 12px; overflow-wrap: anywhere; }
+.professional-queue-priority { color: #9a3412; font-weight: 700; }
+.professional-queue-error { padding: 16px; background: #fff1f2; color: #9f1239; border-radius: 12px; }

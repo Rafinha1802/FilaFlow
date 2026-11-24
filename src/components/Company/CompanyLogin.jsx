@@ -7,7 +7,8 @@ export default function CompanyLogin({
   onLoginSuccess,
   onGoToSignup,
   onCancel,
-  initialError = ''
+  initialError = '',
+  professionalMode = false
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,9 +48,9 @@ export default function CompanyLogin({
         </div>
 
         <div className="ff-login-header">
-          <h2 className="ff-login-title">Acessar Painel da Empresa</h2>
+          <h2 className="ff-login-title">{professionalMode ? 'Acessar Consultório' : 'Acessar Painel da Empresa'}</h2>
           <p className="ff-login-desc">
-            Controle suas filas em tempo real, chame senhas e acompanhe métricas de atendimento.
+            {professionalMode ? 'Acompanhe suas filas e atenda os clientes chamados.' : 'Controle suas filas em tempo real, chame senhas e acompanhe métricas de atendimento.'}
           </p>
         </div>
 
@@ -91,13 +92,14 @@ export default function CompanyLogin({
           </div>
 
           <button type="submit" disabled={isSubmitting} className="ff-btn-submit" style={{ background: '#7c3aed' }}>
-            <span>{isSubmitting ? 'Entrando...' : 'Entrar no Painel Operacional'}</span>
+            <span>{isSubmitting ? 'Entrando...' : (professionalMode ? 'Entrar no Consultório' : 'Entrar no Painel Operacional')}</span>
             <ArrowRight size={16} style={{ display: 'inline', marginLeft: 6 }} />
           </button>
         </form>
 
         <div className="ff-login-divider"></div>
 
+        {!professionalMode && (<>
         {/* Demo Fast Login */}
         <button
           type="button"
@@ -133,6 +135,7 @@ export default function CompanyLogin({
             Cadastrar Gratuitamente
           </button>
         </div>
+        </>)}
       </div>
     </div>
   );

@@ -3,9 +3,10 @@ import { afterEach, beforeEach, mock, test } from 'node:test';
 import { getToken, setToken } from '../src/services/api.js';
 import {
   clearClientSession, getClientToken, loginClient, restoreClientSession,
-  submitPrecheckin, fetchClientTickets, confirmPrecheckin,
+  submitPrecheckin, fetchClientTickets, confirmPrecheckin, setupTicketWebSocket,
 } from '../src/services/precheckinApi.js';
 
+const originalWebSocket = Object.getOwnPropertyDescriptor(globalThis, 'WebSocket');
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
 const originalStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
 const customer = { id: 'client-test', email: 'customer@example.invalid', role: 'client' };
@@ -22,6 +23,9 @@ beforeEach(() => {
 });
 afterEach(() => {
   mock.restoreAll();
+  mock.timers.reset();
+  if (originalWebSocket) Object.defineProperty(globalThis, 'WebSocket', originalWebSocket);
+  else delete globalThis.WebSocket;
   if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
   else delete globalThis.window;
   if (originalStorage) Object.defineProperty(globalThis, 'localStorage', originalStorage);
@@ -109,4 +113,59 @@ test('recepção confirma a mesma senha e informa falha de autorização', async
   assert.equal((await confirmPrecheckin(63, true)).status, 'waiting');
   fetchMock.mock.mockImplementation(async () => new Response('', { status: 403 }));
   await assert.rejects(confirmPrecheckin(63, true), /confirmação falhou/);
+});
+
+function fakeSockets() {
+  mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
+  window.location = { protocol: 'http:', host: 'localhost:5174' };
+  const sockets = [];
+  class FakeSocket {
+    static OPEN = 1;
+    static CLOSING = 2;
+    readyState = 0;
+    sent = [];
+    constructor(url) { this.url = url; sockets.push(this); }
+    send(data) { this.sent.push(JSON.parse(data)); }
+    open() { this.readyState = 1; this.onopen(); }
+    receive(data) { this.onmessage({ data: JSON.stringify(data) }); }
+    close(code = 1000) { this.readyState = 3; this.onclose?.({ code }); }
+  }
+  Object.defineProperty(globalThis, 'WebSocket', { configurable: true, value: FakeSocket });
+  return sockets;
+}
+
+test('cliente assina a própria senha com credencial independente e recupera READY após queda', async () => {
+  await signIn();
+  setToken('company-token');
+  const sockets = fakeSockets();
+  const events = [];
+  const connection = setupTicketWebSocket(63, (event) => events.push(event.type));
+  assert.equal(sockets[0].url, 'ws://localhost:5174/ws/tickets');
+  sockets[0].open();
+  assert.deepEqual(sockets[0].sent[0], { type: 'subscribe', ticket_id: 63, token: 'client-token' });
+  sockets[0].receive({ type: 'READY', ticket_id: 63 });
+  sockets[0].receive({ type: 'TICKET_UPDATED', ticket_id: 64 });
+  sockets[0].receive({ type: 'TICKET_UPDATED', ticket_id: 63 });
+  assert.deepEqual(events, ['READY', 'TICKET_UPDATED']);
+  sockets[0].close(1006);
+  mock.timers.tick(2000);
+  assert.equal(sockets.length, 2);
+  sockets[1].open();
+  sockets[1].receive({ type: 'READY', ticket_id: 63 });
+  assert.equal(events.at(-1), 'READY');
+  connection.close();
+  assert.equal(getToken(), 'company-token');
+});
+
+test('recusa da assinatura encerra somente a sessão do cliente', async () => {
+  await signIn();
+  setToken('company-token');
+  const sockets = fakeSockets();
+  setupTicketWebSocket(63, () => {});
+  sockets[0].open();
+  sockets[0].close(1008);
+  mock.timers.tick(10000);
+  assert.equal(getClientToken(), null);
+  assert.equal(getToken(), 'company-token');
+  assert.equal(sockets.length, 1);
 });

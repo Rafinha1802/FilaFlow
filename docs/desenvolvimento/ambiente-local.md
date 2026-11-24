@@ -358,3 +358,39 @@ A rota /app usa a interface de pré-check-in integrada ao backend.
 A interface da recepção usa os pedidos pendentes retornados pela API.
 O cadastro aberto de cliente e a validação externa de convênio têm
 etapas próprias no produto.
+
+### Validar consultório integrado e jornada completa (checkpoint 5.4)
+
+Use a DEVFrontEnd com o backend do 5.2 e as migrações até 005 aplicadas.
+Inicie o sistema na raiz. A área profissional usa a autenticação
+operacional da API. Recepção e profissional devem usar perfis de navegador
+separados ou uma janela privada, pois compartilham a sessão operacional
+dentro do mesmo perfil. A sessão de cliente é independente.
+
+1. Em /app, entre como cliente@example.invalid e envie um pré-check-in
+   para a Unidade Norte com a recepção e o consultório abertos.
+2. No painel empresarial, entre como recepcao-norte@example.invalid
+   e confirme o pedido. Confira o mesmo número no cliente e na espera.
+3. Em outro perfil de navegador, abra /profissional e entre como
+   norte@example.invalid. Confira a fila atribuída da Unidade Norte,
+   o nome do cliente e a mesma senha na espera.
+4. Chame a próxima senha. Confira o atendimento atual no consultório
+   e a mudança para Sua senha foi chamada no cliente.
+5. Com outra senha aguardando, tente chamar novamente durante o
+   atendimento ativo. Confira o aviso de conclusão obrigatória.
+6. Conclua pelo consultório. Confira Atendimento concluído no cliente
+   e os horários persistidos no DBeaver. Chame a próxima senha.
+7. Recarregue o consultório e o cliente. O estado exibido deve
+   corresponder ao banco. Interrompa temporariamente a conexão e
+   reconecte. O evento READY provoca uma consulta ao estado atual.
+8. Saia no consultório e entre como centro@example.invalid.
+   Confira a mensagem de ausência de permissão de atendimento.
+   Com multi@example.invalid, confira as filas do Centro e Norte
+   e valide a troca de unidade.
+9. Repita a jornada com cliente-2@example.invalid e confirme que
+   somente suas senhas aparecem no app. O logout do cliente deve
+   preservar a sessão operacional e vice-versa.
+
+O consultório integrado apresenta a fila, o atendimento ativo e as ações
+confirmadas pelo servidor. A tela do cliente mantém a consulta periódica
+e passa a consultar também após os eventos individuais da senha.

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchMyQueues } from '../services/api';
 
-export function useOperationalQueues(token) {
+export function useOperationalQueues(token, roles = null) {
   const [catalog, setCatalog] = useState({ token: null, queues: [], error: '', loading: false });
   const [selection, setSelection] = useState({ token: null, id: '' });
 
@@ -21,7 +21,7 @@ export function useOperationalQueues(token) {
     return () => { active = false; };
   }, [token]);
 
-  const queues = token && catalog.token === token ? catalog.queues : [];
+  const queues = token && catalog.token === token ? catalog.queues.filter((queue) => !roles || roles.includes(queue.role)) : [];
   const selected = queues.find((queue) => selection.token === token && queue.id === selection.id) || queues[0] || null;
 
   return {

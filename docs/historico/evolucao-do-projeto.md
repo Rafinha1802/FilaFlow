@@ -92,3 +92,11 @@ registra o aceite, os 71 testes Python e o ajuste da exibição dos horários.
 A [integração das interfaces de cliente e recepção](checkpoint-5-3-interfaces-precheckin.md)
 foi testada e aprovada pelo responsável. O build e os 49 testes JavaScript
 passaram na DEVFrontEnd com a base de backend do checkpoint 5.2.
+
+
+## Desenvolvimento do checkpoint 5.4
+
+O [consultório integrado](checkpoint-5-4-consultorio-integrado.md) está
+testado e aprovado pelo responsável. A implementação conecta a operação
+profissional e o acompanhamento do cliente ao estado persistido.
+O build e os 51 testes JavaScript passaram.

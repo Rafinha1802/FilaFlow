@@ -1,3 +1,4 @@
+import { setupSubscription } from './liveConnection.js';
 import { fetchWithAuth } from './api.js';
 
 const TOKEN_KEY = 'temfyla_client_token';
@@ -133,4 +134,11 @@ export async function confirmPrecheckin(ticketId, isPriority) {
   const ticket = await response.json();
   if (!validateTicket(ticket) || ticket.id !== ticketId) throw new Error('Resposta de confirmação inválida.');
   return ticket;
+}
+
+export function setupTicketWebSocket(ticketId, onMessage) {
+  return setupSubscription({
+    onMessage, getToken: getClientToken, clearAuth: clearClientSession,
+    path: '/ws/tickets', field: 'ticket_id', id: ticketId,
+  });
 }

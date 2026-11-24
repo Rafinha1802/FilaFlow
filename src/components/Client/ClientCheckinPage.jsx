@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import BrandLogo from '../Common/BrandLogo';
 import {
   CLIENT_AUTH_CLEARED, clearClientSession, getClientToken, loginClient,
-  restoreClientSession, fetchClientQueues, fetchClientTickets, submitPrecheckin,
+  restoreClientSession, fetchClientQueues, fetchClientTickets, submitPrecheckin, setupTicketWebSocket,
 } from '../../services/precheckinApi.js';
 import './client-checkin.css';
 
@@ -92,6 +92,15 @@ export default function ClientCheckinPage({ onGoToLanding }) {
     const timer = setInterval(refresh, 5000);
     return () => { active = false; clearInterval(timer); };
   }, [user?.id, refreshKey]);
+
+  const liveTicketIds = user ? tickets.filter((ticket) => ticket.status !== 'finished').map((ticket) => ticket.id).join(',') : '';
+  useEffect(() => {
+    if (!liveTicketIds) return;
+    const sockets = liveTicketIds.split(',').map((id) => setupTicketWebSocket(Number(id), (event) => {
+      if (event.type === 'READY' || event.type === 'TICKET_UPDATED') setRefreshKey((key) => key + 1);
+    }));
+    return () => sockets.forEach((socket) => socket?.close());
+  }, [user?.id, liveTicketIds]);
 
   const handleLogin = async (event) => {
     event.preventDefault();

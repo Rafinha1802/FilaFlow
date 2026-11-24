@@ -5,22 +5,16 @@ import Navbar from './components/LandingPage/Navbar';
 import LandingPage from './components/LandingPage/LandingPage';
 import CompanyDashboard from './components/Company/CompanyDashboard';
 import CompanyLogin from './components/Company/CompanyLogin';
-import ProfessionalWorkspace from './components/Professional/ProfessionalWorkspace';
-import ProfessionalAuth from './components/Professional/ProfessionalAuth';
-import ProfessionalProfileView from './components/Professional/ProfessionalProfileView';
+import ProfessionalQueuePage from './components/Professional/ProfessionalQueuePage';
 import ClientCheckinPage from './components/Client/ClientCheckinPage';
 import QrScannerModal from './components/Client/QrScannerModal';
 import PreCheckinModal from './components/Client/PreCheckinModal';
 import QueueSearchModal from './components/Client/QueueSearchModal';
 import PricingModal from './components/Common/PricingModal';
 import CheckoutPage from './components/Checkout/CheckoutPage';
-import { INITIAL_QUEUES, REGISTERED_PROFESSIONALS } from './data/mockData';
+import { INITIAL_QUEUES } from './data/mockData';
 import {
-  getProfessionalSession,
-  setProfessionalSession,
   registerCompanyAndProfessionals,
-  logoutProfessional,
-  getStoredProfessionals,
   getPendingCompanyRegistration
 } from './services/authService';
 import {
@@ -52,12 +46,6 @@ export default function App() {
     isProfessionalLogin,
     isProfessionalRegister
   } = useAppRouter();
-
-  // Authentication State - Profissional (Consultório)
-  const [professionalUser, setProfessionalUser] = useState(() => getProfessionalSession());
-  const [activeProfessional, setActiveProfessional] = useState(() => {
-    return getProfessionalSession() || REGISTERED_PROFESSIONALS[0];
-  });
 
   // Pending Company Registration (passed to Checkout/Payment)
   const [pendingRegistrationData, setPendingRegistrationData] = useState(() => getPendingCompanyRegistration());
@@ -320,35 +308,8 @@ export default function App() {
     alert('O cadastro de empresas ainda não está disponível.');
   };
 
-  // Navegação e Controle de Autenticação - Profissional (Consultório)
-  const handleOpenProfessional = (professionalObj = null) => {
-    if (professionalObj) {
-      setProfessionalSession(professionalObj);
-      setProfessionalUser(professionalObj);
-      setActiveProfessional(professionalObj);
-      navigate('/profissional');
-    } else if (professionalUser) {
-      setActiveProfessional(professionalUser);
-      navigate('/profissional');
-    } else {
-      navigate('/profissional/login');
-    }
-  };
-
-  const handleProfessionalLoginSuccess = (pro) => {
-    setProfessionalSession(pro);
-    setProfessionalUser(pro);
-    setActiveProfessional(pro);
+  const handleOpenProfessional = () => {
     navigate('/profissional');
-    playChime();
-    showToast(`Consultório do(a) ${pro.name} aberto com sucesso!`);
-  };
-
-  const handleProfessionalLogout = () => {
-    logoutProfessional();
-    setProfessionalUser(null);
-    navigate('/profissional/login');
-    showToast('Sessão do consultório encerrada com sucesso.');
   };
 
   const handleOpenClient = () => {
@@ -733,7 +694,7 @@ export default function App() {
             onOpenMobileTest={handleOpenClient}
             onGoToSite={() => navigate('/')}
             onLogout={handleLogout}
-            onOpenProfessional={(pro) => handleOpenProfessional(pro)}
+            onOpenProfessional={handleOpenProfessional}
             onUpdateBusinessData={(newData) => {
               if (newData) setBusinessData(newData);
             }}
@@ -768,46 +729,7 @@ export default function App() {
 
       {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital ou Perfil/Login) */}
       {isProfessionalRoute && (
-        <>
-          {currentPath === '/profissional/perfil' ? (
-            <div style={{ background: '#f8fafc', minHeight: '100vh', padding: '20px 0' }}>
-              <ProfessionalProfileView
-                professional={professionalUser || activeProfessional}
-                onUpdateProfessional={(updatedPro) => {
-                  if (updatedPro) {
-                    setProfessionalUser(updatedPro);
-                    setActiveProfessional(updatedPro);
-                  }
-                }}
-                onGoBack={() => navigate('/profissional')}
-                showToast={showToast}
-              />
-            </div>
-          ) : currentPath === '/profissional/login' || currentPath === '/profissional/cadastro' ? (
-            <ProfessionalAuth
-              onLoginSuccess={handleProfessionalLoginSuccess}
-              onBackToSite={() => navigate('/')}
-              onGoToCompanyLogin={() => navigate('/empresa/login')}
-              onGoToClient={handleOpenClient}
-            />
-          ) : professionalUser ? (
-            <ProfessionalWorkspace
-              professional={professionalUser || activeProfessional}
-              allProfessionals={getStoredProfessionals()}
-              onSwitchProfessional={(pro) => handleOpenProfessional(pro)}
-              onLogout={handleProfessionalLogout}
-              onGoToSite={() => navigate('/')}
-              onOpenMobileView={() => navigate('/app')}
-            />
-          ) : (
-            <ProfessionalAuth
-              onLoginSuccess={handleProfessionalLoginSuccess}
-              onBackToSite={() => navigate('/')}
-              onGoToCompanyLogin={() => navigate('/empresa/login')}
-              onGoToClient={handleOpenClient}
-            />
-          )}
-        </>
+        <ProfessionalQueuePage onGoToSite={() => navigate('/')} onGoToClient={() => navigate('/app')} />
       )}
 
       {/* ROTA 4: /checkout (Página de Pagamento / Escolha de Planos com dados da Empresa) */}
