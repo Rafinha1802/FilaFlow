@@ -32,7 +32,7 @@ def read_queue_state(user: CurrentUser, queue_id: str = Query(min_length=1, max_
 async def call_next(user: CurrentUser, queue_id: str = Query(min_length=1, max_length=100)) -> NextTicketResponse:
     result = await run_in_threadpool(call_next_ticket, queue_id, user.id)
     if result.called_ticket is not None:
-        await notify_queue(queue_id, "TICKET_CALLED")
+        await notify_queue(queue_id, "TICKET_CALLED", int(result.called_ticket.ticket_number[1:]))
     return result
 
 
@@ -43,5 +43,5 @@ async def finish(
     ticket_number: str = Query(min_length=2, max_length=24),
 ) -> QueueState:
     result = await run_in_threadpool(finish_current_ticket, queue_id, ticket_number, user.id)
-    await notify_queue(queue_id, "QUEUE_UPDATED")
+    await notify_queue(queue_id, "QUEUE_UPDATED", int(ticket_number[1:]))
     return result

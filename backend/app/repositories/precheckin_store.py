@@ -6,7 +6,7 @@ from app.repositories.queue_store import connection, lock_queue, require_queue_a
 from app.schemas.precheckins import PrecheckinRequest, PrecheckinTicket
 
 COLUMNS = """id, queue_id, customer_name, service_name, is_priority, status,
-             issued_at, confirmed_at, waiting_since"""
+             issued_at, confirmed_at, waiting_since, called_at, finished_at"""
 
 
 def as_precheckin(row) -> PrecheckinTicket:
@@ -98,4 +98,15 @@ def confirm(url: str, ticket_id: int, account_id: str, is_priority: bool) -> Pre
                                    waiting_since = clock_timestamp(), is_priority = %s
                 WHERE id = %s RETURNING {COLUMNS}
             """, (account_id, is_priority, ticket_id)).fetchone()
+        return as_precheckin(row)
+
+
+def get_mine(url: str, ticket_id: int, account_id: str) -> PrecheckinTicket:
+    with connection(url) as conn:
+        require_client(conn, account_id)
+        row = conn.execute(f"""
+            SELECT {COLUMNS} FROM tickets WHERE id = %s AND client_account_id = %s
+        """, (ticket_id, account_id)).fetchone()
+        if row is None:
+            raise HTTPException(404, "Senha não encontrada.")
         return as_precheckin(row)

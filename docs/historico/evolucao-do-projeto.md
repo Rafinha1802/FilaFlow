@@ -71,3 +71,17 @@ do pré-check-in e da confirmação pela recepção. O
 [histórico do checkpoint 5.1](checkpoint-5-1-precheckin.md) reúne o aceite
 e o resultado dos 68 testes Python com PostgreSQL.
 O próximo checkpoint é o 5.2 na DEVBackEnd.
+
+## Desenvolvimento do checkpoint 5.2
+
+O [registro do acompanhamento individual](checkpoint-5-2-acompanhamento.md)
+descreve a atribuição profissional por fila e a recuperação do estado
+persistido após reconectar.
+
+
+## Aceite do checkpoint 5.2
+
+Em 24 de novembro de 2026, o responsável aprovou os oito pontos de
+validação de operação profissional e acompanhamento individual.
+O [histórico do checkpoint 5.2](checkpoint-5-2-acompanhamento.md)
+registra o aceite, os 71 testes Python e o ajuste da exibição dos horários.

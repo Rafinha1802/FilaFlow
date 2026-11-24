@@ -45,6 +45,13 @@ def require_queue_access(conn, queue_id: str, account_id: str, roles: tuple[str,
     """, (queue_id, account_id)).fetchone()
     if membership is None or (roles and membership["role"] not in roles):
         raise HTTPException(403, "Acesso à fila não permitido.")
+    if membership["role"] == "professional":
+        assignment = conn.execute("""
+            SELECT queue_id FROM professional_queues
+            WHERE account_id = %s AND queue_id = %s FOR SHARE
+        """, (account_id, queue_id)).fetchone()
+        if assignment is None:
+            raise HTTPException(403, "Acesso à fila não permitido.")
 
 
 def to_ticket(row) -> Ticket:

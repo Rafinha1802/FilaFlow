@@ -42,5 +42,13 @@ async def confirm_precheckin(
 ):
     response.headers["Cache-Control"] = "no-store"
     ticket = await run_in_threadpool(precheckins.confirm, ticket_id, user.id, data.is_priority)
-    await notify_queue(ticket.queue_id, "QUEUE_UPDATED")
+    await notify_queue(ticket.queue_id, "QUEUE_UPDATED", ticket.id)
     return ticket
+
+
+@router.get("/{ticket_id}", response_model=PrecheckinTicket)
+def read_my_ticket(
+    user: CurrentUser, response: Response, ticket_id: int = Path(gt=0),
+):
+    response.headers["Cache-Control"] = "no-store"
+    return precheckins.get_mine(ticket_id, user.id)

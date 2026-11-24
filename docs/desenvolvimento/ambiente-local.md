@@ -260,3 +260,60 @@ A ordem entre senhas da mesma prioridade usa a entrada efetiva na espera.
 Uma conta pode ter senhas abertas em filas diferentes. Cada conta admite
 uma senha aberta por fila. Depois da conclusão, pode enviar um novo pedido
 com outro request_id.
+
+### Validar operação profissional e acompanhamento (checkpoint 5.2)
+
+Com a migração 004 aplicada e as contas fictícias ativadas, encerre o
+backend e execute na raiz:
+
+~~~powershell
+Get-Content -Raw -Encoding utf8 backend/migrations/005_create_professional_queues.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U temfyla -d temfyla
+Get-Content -Raw -Encoding utf8 backend/migrations/seed_professional_queue_demo.sql | docker compose exec -T db psql -v ON_ERROR_STOP=1 -U temfyla -d temfyla
+& "./iniciar_tudo.bat"
+~~~
+
+A tabela professional_queues atribui a fila Norte às contas demo-norte e
+demo-multi. Profissionais precisam do vínculo com a unidade e da atribuição
+à fila para consultá-la, chamá-la, concluí-la ou assinar seus eventos.
+Recepção e administrador mantêm suas operações dentro da unidade.
+A migração cria a estrutura e o seed acrescenta somente as atribuições
+fictícias. Para contas e filas próprias, registre as atribuições
+explicitamente. O DBeaver permite conferir os vínculos.
+
+1. Entre como cliente@example.invalid no Swagger. Crie um pré-check-in
+   no Norte com um request_id novo, conforme o checkpoint 5.1.
+   Guarde o id numérico retornado.
+2. Use GET /api/pre-checkins/{ticket_id} com o token do cliente. Confira
+   pending. Execute o mesmo GET com cliente-2@example.invalid. Espere 404.
+3. Entre como recepcao-norte@example.invalid e confirme o pedido. Com o
+   token do cliente original, confira waiting e confirmed_at preenchido.
+4. Entre como norte@example.invalid. Confira a fila Norte em /api/queues/me.
+   Chame a próxima senha. Com o token do cliente original, consulte o id
+   guardado e confira active e called_at preenchido.
+5. Tente chamar novamente com outra senha em espera e um atendimento
+   ativo. Espere 409. Conclua com a conta profissional, informando o
+   ticket_number retornado na chamada. O cliente deve observar finished
+   e finished_at preenchido.
+6. Para observar eventos ao vivo, abra outro terminal na raiz e execute
+   o comando abaixo, substituindo 60 pelo id de uma senha do cliente.
+   O utilitário pede o login sem exibir a senha. Ele imprime o estado
+   inicial após READY e consulta novamente após cada atualização daquela senha.
+   Os horários são exibidos no fuso do computador, com o deslocamento UTC.
+   Na API, o sufixo Z indica UTC. Por exemplo, 15:14:39Z corresponde a
+   12:14:39-03:00. Ambos representam o mesmo instante.
+7. Encerre o acompanhamento com Ctrl+C, altere o estado pelo Swagger e
+   execute o utilitário novamente. Ele deve recuperar o estado atual.
+   Repita após reiniciar o backend para confirmar a persistência.
+8. Confira no DBeaver as linhas de tickets e professional_queues.
+   Uma fila adicional na mesma unidade só deve aparecer ao profissional
+   depois de receber uma atribuição explícita.
+
+~~~powershell
+& "./backend/.venv/Scripts/python.exe" backend/watch_my_ticket.py 60
+~~~
+
+A assinatura individual usa /ws/tickets. A primeira mensagem contém
+type subscribe, ticket_id e token. READY confirma a assinatura e
+TICKET_UPDATED avisa sobre confirmação, chamada ou conclusão.
+GET /api/pre-checkins/{ticket_id} fornece o estado persistido para a
+recuperação após reconectar. As assinaturas empresariais usam /ws.

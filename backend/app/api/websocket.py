@@ -6,13 +6,28 @@ import json
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from starlette.concurrency import run_in_threadpool
 
-from app.services.events import authorize_subscription, close_connection, connections
+from app.services.events import (
+    authorize_subscription, authorize_ticket_subscription, close_connection,
+    connections, ticket_connections,
+)
 
 router = APIRouter()
 
 
 @router.websocket("/ws")
 async def queue_websocket(socket: WebSocket) -> None:
+    await serve_subscription(socket)
+
+
+@router.websocket("/ws/tickets")
+async def ticket_websocket(socket: WebSocket) -> None:
+    await serve_subscription(socket, ticket_scope=True)
+
+
+async def serve_subscription(socket: WebSocket, ticket_scope: bool = False) -> None:
+    key = "ticket_id" if ticket_scope else "queue_id"
+    registry = ticket_connections if ticket_scope else connections
+    authorize = authorize_ticket_subscription if ticket_scope else authorize_subscription
     await socket.accept()
     try:
         # O token vai na primeira mensagem, não na URL nem nos logs de acesso.
@@ -21,20 +36,24 @@ async def queue_websocket(socket: WebSocket) -> None:
             await close_connection(socket, code=1008)
             return
         token = subscription.get("token")
-        queue_id = subscription.get("queue_id")
+        target = subscription.get(key)
         if not isinstance(token, str) or not token or len(token) > 4096:
             await close_connection(socket, code=1008)
             return
-        if not isinstance(queue_id, str) or not 1 <= len(queue_id) <= 100:
+        valid_target = (
+            type(target) is int and 0 < target < 2**63
+            if ticket_scope else isinstance(target, str) and 1 <= len(target) <= 100
+        )
+        if not valid_target:
             await close_connection(socket, code=1008)
             return
-        await run_in_threadpool(authorize_subscription, token, queue_id)
-        connections[socket] = (queue_id, token)
-        await socket.send_json({"type": "READY", "queue_id": queue_id})
+        await run_in_threadpool(authorize, token, target)
+        registry[socket] = (target, token)
+        await socket.send_json({"type": "READY", key: target})
 
         while True:
             message = await asyncio.wait_for(socket.receive_json(), timeout=45)
-            await run_in_threadpool(authorize_subscription, token, queue_id)
+            await run_in_threadpool(authorize, token, target)
             if not isinstance(message, dict) or message.get("type") != "ping":
                 await close_connection(socket, code=1008)
                 return
@@ -48,4 +67,4 @@ async def queue_websocket(socket: WebSocket) -> None:
     except (WebSocketDisconnect, RuntimeError, OSError):
         pass
     finally:
-        connections.pop(socket, None)
+        registry.pop(socket, None)

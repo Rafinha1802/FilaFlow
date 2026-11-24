@@ -28,3 +28,5 @@ class PrecheckinTicket(Ticket):
     issued_at: datetime
     confirmed_at: datetime | None
     waiting_since: datetime | None
+    called_at: datetime | None = None
+    finished_at: datetime | None = None

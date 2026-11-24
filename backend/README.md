@@ -24,6 +24,15 @@ pendentes e confirmam a mesma senha em POST /api/pre-checkins/{ticket_id}/confir
 A migração 004 e a ativação das contas estão no
 [roteiro do checkpoint 5.1](../docs/desenvolvimento/ambiente-local.md#validar-pré-check-in-e-confirmação-checkpoint-51).
 
+## Operação profissional e acompanhamento individual
+
+A migração 005 acrescenta as atribuições de filas aos profissionais.
+O cliente consulta a própria senha em GET /api/pre-checkins/{ticket_id}
+e pode assinar suas atualizações em /ws/tickets. O estado persistido inclui
+os horários de chamada e conclusão. O
+[roteiro do checkpoint 5.2](../docs/desenvolvimento/ambiente-local.md#validar-operação-profissional-e-acompanhamento-checkpoint-52)
+descreve a migração, o seed e o teste em sessões separadas.
+
 ## Arquivos e responsabilidades
 
 - `app/__init__.py`: identifica o pacote Python da aplicação.

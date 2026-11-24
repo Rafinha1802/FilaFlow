@@ -28,3 +28,7 @@ def list_pending(queue_id: str, account_id: str) -> list[PrecheckinTicket]:
 
 def confirm(ticket_id: int, account_id: str, is_priority: bool) -> PrecheckinTicket:
     return precheckin_store.confirm(database_url(), ticket_id, account_id, is_priority)
+
+
+def get_mine(ticket_id: int, account_id: str) -> PrecheckinTicket:
+    return precheckin_store.get_mine(database_url(), ticket_id, account_id)

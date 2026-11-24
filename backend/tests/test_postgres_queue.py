@@ -27,7 +27,7 @@ def test_postgres_ticket_lifecycle():
             scoped_url = make_conninfo(url, options=f"-c search_path={schema}")
             with psycopg.connect(scoped_url, autocommit=True) as conn:
                 for name in ("001_create_queues.sql", "002_create_tickets.sql",
-                             "003_create_unit_identity.sql", "004_create_precheckins.sql", "seed_unit_identity_demo.sql"):
+                             "003_create_unit_identity.sql", "004_create_precheckins.sql", "005_create_professional_queues.sql", "seed_unit_identity_demo.sql", "seed_professional_queue_demo.sql"):
                     conn.execute((migrations / name).read_text(encoding="utf-8-sig"))
 
                 conn.execute("""

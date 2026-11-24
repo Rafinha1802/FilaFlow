@@ -10,13 +10,16 @@ from app.core.config import get_database_url
 from app.repositories.queue_store import connection, require_queue_access
 from app.services.auth import verify_token
 from app.services.queues import list_queues
+from app.services.precheckins import get_mine
 
 # Acesso apenas pelo event loop: cada conexão guarda sua fila e seu token.
 connections: dict[WebSocket, tuple[str, str]] = {}
+ticket_connections: dict[WebSocket, tuple[int, str]] = {}
 
 
 async def close_connection(socket: WebSocket, code: int = 1001) -> None:
     connections.pop(socket, None)
+    ticket_connections.pop(socket, None)
     try:
         await asyncio.wait_for(socket.close(code=code), timeout=1)
     except (RuntimeError, OSError, WebSocketDisconnect, TimeoutError):
@@ -50,9 +53,36 @@ async def _notify(socket: WebSocket, queue_id: str, token: str, event_type: str)
         await close_connection(socket)
 
 
-async def notify_queue(queue_id: str, event_type: str) -> None:
-    await asyncio.gather(*(
+def authorize_ticket_subscription(token: str, ticket_id: int) -> None:
+    user = verify_token(token)
+    get_mine(ticket_id, user.id)
+
+
+async def _notify_ticket(socket: WebSocket, ticket_id: int, token: str) -> None:
+    try:
+        await run_in_threadpool(authorize_ticket_subscription, token, ticket_id)
+    except HTTPException as error:
+        await close_connection(socket, code=1011 if error.status_code == 503 else 1008)
+        return
+    if ticket_connections.get(socket) != (ticket_id, token):
+        return
+    try:
+        await asyncio.wait_for(socket.send_json({
+            "type": "TICKET_UPDATED", "ticket_id": ticket_id,
+        }), timeout=2)
+    except (RuntimeError, OSError, WebSocketDisconnect, TimeoutError):
+        await close_connection(socket)
+
+
+async def notify_queue(queue_id: str, event_type: str, ticket_id: int | None = None) -> None:
+    notifications = [
         _notify(socket, queue_id, token, event_type)
         for socket, (subscribed_queue, token) in list(connections.items())
         if subscribed_queue == queue_id
-    ))
+    ]
+    notifications.extend(
+        _notify_ticket(socket, ticket_id, token)
+        for socket, (subscribed_ticket, token) in list(ticket_connections.items())
+        if subscribed_ticket == ticket_id
+    )
+    await asyncio.gather(*notifications)

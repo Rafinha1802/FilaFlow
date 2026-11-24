@@ -25,6 +25,11 @@ def allowed_queues(url: str, account_id: str) -> list[OperationalQueue]:
             JOIN units u ON u.id = m.unit_id
             JOIN queue_units qu ON qu.unit_id = u.id
             JOIN queues q ON q.id = qu.queue_id
-            WHERE m.account_id = %s ORDER BY u.name, q.id
+            WHERE m.account_id = %s AND (
+                m.role <> 'professional' OR EXISTS (
+                    SELECT 1 FROM professional_queues pq
+                    WHERE pq.account_id = m.account_id AND pq.queue_id = q.id
+                )
+            ) ORDER BY u.name, q.id
         """, (account_id,)).fetchall()
     return [OperationalQueue.model_validate(row) for row in rows]
