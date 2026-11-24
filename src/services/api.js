@@ -97,7 +97,7 @@ export async function loginApi(email, password, { signal } = {}) {
 /**
  * Wrapper de fetch com injeção automática de Authorization Bearer JWT
  */
-async function fetchWithAuth(url, options = {}) {
+export async function fetchWithAuth(url, options = {}) {
   const token = getToken();
   if (!token) throw new Error('Entre na sua conta para continuar.');
   const headers = {

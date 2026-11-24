@@ -317,3 +317,44 @@ type subscribe, ticket_id e token. READY confirma a assinatura e
 TICKET_UPDATED avisa sobre confirmação, chamada ou conclusão.
 GET /api/pre-checkins/{ticket_id} fornece o estado persistido para a
 recuperação após reconectar. As assinaturas empresariais usam /ws.
+
+### Validar interfaces de cliente e recepção (checkpoint 5.3)
+
+Use a DEVFrontEnd com as migrações 001 a 005 aplicadas e as contas
+fictícias dos checkpoints anteriores ativadas. Inicie a aplicação pelo
+inicializador integrado na raiz.
+
+1. Abra /app e entre como cliente@example.invalid. A tela integrada
+   apresenta estabelecimentos e suas senhas persistidas.
+2. Escolha a Unidade Norte e envie um pré-check-in. Confira a senha
+   retornada e o estado Aguardando recepção. O botão fica indisponível
+   enquanto houver uma senha aberta para essa conta nessa fila.
+3. Abra /empresa/login em outra aba e entre como
+   recepcao-norte@example.invalid. Na aba Pré-check-ins, confira a mesma
+   senha e o nome do cliente de teste. A lista consulta o servidor a
+   cada cinco segundos e permite atualização manual.
+4. Selecione a prioridade adequada ao teste e confirme. Confira que a
+   senha saiu dos pendentes e apareceu na fila operacional com o mesmo
+   número. No app do cliente, espere até cinco segundos ou clique em
+   Atualizar. O estado deve mudar para Na fila de espera.
+5. Recarregue as duas páginas. Confira a sessão e o estado da senha.
+   A sessão do cliente e a sessão empresarial são independentes no
+   mesmo navegador.
+6. Saia do app do cliente e entre como cliente-2@example.invalid.
+   As senhas da outra conta devem ficar fora da lista. O logout do
+   cliente deve preservar a sessão empresarial.
+7. Durante um envio, simule falha de rede. A tela deve informar o erro.
+   Ao tentar novamente, o mesmo identificador de pedido é reutilizado.
+   Confira que a senha aparece uma única vez na lista e no DBeaver.
+8. Teste uma confirmação com API indisponível. A recepção deve mostrar
+   o erro e manter o pedido na lista até uma confirmação bem-sucedida.
+   Troque de unidade e confira que aparecem somente os pendentes da
+   fila selecionada.
+9. Entre como norte@example.invalid no painel. A aba de pré-check-ins
+   deve orientar o uso da fila operacional. A API continua exigindo
+   recepção ou administrador para confirmar os pedidos.
+
+A rota /app usa a interface de pré-check-in integrada ao backend.
+A interface da recepção usa os pedidos pendentes retornados pela API.
+O cadastro aberto de cliente e a validação externa de convênio têm
+etapas próprias no produto.

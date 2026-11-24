@@ -8,7 +8,7 @@ import CompanyLogin from './components/Company/CompanyLogin';
 import ProfessionalWorkspace from './components/Professional/ProfessionalWorkspace';
 import ProfessionalAuth from './components/Professional/ProfessionalAuth';
 import ProfessionalProfileView from './components/Professional/ProfessionalProfileView';
-import ClientMobileApp from './components/Client/ClientMobileApp';
+import ClientCheckinPage from './components/Client/ClientCheckinPage';
 import QrScannerModal from './components/Client/QrScannerModal';
 import PreCheckinModal from './components/Client/PreCheckinModal';
 import QueueSearchModal from './components/Client/QueueSearchModal';
@@ -701,30 +701,7 @@ export default function App() {
 
       {/* ROTA 2: /app (Mobile App Separado do Site) */}
       {isAppRoute && (
-        <ClientMobileApp
-          activeQueues={clientActiveQueues}
-          selectedQueueId={selectedQueueId}
-          onSelectQueue={setSelectedQueueId}
-          onOpenQrScanner={() => setIsQrScannerOpen(true)}
-          onOpenSearch={() => setIsSearchOpen(true)}
-          onRemoveQueue={handleRemoveClientQueue}
-          onSecretaryCheckin={handleSecretaryCheckin}
-          onClientImOnMyWay={handleClientImOnMyWay}
-          onClientAskMoreTime={handleClientAskMoreTime}
-          hasConflict={hasConflict}
-          onDismissConflict={() => setHasConflict(false)}
-          onGoToLanding={() => navigate('/')}
-          onGoToCompany={handleOpenDashboard}
-          onSelectBusiness={handleSearchSelectBusiness}
-          onPlayChime={playChime}
-          currentUser={mobileClientUser}
-          isAuthenticated={isClientAuthenticated}
-          onLogout={() => setIsClientAuthenticated(false)}
-          onAuthSuccess={(user) => {
-            setMobileClientUser(user);
-            setIsClientAuthenticated(true);
-          }}
-        />
+        <ClientCheckinPage onGoToLanding={() => navigate('/')} />
       )}
 
       {/* ROTA 3: /empresa (Login e painel empresarial) */}

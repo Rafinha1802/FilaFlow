@@ -1,0 +1,12 @@
+.client-checkin-page { min-height: 100vh; background: #f8f7fc; padding: 24px 16px; color: #1e293b; }
+.client-checkin-container { width: 100%; max-width: 680px; margin: auto; display: grid; gap: 20px; }
+.client-checkin-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.client-checkin-card { background: white; border: 1px solid #e9e5f3; border-radius: 20px; padding: 24px; display: grid; gap: 16px; }
+.client-checkin-card h1 { font-size: 24px; line-height: 1.3; margin: 0; }
+.client-checkin-card h2 { font-size: 20px; margin: 0; }
+.client-checkin-card form { display: grid; gap: 12px; }
+.client-checkin-card input, .client-checkin-card select { width: 100%; min-width: 0; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; box-sizing: border-box; background: white; color: inherit; }
+.client-checkin-ticket { border-top: 1px solid #e9e5f3; padding: 16px 0; }
+.client-checkin-ticket strong { color: #6d28d9; }
+.client-checkin-ticket p { margin: 6px 0; }
+.client-checkin-error { padding: 16px; border-radius: 12px; background: #fff1f2; color: #9f1239; }

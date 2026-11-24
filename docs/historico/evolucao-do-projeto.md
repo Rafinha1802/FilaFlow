@@ -85,3 +85,10 @@ Em 24 de novembro de 2026, o responsável aprovou os oito pontos de
 validação de operação profissional e acompanhamento individual.
 O [histórico do checkpoint 5.2](checkpoint-5-2-acompanhamento.md)
 registra o aceite, os 71 testes Python e o ajuste da exibição dos horários.
+
+
+## Desenvolvimento do checkpoint 5.3
+
+A [integração das interfaces de cliente e recepção](checkpoint-5-3-interfaces-precheckin.md)
+foi testada e aprovada pelo responsável. O build e os 49 testes JavaScript
+passaram na DEVFrontEnd com a base de backend do checkpoint 5.2.

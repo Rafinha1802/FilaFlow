@@ -4,8 +4,8 @@
 | --- | --- |
 | Empresa | Login explícito validado pela API. Emissão, consulta e chamada de senha confirmadas pelo servidor. |
 | Telão e painel | Atualização da fila via WebSocket na sessão empresarial. Apresentação e áudio no navegador. |
-| Recepção | A interface demonstra triagem e autorização. A jornada de triagem ainda não cria uma senha oficial. |
-| Cliente | Perfil, QR, pré-check-in e avisos de demonstração. A chamada oficial ainda não chega ao cliente. |
+| Recepção | Lista os pré-check-ins pendentes da fila selecionada e confirma a mesma senha, com prioridade definida pelo operador. |
+| Cliente | A rota /app autentica a conta persistida, envia pré-check-ins e consulta suas senhas a cada cinco segundos. |
 | Profissional | Consultório, configuração e cronômetro com dados locais. |
 | Checkout | Seleção de plano e confirmação simuladas. Cadastro empresarial real e cobrança estão pendentes. |
 | Atrasos e IA | Estimativas locais de demonstração. Falta medir os tempos do atendimento real. |

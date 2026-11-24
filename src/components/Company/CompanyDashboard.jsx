@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ReceptionDeskView from './ReceptionDeskView';
+import PrecheckinReception from './PrecheckinReception';
 import CompanyProfileView from './CompanyProfileView';
 import { ShieldCheck, Stethoscope, Trash2, Mail, ArrowLeft } from 'lucide-react';
 import { getStoredProfessionals, saveProfessionals } from '../../services/authService';
@@ -393,7 +393,7 @@ export default function CompanyDashboard({
             onClick={() => handleSelectTab('reception')}
           >
             <ShieldCheck size={14} />
-            <span>Recepção & Convênios</span>
+            <span>Pré-check-ins</span>
             {receptionPatients && (
               <span style={{
                 background: receptionPatients.filter(p => p.status === 'awaiting_auth').length > 0 ? '#ef4444' : '#64748b',
@@ -700,16 +700,12 @@ export default function CompanyDashboard({
           TAB 0: RECEPÇÃO & CONVÊNIOS (CHECK-IN DE CHEGADA E GUIAS)
           ============================================================ */}
       {activeTab === 'reception' && (
-        <ReceptionDeskView
-          businessData={businessData}
-          patients={receptionPatients}
-          onAuthorizePatient={onAuthorizeReceptionPatient}
-          onStatusChange={onUpdateReceptionStatus}
-          onRemovePatient={onRemoveReceptionPatient}
-          onAddPatient={onAddReceptionPatient}
-            onSendToDoctorQueue={onAddManualTicket}
-            onSwitchToOperational={() => handleSelectTab('operational')}
-          showToast={showNotification}
+        <PrecheckinReception
+          queueId={selectedOperationalQueue?.id}
+          canConfirm={canIssue}
+          onConfirmed={(ticket) => showNotification(
+            `Senha ${ticket.ticket_number} confirmada na fila.`
+          )}
         />
       )}
 
