@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import PrecheckinReception from './PrecheckinReception';
+import PrecheckinReception from '../../../Company/PrecheckinReception';
 import CompanyProfileView from './CompanyProfileView';
 import { ShieldCheck, Stethoscope, Trash2, Mail, ArrowLeft } from 'lucide-react';
-import { getStoredProfessionals, saveProfessionals } from '../../services/authService';
+import { getStoredProfessionals, saveProfessionals } from '../../../../services/authService';
 import {
   Building2,
   Layers,

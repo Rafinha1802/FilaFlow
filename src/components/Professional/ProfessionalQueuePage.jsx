@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import BrandLogo from '../Common/BrandLogo';
-import CompanyLogin from '../Company/CompanyLogin';
+import OperationalLogin from '../compartilhados/OperationalLogin';
 import { useOperationalQueues } from '../../hooks/useOperationalQueues';
 import {
   AUTH_CLEARED_EVENT, clearAuth, getToken, fetchCurrentUser,
@@ -172,7 +172,7 @@ export default function ProfessionalQueuePage({ onGoToSite, onGoToClient }) {
   }, []);
 
   if (checking) return <p role="status">Verificando sessão...</p>;
-  if (!user) return <CompanyLogin professionalMode initialError={error}
+  if (!user) return <OperationalLogin professionalMode initialError={error}
     onCancel={onGoToSite} onLoginSuccess={(next) => { setError(''); setUser(next); }} />;
   return (
     <main className="professional-queue-page">

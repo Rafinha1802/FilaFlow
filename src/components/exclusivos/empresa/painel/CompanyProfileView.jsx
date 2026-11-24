@@ -20,7 +20,7 @@ import {
   Check,
   Smartphone
 } from 'lucide-react';
-import { PRICING_PLANS } from '../../data/mockData';
+import { PRICING_PLANS } from '../../../../data/mockData';
 
 export default function CompanyProfileView({
   businessData = {},

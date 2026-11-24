@@ -394,3 +394,59 @@ dentro do mesmo perfil. A sessão de cliente é independente.
 O consultório integrado apresenta a fila, o atendimento ativo e as ações
 confirmadas pelo servidor. A tela do cliente mantém a consulta periódica
 e passa a consultar também após os eventos individuais da senha.
+
+
+### Validar página empresarial e rotas (checkpoint 6.1)
+
+Use a DEVFrontEnd com as migrações e contas fictícias já utilizadas na
+etapa 5. Inicie o sistema pelo inicializador habitual, na raiz:
+
+```powershell
+.\iniciar_tudo.bat
+```
+
+Este checkpoint reorganiza o frontend e utiliza o contrato de backend
+já validado. Não exige nova migração nem recriação do banco.
+
+1. Encerre a sessão empresarial e abra diretamente
+   http://localhost:5174/empresa/dashboard. Confira a validação inicial
+   e o formulário de login. Acesso direto a /empresa/recepcao também
+   deve pedir uma sessão válida. Entre com a conta multivínculo.
+2. Selecione a Unidade Norte. Confira o papel profissional e a ausência
+   do botão de emissão manual. Navegue por Pré-check-ins, Operação e
+   Perfil. A seleção deve continuar no Norte durante a navegação interna.
+   Na recepção, a conta sem permissão de confirmação deve receber a
+   orientação já existente.
+3. Volte ao Centro com a conta multivínculo e emita senhas fictícias
+   comum e prioritária. Confira o retorno do servidor, a ordem de espera
+   e a presença das senhas na consulta persistida.
+4. Chame e conclua um atendimento. Com outra senha aguardando, tente
+   chamar antes de concluir o atendimento ativo. Confira o aviso de
+   conflito e que a senha ativa foi preservada. Conclua e chame a seguinte.
+5. Navegue por Operação, Pré-check-ins, Métricas, Totem, Equipe e Perfil.
+   Confira a URL de cada aba. Use Voltar e Avançar do navegador e
+   confira a correspondência entre URL e aba. Recarregue uma URL interna
+   e abra /empresa/recepcao diretamente. A fila exibida deve pertencer
+   às filas autorizadas; após recarga, a seleção pode voltar à primeira.
+6. Saia do painel e confira que o acesso direto a uma aba pede login.
+   Entre com uma conta de recepção e depois com uma profissional.
+   Confira a visibilidade das ações conforme o papel da unidade.
+7. Repita uma jornada curta em sessões separadas: pré-check-in em /app,
+   confirmação em /empresa/recepcao, chamada e conclusão em /profissional.
+   Confira o mesmo número e as mudanças de estado no cliente.
+8. Durante uma consulta, interrompa e restabeleça a conexão. Confira a
+   recuperação da fila. Navegue para fora do painel e retorne; a tela
+   deve consultar o estado atual. Confira também a landing page e o
+   acesso ao login pelos atalhos anteriores.
+
+Os testes automatizados deste recorte são executados na raiz:
+
+```powershell
+node --test tests/auth-api.test.js tests/precheckin-api.test.js tests/router.test.js tests/company-page.test.js
+npm run build
+```
+
+O teste de navegação exercita o adaptador da History API com um navegador
+simulado. O teste de composição renderiza a página sem efeitos de
+navegador. O roteiro acima valida os efeitos, as interações e a jornada
+com o backend real. O commit depende do aceite manual do responsável.

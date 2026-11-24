@@ -1,77 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createHistoryRouter } from './historyRouter.js';
+import { resolveRoute } from './routes.js';
 
-/**
- * Custom lightweight history-based router for TemFyla
- * Supports seamless navigation between:
- * - / (Institutional Site / Landing Page)
- * - /app (Mobile App Experience)
- * - /empresa (Company Auth)
- * - /empresa/dashboard (Company SaaS Panel)
- */
 export function useAppRouter() {
-  const [currentPath, setCurrentPath] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const path = window.location.pathname;
-      return path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path || '/';
-    }
-    return '/';
-  });
+  const [router] = useState(() => createHistoryRouter(typeof window === 'undefined' ? null : window));
+  const [currentPath, setCurrentPath] = useState(router.getPath);
 
-  useEffect(() => {
-    const handlePopState = () => {
-      const path = window.location.pathname;
-      const cleanPath = path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path || '/';
-      setCurrentPath(cleanPath);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  useEffect(() => router.subscribe(() => setCurrentPath(router.getPath())), [router]);
 
   const navigate = useCallback((targetPath, options = {}) => {
-    const cleanPath = targetPath.endsWith('/') && targetPath.length > 1 ? targetPath.slice(0, -1) : targetPath || '/';
-    
-    if (window.location.pathname !== cleanPath) {
-      if (options.replace) {
-        window.history.replaceState({}, '', cleanPath);
-      } else {
-        window.history.pushState({}, '', cleanPath);
-      }
-    }
-    setCurrentPath(cleanPath);
-    window.scrollTo(0, 0);
-  }, []);
+    setCurrentPath(router.navigate(targetPath, options));
+  }, [router]);
 
-  const isCheckoutRoute = currentPath === '/checkout' || currentPath === '/pagamento';
-  const isAppRoute = currentPath === '/app' || currentPath.startsWith('/app/');
-  const isCompanyRoute = currentPath === '/empresa' || currentPath.startsWith('/empresa') || currentPath === '/cadastro' || currentPath === '/login';
-  const isProfessionalRoute = currentPath === '/profissional' || currentPath.startsWith('/profissional');
-  const isSiteRoute = !isAppRoute && !isCompanyRoute && !isCheckoutRoute && !isProfessionalRoute;
-
-  // Subroute helpers
-  const isCompanyLogin = currentPath === '/empresa/login';
-  const isCompanyRegister = currentPath === '/empresa/cadastro';
-  const isCompanyDashboard = currentPath === '/empresa/dashboard';
-  const isCompanyProfile = currentPath === '/empresa/perfil';
-
-  const isProfessionalLogin = currentPath === '/profissional/login';
-  const isProfessionalRegister = currentPath === '/profissional/cadastro';
-  const isProfessionalProfile = currentPath === '/profissional/perfil';
-
-  return {
-    currentPath,
-    navigate,
-    isAppRoute,
-    isCompanyRoute,
-    isCheckoutRoute,
-    isProfessionalRoute,
-    isSiteRoute,
-    isCompanyLogin,
-    isCompanyRegister,
-    isCompanyDashboard,
-    isCompanyProfile,
-    isProfessionalLogin,
-    isProfessionalRegister,
-    isProfessionalProfile
-  };
+  return { ...resolveRoute(currentPath), navigate };
 }

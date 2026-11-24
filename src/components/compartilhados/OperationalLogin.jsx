@@ -3,7 +3,7 @@ import { Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
 import BrandLogo from '../Common/BrandLogo';
 import { loginApi } from '../../services/api';
 
-export default function CompanyLogin({
+export default function OperationalLogin({
   onLoginSuccess,
   onGoToSignup,
   onCancel,

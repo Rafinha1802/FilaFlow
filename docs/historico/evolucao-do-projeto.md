@@ -100,3 +100,12 @@ O [consultório integrado](checkpoint-5-4-consultorio-integrado.md) está
 testado e aprovado pelo responsável. A implementação conecta a operação
 profissional e o acompanhamento do cliente ao estado persistido.
 O build e os 51 testes JavaScript passaram.
+
+
+## Desenvolvimento do checkpoint 6.1
+
+A [extração do painel e das rotas](checkpoint-6-1-painel-e-rotas.md)
+inicia a organização de páginas e componentes por público e uso.
+O build e os 61 testes JavaScript passaram. Em 24 de novembro de 2026,
+o responsável aprovou todos os pontos do roteiro manual na DEVFrontEnd.
+O próximo checkpoint é o 6.2, antes da validação integrada na Homolog.

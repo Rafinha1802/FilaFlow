@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useOperationalQueues } from './hooks/useOperationalQueues';
+import React, { useState, useEffect } from 'react';
+import { useCompanySession } from './hooks/useCompanySession';
 import { useAppRouter } from './router/useAppRouter';
 import Navbar from './components/LandingPage/Navbar';
 import LandingPage from './components/LandingPage/LandingPage';
-import CompanyDashboard from './components/Company/CompanyDashboard';
-import CompanyLogin from './components/Company/CompanyLogin';
+import CompanyDashboardPage from './pages/empresa/painel/CompanyDashboardPage';
 import ProfessionalQueuePage from './components/Professional/ProfessionalQueuePage';
 import ClientCheckinPage from './components/Client/ClientCheckinPage';
 import QrScannerModal from './components/Client/QrScannerModal';
@@ -17,19 +16,7 @@ import {
   registerCompanyAndProfessionals,
   getPendingCompanyRegistration
 } from './services/authService';
-import {
-  fetchQueues,
-  callNextTicketApi,
-  finishCurrentTicketApi,
-  reportDelayApi,
-  addManualTicketApi,
-  setupQueueWebSocket,
-  fetchCurrentUser,
-  fetchQueueStateApi,
-  getToken,
-  clearAuth,
-  AUTH_CLEARED_EVENT
-} from './services/api';
+import { fetchQueues, reportDelayApi } from './services/api';
 
 export default function App() {
   // Client-Side History Router: '/' (Site) | '/app' (Mobile App) | '/empresa' (SaaS B2B) | '/profissional' (Consultório) | '/checkout' (Pagamento)
@@ -40,11 +27,7 @@ export default function App() {
     isCompanyRoute,
     isCheckoutRoute,
     isProfessionalRoute,
-    isSiteRoute,
-    isCompanyLogin,
-    isCompanyRegister,
-    isProfessionalLogin,
-    isProfessionalRegister
+    isSiteRoute
   } = useAppRouter();
 
   // Pending Company Registration (passed to Checkout/Payment)
@@ -54,52 +37,9 @@ export default function App() {
   const [checkoutPlan, setCheckoutPlan] = useState('Profissional');
   const [checkoutCycle, setCheckoutCycle] = useState('monthly');
 
-  // Authentication State - Empresa / Profissional (B2B)
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authCheckedPath, setAuthCheckedPath] = useState(null);
-  const [sessionError, setSessionError] = useState('');
+  const session = useCompanySession(currentPath, isCompanyRoute);
+  const { isAuthenticated, currentUser } = session;
 
-  useEffect(() => {
-    let active = true;
-    const resetSession = () => {
-      setIsAuthenticated(false);
-      setCurrentUser(null);
-    };
-    const validateSession = async () => {
-      if (!isCompanyRoute) return;
-      setAuthCheckedPath(null);
-      setSessionError('');
-      try {
-        const user = await fetchCurrentUser();
-        if (active) {
-          setCurrentUser(user);
-          setIsAuthenticated(Boolean(user));
-        }
-      } catch (err) {
-        if (active) {
-          resetSession();
-          setSessionError('Não foi possível validar sua sessão. Entre novamente.');
-        }
-      } finally {
-        if (active) setAuthCheckedPath(currentPath);
-      }
-    };
-    const onStorage = (event) => {
-      if (event.key === 'filaflow_token' || event.key === null) {
-        resetSession();
-        validateSession();
-      }
-    };
-    window.addEventListener(AUTH_CLEARED_EVENT, resetSession);
-    window.addEventListener('storage', onStorage);
-    validateSession();
-    return () => {
-      active = false;
-      window.removeEventListener(AUTH_CLEARED_EVENT, resetSession);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, [currentPath, isCompanyRoute]);
   // Business / Company Data State
   const [businessData, setBusinessData] = useState({
     companyName: 'Clínica Vida',
@@ -132,95 +72,6 @@ export default function App() {
     };
   });
   const [isClientAuthenticated, setIsClientAuthenticated] = useState(true);
-
-  const operationalToken = isAuthenticated && isCompanyRoute ? getToken() : null;
-  const operational = useOperationalQueues(operationalToken);
-  const operationalQueue = operational.selected;
-  const operationalContext = operationalQueue ? operationalToken + ':' + operationalQueue.id : '';
-  const currentQueueContext = useRef('');
-  currentQueueContext.current = operationalContext;
-  const [queueState, setQueueState] = useState({ context: '', data: null });
-  const [queueError, setQueueError] = useState('');
-  const [queueActionError, setQueueActionError] = useState('');
-  const [queueBusy, setQueueBusy] = useState(false);
-  const visibleState = queueState.context === operationalContext ? queueState.data : null;
-  const queueReady = Boolean(operationalQueue && visibleState);
-  const canIssue = ['admin', 'reception'].includes(operationalQueue?.role);
-  const canAttend = ['admin', 'professional'].includes(operationalQueue?.role);
-
-  const queueOperation = useRef(false);
-  const queueRefresh = useRef(null);
-  const queueVersion = useRef(0);
-
-  const toDashboardTicket = (ticket) => ticket && ({
-    ticket: ticket.ticket_number,
-    name: ticket.customer_name,
-    service: ticket.service_name,
-    time: ticket.estimated_wait_text,
-    isPriority: ticket.is_priority,
-    isUser: false
-  });
-
-  const activeAttendingTicket = toDashboardTicket(visibleState?.active_ticket);
-  const companyWaitingQueue = visibleState?.remaining_queue.map(toDashboardTicket) || [];
-
-  const applyQueueState = (data, context) => {
-    setQueueState({ context, data });
-  };
-
-  useEffect(() => {
-    let active = true;
-    let refreshing = false;
-    let refreshRequested = false;
-    let ws = null;
-    setQueueState({ context: operationalContext, data: null });
-    setQueueError('');
-    setQueueActionError('');
-
-    const refreshQueue = async () => {
-      refreshRequested = true;
-      if (!active || refreshing || queueOperation.current) return;
-      refreshing = true;
-      try {
-        while (active && refreshRequested && !queueOperation.current) {
-          refreshRequested = false;
-          const version = queueVersion.current;
-          const data = await fetchQueueStateApi(operationalQueue.id);
-          if (!active) return;
-          // Uma consulta antiga não deve sobrescrever uma operação mais recente.
-          if (version !== queueVersion.current) {
-            refreshRequested = true;
-            continue;
-          }
-          applyQueueState(data, operationalContext);
-        }
-      } catch {
-        if (active) {
-          setQueueState({ context: operationalContext, data: null });
-          setQueueError('Não foi possível atualizar a fila. Recarregue a página.');
-        }
-      } finally {
-        refreshing = false;
-      }
-    };
-
-    if (operationalQueue) {
-      queueRefresh.current = refreshQueue;
-      refreshQueue();
-      ws = setupQueueWebSocket((event) => {
-        if (['READY', 'QUEUE_UPDATED', 'TICKET_CALLED'].includes(event.type)) refreshQueue();
-      }, operationalQueue.id, (connected) => {
-        if (active) setQueueError(connected ? '' : 'Atualização em tempo real interrompida. Tentando reconectar.');
-      });
-    } else {
-      setQueueState({ context: operationalContext, data: null });
-    }
-    return () => {
-      active = false;
-      queueRefresh.current = null;
-      ws?.close();
-    };
-  }, [operationalContext]);
 
   // Client Active Queues (Multi-Queues in Mobile App)
   const [clientActiveQueues, setClientActiveQueues] = useState(INITIAL_QUEUES);
@@ -317,49 +168,9 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    clearAuth();
-    setIsAuthenticated(false);
-    setCurrentUser(null);
+    session.logout();
     navigate('/');
     showToast('Sessão encerrada.');
-  };
-
-  const handleCompanyLogin = (user) => {
-    setCurrentUser(user);
-    setIsAuthenticated(true);
-    setSessionError('');
-    setAuthCheckedPath('/empresa/dashboard');
-    navigate('/empresa/dashboard');
-  };
-
-  // A chamada só altera o painel depois da confirmação do servidor.
-  const handleCallNextTicket = async () => {
-    if (!queueReady || !canAttend || queueOperation.current) return null;
-    queueOperation.current = true;
-    queueVersion.current += 1;
-    setQueueBusy(true);
-    setQueueError('');
-    setQueueActionError('');
-    const token = getToken();
-    try {
-      const context = operationalContext;
-      const data = await callNextTicketApi(operationalQueue.id);
-      if (getToken() !== token || currentQueueContext.current !== context) return null;
-      applyQueueState(data, operationalContext);
-      if (!data.called_ticket) {
-        showToast('Não há clientes na fila de espera.');
-        return null;
-      }
-      showToast(`Senha ${data.called_ticket.ticket_number} chamada no ${businessData.room}.`);
-      return data.called_ticket;
-    } catch (err) {
-      if (getToken() === token && currentQueueContext.current === operationalContext) setQueueActionError(err.message);
-      return null;
-    } finally {
-      queueOperation.current = false;
-      setQueueBusy(false);
-      queueRefresh.current?.();
-    }
   };
 
   // 2. Reportar Atraso (recalculado com IA)
@@ -382,67 +193,6 @@ export default function App() {
       })
     );
     showToast('Atraso notificado. A IA recalculou o tempo das senhas seguintes.');
-  };
-
-  // 3. Pular senha / Não compareceu
-  const handleSkipTicket = () => {
-    showToast('O registro de ausência ainda não está integrado.');
-  };
-
-  // 4. Finalizar atendimento atual
-  const handleFinishCurrent = async () => {
-    if (!activeAttendingTicket || !queueReady || !canAttend || queueOperation.current) return;
-    queueOperation.current = true;
-    queueVersion.current += 1;
-    setQueueBusy(true);
-    setQueueError('');
-    setQueueActionError('');
-    const token = getToken();
-    try {
-      const data = await finishCurrentTicketApi(operationalQueue.id, activeAttendingTicket.ticket);
-      if (getToken() !== token || currentQueueContext.current !== operationalContext) return;
-      applyQueueState(data, operationalContext);
-      showToast('Atendimento finalizado.');
-    } catch (err) {
-      if (getToken() === token && currentQueueContext.current === operationalContext) setQueueActionError(err.message);
-    } finally {
-      queueOperation.current = false;
-      setQueueBusy(false);
-      queueRefresh.current?.();
-    }
-  };
-
-  // 5. Emitir Senha Manual no Balcão
-  const handleAddManualTicket = async ({ name, serviceName, isPriority }) => {
-    if (!queueReady || !canIssue || queueOperation.current) throw new Error('Aguarde a atualização da fila.');
-    queueOperation.current = true;
-    queueVersion.current += 1;
-    setQueueBusy(true);
-    const token = getToken();
-    try {
-      const ticket = await addManualTicketApi({
-        queue_id: operationalQueue.id,
-        customer_name: name,
-        service_name: serviceName,
-        is_priority: isPriority
-      });
-      if (getToken() !== token || currentQueueContext.current !== operationalContext) throw new Error('Sessão encerrada. Entre novamente para consultar a fila.');
-
-      setQueueState((previous) => ({
-        context: operationalContext,
-        data: {
-          active_ticket: previous.context === operationalContext ? previous.data?.active_ticket || null : null,
-          remaining_queue: [...(previous.context === operationalContext ? previous.data?.remaining_queue || [] : []), ticket]
-            .sort((a, b) => Number(b.is_priority) - Number(a.is_priority))
-        }
-      }));
-      showToast(`Senha ${ticket.ticket_number} emitida e adicionada à fila!`);
-      return ticket;
-    } finally {
-      queueOperation.current = false;
-      setQueueBusy(false);
-      queueRefresh.current?.();
-    }
   };
 
   // 6. Confirmação do Pré-Checkin do Cliente
@@ -667,64 +417,17 @@ export default function App() {
 
       {/* ROTA 3: /empresa (Login e painel empresarial) */}
       {isCompanyRoute && (
-        authCheckedPath !== currentPath ? <p role="status">Verificando sessão...</p> :
-        isAuthenticated ? (
-          <CompanyDashboard
-            key={operationalContext}
-            operationalQueues={operational.queues}
-            selectedOperationalQueue={operationalQueue}
-            onSelectOperationalQueue={(id) => {
-              if (!queueOperation.current) operational.selectQueue(id);
-            }}
-            selectionBusy={queueBusy}
-            canIssue={canIssue}
-            canAttend={canAttend}
-            queueBusy={!queueReady || queueBusy}
-            queueError={operational.error || (operational.loading ? 'Carregando filas permitidas...' : !operationalQueue ? 'Sua conta não possui filas disponíveis.' : queueError)}
-            queueActionError={queueActionError}
-            onDismissQueueActionError={() => setQueueActionError('')}
-            businessData={operationalQueue ? { ...businessData, ...operationalQueue } : { companyName: 'TemFyla', unitName: 'Selecione uma fila' }}
-            activeAttendingTicket={activeAttendingTicket}
-            waitingQueue={companyWaitingQueue}
-            onCallNext={handleCallNextTicket}
-            onReportDelay={handleReportDelay}
-            onFinishCurrent={handleFinishCurrent}
-            onSkipTicket={handleSkipTicket}
-            onAddManualTicket={handleAddManualTicket}
-            onOpenMobileTest={handleOpenClient}
-            onGoToSite={() => navigate('/')}
-            onLogout={handleLogout}
-            onOpenProfessional={handleOpenProfessional}
-            onUpdateBusinessData={(newData) => {
-              if (newData) setBusinessData(newData);
-            }}
-            initialTab={
-              currentPath === '/empresa/recepcao' ? 'reception' :
-              currentPath === '/empresa/metricas' ? 'metrics' :
-              currentPath === '/empresa/totem' ? 'totem' :
-              currentPath === '/empresa/equipe' ? 'team' :
-              currentPath === '/empresa/perfil' ? 'profile' : 'operational'
-            }
-            onTabChange={(tab) => {
-              const map = {
-                reception: '/empresa/recepcao',
-                operational: '/empresa/dashboard',
-                metrics: '/empresa/metricas',
-                totem: '/empresa/totem',
-                team: '/empresa/equipe',
-                profile: '/empresa/perfil'
-              };
-              if (map[tab]) navigate(map[tab]);
-            }}
-          />
-        ) : (
-          <CompanyLogin
-            initialError={sessionError}
-            onLoginSuccess={handleCompanyLogin}
-            onGoToSignup={handleOpenCompanySignup}
-            onCancel={() => navigate('/')}
-          />
-        )
+        <CompanyDashboardPage
+          currentPath={currentPath}
+          navigate={navigate}
+          session={session}
+          businessData={businessData}
+          onUpdateBusinessData={(newData) => { if (newData) setBusinessData(newData); }}
+          onNotify={showToast}
+          onReportDelay={handleReportDelay}
+          onLogout={handleLogout}
+          onGoToSignup={handleOpenCompanySignup}
+        />
       )}
 
       {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital ou Perfil/Login) */}
