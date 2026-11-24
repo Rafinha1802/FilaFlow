@@ -450,3 +450,70 @@ O teste de navegação exercita o adaptador da History API com um navegador
 simulado. O teste de composição renderiza a página sem efeitos de
 navegador. O roteiro acima valida os efeitos, as interações e a jornada
 com o backend real. O commit depende do aceite manual do responsável.
+
+
+### Validar páginas e componentes da jornada (checkpoint 6.2)
+
+Use a DEVFrontEnd com o backend compatível da etapa 5 e as mesmas
+migrações, contas fictícias e banco local usados no 6.1. A reorganização
+não exige reinstalação das dependências nem nova migração. Se o Vite
+estiver aberto durante as movimentações, reinicie o frontend para uma
+validação a partir de uma montagem completa.
+
+```powershell
+.\iniciar_tudo.bat
+```
+
+1. Abra a landing page em http://localhost:5174/. Confira a marca,
+   navegação, preview do celular e os modais de busca e QR Code.
+   Navegue até os planos e abra o checkout com um plano selecionado.
+   Confira o plano, a marca e a volta ao site. Use somente dados fictícios
+   no checkout, que conserva sua experiência demonstrativa anterior.
+2. Abra /app diretamente e entre com cliente@example.invalid. Confira
+   a consulta de estabelecimentos e envie um pré-check-in para o Norte.
+   Anote o número retornado e confira Aguardando recepção.
+3. Em /empresa/recepcao, entre como recepcao-norte@example.invalid.
+   Confira a mesma senha pendente, ajuste a prioridade para o cenário
+   escolhido e confirme a entrada. Confira o mesmo número na espera e
+   Na fila de espera no cliente.
+4. Em outro perfil de navegador, abra /profissional e entre como
+   norte@example.invalid. Chame a senha após encerrar eventual atendimento
+   ativo anterior. Confira o mesmo número e Sua senha foi chamada no
+   cliente. Conclua e confira Atendimento concluído e os horários no
+   cliente e no DBeaver.
+5. Com outro cliente fictício aguardando, tente chamar durante atendimento
+   ativo. Confira o aviso e a preservação do atendimento. Em seguida,
+   conclua e chame a próxima senha. Confira prioridade e ordem de chegada.
+6. Entre como multi@example.invalid no painel e alterne Centro e Norte.
+   Confira as filas permitidas, os papéis e a visibilidade das ações.
+   Navegue pelas abas, use Voltar e Avançar e recarregue uma URL interna.
+   Confira a mesma correspondência entre URL, página e unidade autorizada.
+7. Recarregue cliente, recepção e consultório em suas sessões. Confira
+   a recuperação do estado persistido. Interrompa temporariamente a
+   conexão do frontend e restabeleça; acompanhe uma alteração de estado
+   para confirmar a recuperação após reconexão.
+8. Saia do cliente e entre como cliente-2@example.invalid. Confira que
+   a lista apresenta somente suas senhas e que a sessão operacional
+   permanece disponível. Saia do portal operacional e confira que a
+   sessão do cliente continua válida. Acesso direto ao painel sem sessão
+   deve apresentar o login.
+9. Teste emissão manual com a recepção, chamada e conclusão com o
+   profissional e bloqueio de ações incompatíveis com cada papel.
+   Simule uma falha de envio ou confirmação e confira o aviso, a
+   possibilidade de recuperar o estado e a ausência de duplicidade.
+
+Os testes automatizados são executados na raiz:
+
+```powershell
+node --test tests/auth-api.test.js tests/precheckin-api.test.js tests/router.test.js tests/company-page.test.js
+npm run build
+```
+
+Os testes de composição renderizam as páginas sem executar efeitos de
+navegador. Os testes de serviço cobrem os contratos e a reconexão das
+assinaturas; o roteiro manual verifica essas interações com a API e o banco.
+
+Após o aceite manual e o commit, integrar as branches de desenvolvimento
+na Homolog conforme o fluxo de revisão acordado. Repetir os pontos 2 a 9
+no ambiente de homologação, com banco e dados fictícios próprios.
+Registrar esse resultado antes de propor o PR de Homolog para main.

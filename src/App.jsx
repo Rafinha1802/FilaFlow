@@ -1,95 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { useCompanySession } from './hooks/useCompanySession';
+import React, { useEffect, useState } from 'react';
 import { useAppRouter } from './router/useAppRouter';
-import Navbar from './components/LandingPage/Navbar';
-import LandingPage from './components/LandingPage/LandingPage';
+import { useCompanySession } from './hooks/useCompanySession';
+import { useLandingDemo } from './hooks/useLandingDemo';
+import LandingPage from './pages/publico/landing/LandingPage';
+import CheckoutPage from './pages/publico/checkout/CheckoutPage';
+import ClientAppPage from './pages/cliente/app/ClientAppPage';
 import CompanyDashboardPage from './pages/empresa/painel/CompanyDashboardPage';
-import ProfessionalQueuePage from './components/Professional/ProfessionalQueuePage';
-import ClientCheckinPage from './components/Client/ClientCheckinPage';
-import QrScannerModal from './components/Client/QrScannerModal';
-import PreCheckinModal from './components/Client/PreCheckinModal';
-import QueueSearchModal from './components/Client/QueueSearchModal';
-import PricingModal from './components/Common/PricingModal';
-import CheckoutPage from './components/Checkout/CheckoutPage';
-import { INITIAL_QUEUES } from './data/mockData';
-import {
-  registerCompanyAndProfessionals,
-  getPendingCompanyRegistration
-} from './services/authService';
-import { fetchQueues, reportDelayApi } from './services/api';
+import ProfessionalWorkspacePage from './pages/profissional/consultorio/ProfessionalWorkspacePage';
+import PricingModal from './components/exclusivos/publico/checkout/PricingModal';
+import NotificationBanner from './components/compartilhados/NotificationBanner';
+import { getPendingCompanyRegistration } from './services/authService';
+import { fetchQueues } from './services/api';
 
 export default function App() {
-  // Client-Side History Router: '/' (Site) | '/app' (Mobile App) | '/empresa' (SaaS B2B) | '/profissional' (Consultório) | '/checkout' (Pagamento)
-  const {
-    currentPath,
-    navigate,
-    isAppRoute,
-    isCompanyRoute,
-    isCheckoutRoute,
-    isProfessionalRoute,
-    isSiteRoute
-  } = useAppRouter();
-
-  // Pending Company Registration (passed to Checkout/Payment)
+  const { currentPath, navigate, isAppRoute, isCompanyRoute, isCheckoutRoute,
+    isProfessionalRoute, isSiteRoute } = useAppRouter();
+  const session = useCompanySession(currentPath, isCompanyRoute);
   const [pendingRegistrationData, setPendingRegistrationData] = useState(() => getPendingCompanyRegistration());
-
-  // Checkout Selected Plan State
   const [checkoutPlan, setCheckoutPlan] = useState('Profissional');
   const [checkoutCycle, setCheckoutCycle] = useState('monthly');
-
-  const session = useCompanySession(currentPath, isCompanyRoute);
-  const { isAuthenticated, currentUser } = session;
-
-  // Business / Company Data State
-  const [businessData, setBusinessData] = useState({
-    companyName: 'Clínica Vida',
-    unitName: 'Unidade Centro',
-    attendantName: 'Dr. Carlos Mendes',
-    category: 'Clínica',
-    room: 'Consultório 04'
-  });
-
-  // Client / Patient User for Mobile App (Público em geral, NÃO médico!)
-  const [mobileClientUser, setMobileClientUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('temfyla_client_user') || localStorage.getItem('filaflow_client_user');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (!parsed.name?.includes('Dr.') && !parsed.name?.includes('Médic')) {
-          return parsed;
-        }
-      }
-    } catch (e) {}
-    return {
-      name: 'Rafael Silva',
-      email: 'rafael.silva@email.com',
-      phone: '(11) 98765-4321',
-      cpf: '345.678.901-22',
-      insurance: 'Unimed Nacional',
-      cardNumber: '0012.3456.7890.1234',
-      avatarInitial: 'R',
-      role: 'patient'
-    };
-  });
-  const [isClientAuthenticated, setIsClientAuthenticated] = useState(true);
-
-  // Client Active Queues (Multi-Queues in Mobile App)
-  const [clientActiveQueues, setClientActiveQueues] = useState(INITIAL_QUEUES);
-  const [selectedQueueId, setSelectedQueueId] = useState('clinica-vida');
-
-  // AI Schedule Conflict Demonstration
-  const [hasConflict, setHasConflict] = useState(true);
-
-  // Global Call Announcement Toast for Client
-  const [callAlertMessage, setCallAlertMessage] = useState(null);
-
-  // Modals
   const [isPricingOpen, setIsPricingOpen] = useState(false);
-  const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isPreCheckinOpen, setIsPreCheckinOpen] = useState(false);
-  const [preCheckinBusiness, setPreCheckinBusiness] = useState(null);
-
+  const [callAlertMessage, setCallAlertMessage] = useState(null);
+  const showToast = (message) => {
+    setCallAlertMessage(message);
+    setTimeout(() => setCallAlertMessage(null), 6000);
+  };
   // Sound chime helper
   const playChime = () => {
     try {
@@ -110,10 +45,15 @@ export default function App() {
     }
   };
 
-  const showToast = (message) => {
-    setCallAlertMessage(message);
-    setTimeout(() => setCallAlertMessage(null), 6000);
-  };
+  const demo = useLandingDemo({ navigate, playChime, showToast });
+  // Business / Company Data State
+  const [businessData, setBusinessData] = useState({
+    companyName: 'Clínica Vida',
+    unitName: 'Unidade Centro',
+    attendantName: 'Dr. Carlos Mendes',
+    category: 'Clínica',
+    room: 'Consultório 04'
+  });
 
   // -------------------------------------------------------------
   // Sincronização Automática com o Backend FastAPI & WebSockets
@@ -146,363 +86,37 @@ export default function App() {
 
   }, []);
 
-  // A rota empresarial valida a sessão antes de exibir o painel.
-  const handleOpenDashboard = () => {
-    if (isAuthenticated) {
-      navigate('/empresa/dashboard');
-    } else {
-      navigate('/empresa/login');
-    }
-  };
 
-  const handleOpenCompanySignup = () => {
-    alert('O cadastro de empresas ainda não está disponível.');
-  };
-
-  const handleOpenProfessional = () => {
-    navigate('/profissional');
-  };
-
-  const handleOpenClient = () => {
-    navigate('/app');
-  };
-
+  const handleOpenCompanySignup = () => alert('O cadastro de empresas ainda não está disponível.');
+  const handleOpenDashboard = () => navigate(session.isAuthenticated ? '/empresa/dashboard' : '/empresa/login');
+  const handleOpenProfessional = () => navigate('/profissional');
   const handleLogout = () => {
     session.logout();
     navigate('/');
     showToast('Sessão encerrada.');
   };
 
-  // 2. Reportar Atraso (recalculado com IA)
-  const handleReportDelay = async () => {
-    reportDelayApi('clinica-vida', 5).catch(() => {});
-
-    setClientActiveQueues((prevQueues) =>
-      prevQueues.map((queue) => {
-        if (queue.id === 'clinica-vida') {
-          const newWait = queue.initialWaitMin + 5;
-          return {
-            ...queue,
-            initialWaitMin: newWait,
-            estimatedWaitText: `${newWait - 3}-${newWait + 5} min`,
-            statusDetail: '⚠️ Previsão ajustada: +5 min de atraso detectado na consulta',
-            delayWarning: '+5 min na consulta anterior'
-          };
-        }
-        return queue;
-      })
-    );
-    showToast('Atraso notificado. A IA recalculou o tempo das senhas seguintes.');
-  };
-
-  // 6. Confirmação do Pré-Checkin do Cliente
-  const handleConfirmPreCheckin = ({ business, serviceName, userName, userPhone, isPriority }) => {
-    const randomTicket = business.nextTicket || `${Math.floor(10 + Math.random() * 80)}`;
-    const randomWait = parseInt(business.avgWait) || 20;
-    const doctorName = business.attendantName || 'Dr. Carlos Mendes';
-
-    const newQueueItem = {
-      id: business.id + '-' + Date.now(),
-      companyName: business.companyName,
-      unitName: business.unitName,
-      category: business.category,
-      badgeColor: 'purple',
-      serviceName: serviceName || 'Atendimento Geral',
-      attendantName: doctorName,
-      room: business.room || 'Consultório 04',
-      ticketNumber: randomTicket,
-      position: (business.currentWaiting || 3) + 1,
-      initialWaitMin: randomWait,
-      estimatedWaitText: `${randomWait - 3}-${randomWait + 4} min`,
-      status: 'waiting',
-      isCheckedInWithSecretary: false,
-      statusDetail: `Aguardando aprovação para a fila de ${doctorName}`,
-      isAiRecalculating: false,
-      delayWarning: null,
-      joinedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      aheadList: [
-        { ticket: `#${Number(randomTicket) - 2}`, name: 'Paciente Anterior', status: 'Em atendimento' },
-        { ticket: `#${Number(randomTicket) - 1}`, name: 'Próximo da Vez', status: 'Aguardando' },
-        { ticket: `#${randomTicket}`, name: `${userName} (Você)`, status: 'Sua vez', isUser: true }
-      ]
-    };
-
-    setClientActiveQueues([newQueueItem, ...clientActiveQueues]);
-    setSelectedQueueId(newQueueItem.id);
-    setIsPreCheckinOpen(false);
-    navigate('/app');
-    playChime();
-    showToast(`Você está na fila de espera da recepção. Aguarde a confirmação de ${doctorName}...`);
-  };
-
-  // 7. Desistir de fila no app do cliente
-  const handleRemoveClientQueue = (queueId) => {
-    const updated = clientActiveQueues.filter((q) => q.id !== queueId);
-    setClientActiveQueues(updated);
-    if (selectedQueueId === queueId && updated.length > 0) {
-      setSelectedQueueId(updated[0].id);
-    }
-    showToast('Você saiu da fila selecionada.');
-  };
-
-  // 8. Ações do cliente mobile
-  const handleSecretaryCheckin = (queueId) => {
-    const doctorTarget = 'Dr. Carlos Mendes';
-    showToast(`Notificação enviada para a secretária. Sua autorização está sendo processada.`);
-
-    setTimeout(() => {
-      setClientActiveQueues((prevQueues) =>
-        prevQueues.map((q) => {
-          if (q.id === queueId) {
-            return {
-              ...q,
-              isCheckedInWithSecretary: true,
-              statusDetail: `Autorizado pela recepção! Na fila oficial de ${doctorTarget}`
-            };
-          }
-          return q;
-        })
-      );
-      playChime();
-      showToast(`Convênio aprovado pela recepção! Você foi inserido na fila de ${doctorTarget}.`);
-    }, 3500);
-  };
-
-  const handleClientImOnMyWay = (queueId) => {
-    setClientActiveQueues((prevQueues) =>
-      prevQueues.map((q) => {
-        if (q.id === queueId) {
-          return {
-            ...q,
-            statusDetail: '🚗 Notificação enviada: "Estou a caminho! Chegando em 5-10 min"'
-          };
-        }
-        return q;
-      })
-    );
-    showToast('Aviso enviado ao consultório: Você está a caminho!');
-  };
-
-  const handleClientAskMoreTime = (queueId) => {
-    setClientActiveQueues((prevQueues) =>
-      prevQueues.map((q) => {
-        if (q.id === queueId) {
-          return {
-            ...q,
-            position: q.position + 1,
-            initialWaitMin: q.initialWaitMin + 12,
-            estimatedWaitText: `${q.initialWaitMin + 8}-${q.initialWaitMin + 15} min`,
-            statusDetail: '⏱️ Pedido de mais tempo aceito: Você cedeu 1 lugar na fila'
-          };
-        }
-        return q;
-      })
-    );
-    showToast('Você cedeu sua vez para o próximo. Seu tempo foi estendido.');
-  };
-
-  const handleScanBusiness = (scannedBusiness) => {
-    setIsQrScannerOpen(false);
-    setPreCheckinBusiness(scannedBusiness);
-    setIsPreCheckinOpen(true);
-  };
-
-  const handleSearchSelectBusiness = (business) => {
-    setIsSearchOpen(false);
-    setPreCheckinBusiness(business);
-    setIsPreCheckinOpen(true);
-  };
-
-  const handleResetQueues = () => {
-    setClientActiveQueues(INITIAL_QUEUES);
-    setSelectedQueueId('clinica-vida');
-    setHasConflict(true);
-    showToast('Dados e filas da demonstração restaurados.');
-  };
-
   return (
     <div className="ff-app-root">
-      {/* Top Navbar - Renderizada na Landing Page do Site (/) */}
-      {isSiteRoute && (
-        <Navbar
-          isAuthenticated={isAuthenticated}
-          currentUser={currentUser}
-          onGoToLanding={() => navigate('/')}
-          onOpenLogin={() => navigate('/empresa/login')}
-          onOpenSignup={handleOpenCompanySignup}
-          onOpenDashboard={handleOpenDashboard}
-          onOpenPricing={() => setIsPricingOpen(true)}
-          onOpenProfessional={() => handleOpenProfessional()}
-          onLogout={handleLogout}
-        />
-      )}
-
-      {/* Global Call Alert Banner */}
-      {callAlertMessage && (
-        <div
-          style={{
-            position: 'fixed',
-            top: isAppRoute ? 16 : 84,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 4000,
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            color: 'white',
-            padding: '12px 22px',
-            borderRadius: 14,
-            boxShadow: '0 20px 40px rgba(16, 185, 129, 0.4)',
-            fontWeight: 800,
-            fontSize: 14,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            animation: 'slide-in-down 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-            maxWidth: '90vw'
-          }}
-        >
-          <span>{callAlertMessage}</span>
-          <button
-            onClick={() => setCallAlertMessage(null)}
-            style={{
-              color: 'white',
-              background: 'rgba(0,0,0,0.2)',
-              border: 'none',
-              padding: '4px 10px',
-              borderRadius: 6,
-              cursor: 'pointer',
-              fontWeight: 700
-            }}
-          >
-            OK
-          </button>
-        </div>
-      )}
-
-      {/* ROTA 1: / (Site Institucional / Landing Page) */}
-      {isSiteRoute && (
-        <LandingPage
-          activeQueue={clientActiveQueues[0]}
-          activeQueues={clientActiveQueues}
-          selectedQueueId={selectedQueueId}
-          onSelectQueue={setSelectedQueueId}
-          onOpenQrScanner={() => setIsQrScannerOpen(true)}
-          onOpenSearch={() => setIsSearchOpen(true)}
-          onRemoveQueue={handleRemoveClientQueue}
-          onSecretaryCheckin={handleSecretaryCheckin}
-          onClientImOnMyWay={handleClientImOnMyWay}
-          onClientAskMoreTime={handleClientAskMoreTime}
-          hasConflict={hasConflict}
-          onDismissConflict={() => setHasConflict(false)}
-          onGoToLanding={() => navigate('/')}
-          onGoToCompany={handleOpenDashboard}
-          onSelectBusiness={handleSearchSelectBusiness}
-          onPlayChime={playChime}
-          currentUser={mobileClientUser}
-          isAuthenticated={isClientAuthenticated}
-          onLogout={() => setIsClientAuthenticated(false)}
-          onAuthSuccess={(user) => {
-            setMobileClientUser(user);
-            setIsClientAuthenticated(true);
-          }}
-          onOpenSignup={handleOpenCompanySignup}
-          onOpenLogin={() => navigate('/empresa/login')}
-          onOpenPricing={() => setIsPricingOpen(true)}
-        />
-      )}
-
-      {/* ROTA 2: /app (Mobile App Separado do Site) */}
-      {isAppRoute && (
-        <ClientCheckinPage onGoToLanding={() => navigate('/')} />
-      )}
-
-      {/* ROTA 3: /empresa (Login e painel empresarial) */}
-      {isCompanyRoute && (
-        <CompanyDashboardPage
-          currentPath={currentPath}
-          navigate={navigate}
-          session={session}
-          businessData={businessData}
-          onUpdateBusinessData={(newData) => { if (newData) setBusinessData(newData); }}
-          onNotify={showToast}
-          onReportDelay={handleReportDelay}
-          onLogout={handleLogout}
-          onGoToSignup={handleOpenCompanySignup}
-        />
-      )}
-
-      {/* ROTA 5: /profissional (Área do Profissional / Consultório Digital ou Perfil/Login) */}
-      {isProfessionalRoute && (
-        <ProfessionalQueuePage onGoToSite={() => navigate('/')} onGoToClient={() => navigate('/app')} />
-      )}
-
-      {/* ROTA 4: /checkout (Página de Pagamento / Escolha de Planos com dados da Empresa) */}
-      {isCheckoutRoute && (
-        <CheckoutPage
-          initialPlanName={checkoutPlan}
-          initialBillingCycle={checkoutCycle}
-          pendingRegistrationData={pendingRegistrationData}
-          onGoBack={() => navigate('/')}
-          onPaymentSuccess={(order) => {
-            if (order && order.pendingRegistrationData) {
-              const regResult = registerCompanyAndProfessionals({
-                companyData: order.pendingRegistrationData.companyData,
-                professionalsList: order.pendingRegistrationData.professionalsList,
-                selectedPlan: order.planName
-              });
-              setBusinessData((prev) => ({
-                ...prev,
-                companyName: regResult.company.companyName,
-                unitName: regResult.company.unitName || prev.unitName,
-                attendantName: regResult.company.attendantName || prev.attendantName,
-                category: regResult.company.category || prev.category,
-                room: regResult.company.room || prev.room
-              }));
-              setPendingRegistrationData(null);
-            } else if (order && order.companyName) {
-              setBusinessData((prev) => ({
-                ...prev,
-                companyName: order.companyName,
-                attendantName: order.customerName || prev.attendantName,
-                email: order.email || prev.email
-              }));
-            }
-            navigate('/empresa/dashboard');
-            playChime();
-            showToast(`Assinatura do Plano ${order ? order.planName : 'Profissional'} ativada com sucesso!`);
-          }}
-        />
-      )}
-
-      {/* Modais Globais Compartilhados */}
-      <PricingModal
-        isOpen={isPricingOpen}
-        onClose={() => setIsPricingOpen(false)}
-        onSelectPlan={(plan, cycle = 'monthly') => {
-          setIsPricingOpen(false);
-          setCheckoutPlan(plan.name);
-          setCheckoutCycle(cycle);
-          navigate('/checkout');
-        }}
-      />
-
-      <QrScannerModal
-        isOpen={isQrScannerOpen}
-        onClose={() => setIsQrScannerOpen(false)}
-        onScanBusiness={handleScanBusiness}
-      />
-
-      <PreCheckinModal
-        isOpen={isPreCheckinOpen}
-        business={preCheckinBusiness}
-        onClose={() => setIsPreCheckinOpen(false)}
-        onConfirmCheckin={handleConfirmPreCheckin}
-      />
-
-      <QueueSearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onSelectBusiness={handleSearchSelectBusiness}
-      />
+      <NotificationBanner message={callAlertMessage} onDismiss={() => setCallAlertMessage(null)} compact={isAppRoute} />
+      {isSiteRoute && <LandingPage demo={demo} session={session} navigate={navigate} playChime={playChime}
+        onOpenPricing={() => setIsPricingOpen(true)} handleOpenCompanySignup={handleOpenCompanySignup}
+        handleOpenDashboard={handleOpenDashboard} handleOpenProfessional={handleOpenProfessional} handleLogout={handleLogout} />}
+      {isAppRoute && <ClientAppPage onGoToLanding={() => navigate('/')} />}
+      {isCompanyRoute && <CompanyDashboardPage currentPath={currentPath} navigate={navigate} session={session}
+        businessData={businessData} onUpdateBusinessData={(data) => { if (data) setBusinessData(data); }}
+        onNotify={showToast} onReportDelay={demo.handleReportDelay} onLogout={handleLogout} onGoToSignup={handleOpenCompanySignup} />}
+      {isProfessionalRoute && <ProfessionalWorkspacePage onGoToSite={() => navigate('/')} onGoToClient={() => navigate('/app')} />}
+      {isCheckoutRoute && <CheckoutPage initialPlanName={checkoutPlan} initialBillingCycle={checkoutCycle}
+        pendingRegistrationData={pendingRegistrationData} onGoBack={() => navigate('/')}
+        onBusinessDataChange={setBusinessData} onRegistrationConsumed={() => setPendingRegistrationData(null)}
+        onComplete={() => navigate('/empresa/dashboard')} onPlayChime={playChime} onNotify={showToast} />}
+      <PricingModal isOpen={isPricingOpen} onClose={() => setIsPricingOpen(false)} onSelectPlan={(plan, cycle = 'monthly') => {
+        setIsPricingOpen(false);
+        setCheckoutPlan(plan.name);
+        setCheckoutCycle(cycle);
+        navigate('/checkout');
+      }} />
     </div>
   );
 }

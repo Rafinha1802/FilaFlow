@@ -2,7 +2,7 @@
 
 Comece pelo [ambiente local](ambiente-local.md) e pelas [jornadas](../produto/jornadas-e-status.md). Consulte [arquitetura](../arquitetura/arquitetura-atual.md) para localizar responsabilidades e [histórico](../historico/evolucao-do-projeto.md) para entender mudanças de escopo.
 
-A [organização do frontend](organizacao-do-frontend.md) explica os diretórios de páginas, componentes exclusivos e compartilhados, hooks e rotas introduzidos no checkpoint 6.1.
+A [organização do frontend](organizacao-do-frontend.md) explica os diretórios de páginas, componentes exclusivos e compartilhados, hooks e rotas introduzidos nos checkpoints 6.1 e 6.2, incluindo a localização dos componentes demonstrativos preservados.
 
 - Atualize a jornada quando mudar o comportamento percebido pelo usuário.
 - Atualize a arquitetura quando mudar um contrato, dependência ou fonte de estado.

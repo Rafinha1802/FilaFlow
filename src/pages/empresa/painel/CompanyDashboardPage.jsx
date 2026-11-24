@@ -1,6 +1,6 @@
 import React from 'react';
 import CompanyDashboard from '../../../components/exclusivos/empresa/painel/CompanyDashboard';
-import OperationalLogin from '../../../components/compartilhados/OperationalLogin';
+import CompanyLoginPage from '../login/CompanyLoginPage';
 import { useCompanyQueue } from '../../../hooks/useCompanyQueue';
 import { getToken } from '../../../services/api';
 import { COMPANY_TAB_PATHS, companyTabForPath } from '../../../router/routes';
@@ -9,7 +9,7 @@ export default function CompanyDashboardPage({
   currentPath, navigate, session, businessData, onUpdateBusinessData,
   onNotify, onReportDelay, onLogout, onGoToSignup,
 }) {
-  const { isAuthenticated, authCheckedPath, sessionError } = session;
+  const { isAuthenticated, authCheckedPath } = session;
   const {
     operationalContext, operationalQueue, operationalQueues, selectQueue,
     queueBusy, queueReady, canIssue, canAttend, queueError, queueActionError,
@@ -20,16 +20,8 @@ export default function CompanyDashboardPage({
   const handleOpenClient = () => navigate('/app');
   const handleOpenProfessional = () => navigate('/profissional');
   const handleSkipTicket = () => onNotify('O registro de ausência ainda não está integrado.');
-  const handleCompanyLogin = (user) => {
-    session.acceptUser(user);
-    navigate('/empresa/dashboard');
-  };
-
   if (authCheckedPath !== currentPath) return <p role="status">Verificando sessão...</p>;
-  if (!isAuthenticated) return (
-    <OperationalLogin initialError={sessionError} onLoginSuccess={handleCompanyLogin}
-      onGoToSignup={onGoToSignup} onCancel={() => navigate('/')} />
-  );
+  if (!isAuthenticated) return <CompanyLoginPage session={session} navigate={navigate} onGoToSignup={onGoToSignup} />;
   return (
     <CompanyDashboard
       key={operationalContext}

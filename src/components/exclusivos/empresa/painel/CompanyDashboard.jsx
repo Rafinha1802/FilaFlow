@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import PrecheckinReception from '../../../Company/PrecheckinReception';
+import ReceptionPage from '../../../../pages/empresa/recepcao/ReceptionPage';
 import CompanyProfileView from './CompanyProfileView';
 import { ShieldCheck, Stethoscope, Trash2, Mail, ArrowLeft } from 'lucide-react';
 import { getStoredProfessionals, saveProfessionals } from '../../../../services/authService';
@@ -700,7 +700,7 @@ export default function CompanyDashboard({
           TAB 0: RECEPÇÃO & CONVÊNIOS (CHECK-IN DE CHEGADA E GUIAS)
           ============================================================ */}
       {activeTab === 'reception' && (
-        <PrecheckinReception
+        <ReceptionPage
           queueId={selectedOperationalQueue?.id}
           canConfirm={canIssue}
           onConfirmed={(ticket) => showNotification(

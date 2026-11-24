@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
-import BrandLogo from '../Common/BrandLogo';
+import BrandLogo from './BrandLogo';
 import { loginApi } from '../../services/api';
 
 export default function OperationalLogin({

@@ -109,3 +109,13 @@ inicia a organização de páginas e componentes por público e uso.
 O build e os 61 testes JavaScript passaram. Em 24 de novembro de 2026,
 o responsável aprovou todos os pontos do roteiro manual na DEVFrontEnd.
 O próximo checkpoint é o 6.2, antes da validação integrada na Homolog.
+
+
+## Desenvolvimento do checkpoint 6.2
+
+A [organização das páginas da jornada](checkpoint-6-2-paginas-da-jornada.md)
+completa a distribuição das entradas por público e dos componentes por
+uso. Os componentes demonstrativos preservados foram identificados em
+subpastas próprias. O build e os 69 testes JavaScript passaram. Em 24 de
+novembro de 2026, o responsável aprovou o roteiro manual na DEVFrontEnd.
+O próximo passo é reunir as etapas 5 e 6 e validar o conjunto na Homolog.
